@@ -22,16 +22,16 @@
     "args",
     "cli"
   ],
-  "author": "KubeStellar",
+  "author": "hivecommons",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kubestellar/promptargs.git"
+    "url": "git+https://github.com/hivecommons/promptargs.git"
   },
   "bugs": {
-    "url": "https://github.com/kubestellar/promptargs/issues"
+    "url": "https://github.com/hivecommons/promptargs/issues"
   },
-  "homepage": "https://github.com/kubestellar/promptargs#readme",
+  "homepage": "https://github.com/hivecommons/promptargs#readme",
   "engines": {
     "node": ">=18"
   },
