@@ -60,7 +60,7 @@ Output: `✅ review: file=main.go  focus=correctness(default)  tone=concise(defa
 Every time promptargs is mentioned or a template is run, show the auto-detected variables inline:
 
 ```
-🏴‍☠️ promptargs env: branch=main  repo=my-project  org=kubestellar  user=Andy Anderson  date=2026-07-02
+🏴‍☠️ promptargs env: branch=main  repo=my-project  org=hivecommons  user=Andy Anderson  date=2026-07-02
 ```
 
 This gives the user immediate visibility into what values are pre-filled.

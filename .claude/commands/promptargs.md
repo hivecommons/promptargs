@@ -117,7 +117,7 @@ Auto-detected variables:
 
   {{branch}} = feat/auth-refactor
   {{repo}} = my-project
-  {{org}} = kubestellar
+  {{org}} = hivecommons
   {{diff}} = (not detected)
   {{pr}} = (not detected)
   {{user}} = Andy Anderson
