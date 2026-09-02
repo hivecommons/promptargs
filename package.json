@@ -1,5 +1,5 @@
 {
-  "name": "@kubestellar/promptargs",
+  "name": "@hivecommons/promptargs",
   "version": "0.6.0",
   "description": "Template arguments for AI prompts — variable substitution for Claude Code, Copilot, and more",
   "type": "module",

@@ -25,16 +25,14 @@ Works as a **CLI** and as a **skill** in Claude Code, Copilot, Goose, and Bob.
 ### CLI
 
 ```bash
-npm install -g @kubestellar/promptargs
+npm install -g @hivecommons/promptargs
 ```
 
 Or just run it without installing:
 
 ```bash
-npx @kubestellar/promptargs help
+npx @hivecommons/promptargs help
 ```
-
-> This repo moved to the `hivecommons` org; the npm package scope (`@kubestellar/...`) stays as-is for now — the scope migration is a coordinated follow-up.
 
 ### As a Slash Command / Skill
 
