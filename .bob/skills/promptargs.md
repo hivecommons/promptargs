@@ -32,7 +32,7 @@ promptargs env
 ## Install
 
 ```bash
-npm install -g @kubestellar/promptargs
+npm install -g @hivecommons/promptargs
 ```
 
 ## Template syntax

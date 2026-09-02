@@ -52,7 +52,7 @@ export function startUI(port = DEFAULT_PORT) {
         rawHtml = readFileSync(htmlPath, 'utf-8');
     }
     catch {
-        console.error('UI file not found. Reinstall @kubestellar/promptargs.');
+        console.error('UI file not found. Reinstall @hivecommons/promptargs.');
         process.exit(1);
     }
     const envVars = collectEnvVars();
