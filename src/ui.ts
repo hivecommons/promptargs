@@ -69,15 +69,31 @@ export function startUI(port = DEFAULT_PORT): void {
   }
 
   const envVars = collectEnvVars();
-  const envScript = `<script>window.__PROMPTARGS_ENV__ = ${JSON.stringify(envVars)};</script>`;
+  // Escape "<" so env values cannot break out of the script tag (e.g. "</script>").
+  const envJson = JSON.stringify(envVars).replace(/</g, '\\u003c');
+  const envScript = `<script>window.__PROMPTARGS_ENV__ = ${envJson};</script>`;
   const html = rawHtml.replace('<script>', envScript + '\n<script>');
 
-  const server = createServer((_req, res) => {
+  const ALLOWED_HOSTS = new Set([
+    `localhost:${port}`,
+    `127.0.0.1:${port}`,
+    `[::1]:${port}`,
+  ]);
+
+  const server = createServer((req, res) => {
+    // Reject non-local Host headers to block DNS-rebinding reads of env data.
+    if (!req.headers.host || !ALLOWED_HOSTS.has(req.headers.host)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Forbidden');
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
   });
 
-  server.listen(port, () => {
+  // Bind loopback only: the page embeds environment variables and must never
+  // be reachable from other machines on the network.
+  server.listen(port, '127.0.0.1', () => {
     const url = `http://localhost:${port}`;
     console.log(`promptargs builder running at ${url}`);
     console.log('Press Ctrl+C to stop.\n');
