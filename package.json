@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc && cp src/ui.html dist/ui.html",
     "dev": "tsc --watch",
-    "test": "node --test dist/**/*.test.js",
+    "test": "node --test dist/",
     "lint": "tsc --noEmit"
   },
   "keywords": [
