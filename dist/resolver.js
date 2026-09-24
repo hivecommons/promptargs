@@ -3,8 +3,8 @@
  * Handles array expansion (comma-separated, globs, @file, stdin).
  */
 import { createInterface } from 'node:readline';
-import { readFileSync, existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { autodetect } from './autodetect.js';
 function expandArrayValue(raw) {
     // @file — read lines from file
@@ -17,25 +17,64 @@ function expandArrayValue(raw) {
     // - (stdin) handled at CLI level before this
     if (raw === '-')
         return [raw];
-    // Glob pattern
+    // Glob pattern — expanded in-process (never via a shell) to avoid
+    // command injection through crafted values.
     if (raw.includes('*') || raw.includes('?')) {
-        try {
-            const files = execSync(`ls -1 ${raw}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] })
-                .trim()
-                .split('\n')
-                .filter(Boolean);
-            if (files.length > 0)
-                return files;
-        }
-        catch {
-            // Not a valid glob, treat as literal
-        }
+        const files = expandGlob(raw);
+        if (files.length > 0)
+            return files;
+        // Not a valid glob, treat as literal
     }
     // Comma-separated
     if (raw.includes(',')) {
         return raw.split(',').map(s => s.trim()).filter(Boolean);
     }
     return [raw];
+}
+function segmentToRegExp(segment) {
+    const escaped = segment
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*/g, '[^/]*')
+        .replace(/\?/g, '.');
+    return new RegExp(`^${escaped}$`);
+}
+function expandGlob(pattern) {
+    const absolute = pattern.startsWith('/');
+    const segments = pattern.split('/').filter(Boolean);
+    let bases = [absolute ? '/' : ''];
+    for (const segment of segments) {
+        const next = [];
+        if (!segment.includes('*') && !segment.includes('?')) {
+            for (const base of bases) {
+                const p = base === '' ? segment : join(base, segment);
+                if (existsSync(p))
+                    next.push(p);
+            }
+        }
+        else {
+            const re = segmentToRegExp(segment);
+            const matchHidden = segment.startsWith('.');
+            for (const base of bases) {
+                let entries;
+                try {
+                    entries = readdirSync(base === '' ? '.' : base);
+                }
+                catch {
+                    continue;
+                }
+                for (const entry of entries) {
+                    if (!matchHidden && entry.startsWith('.'))
+                        continue;
+                    if (re.test(entry))
+                        next.push(base === '' ? entry : join(base, entry));
+                }
+            }
+        }
+        bases = next;
+        if (bases.length === 0)
+            break;
+    }
+    return bases.sort();
 }
 function cartesian(arrays) {
     if (arrays.length === 0)
