@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   ai-fix:
-    uses: hivecommons/infra/.github/workflows/reusable-ai-fix.yml@main
+    uses: hivecommons/infra/.github/workflows/reusable-ai-fix.yml@1416d68a1fd5bd475b96c8ddfcffc8539bfa6b08
     with:
       issue_number: ${{ github.event.inputs.issue_number || '' }}
     secrets:
