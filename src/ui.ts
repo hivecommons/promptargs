@@ -1,4 +1,4 @@
-import { createServer } from 'node:http';
+import { createServer, type Server } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,21 +22,21 @@ const SKIP_ENV_EXACT = new Set([
   'MallocNanoZone', 'ORIGINAL_XDG_CURRENT_DESKTOP', 'GIT_ASKPASS',
 ]);
 
-function shouldSkipEnv(key: string): boolean {
+export function shouldSkipEnv(key: string): boolean {
   if (SKIP_ENV_EXACT.has(key)) return true;
   return SKIP_ENV_PREFIXES.some(p => key.startsWith(p));
 }
 
-function truncateValue(val: string, max: number): string {
+export function truncateValue(val: string, max: number): string {
   return val.length > max ? val.slice(0, max) + '...' : val;
 }
 
-interface EnvData {
+export interface EnvData {
   git: Record<string, string>;
   terminal: Record<string, string>;
 }
 
-function collectEnvVars(): EnvData {
+export function collectEnvVars(): EnvData {
   const git: Record<string, string> = {};
   for (const name of AUTODETECT_VARS) {
     const value = autodetect(name);
@@ -56,7 +56,18 @@ function collectEnvVars(): EnvData {
   return { git, terminal };
 }
 
-export function startUI(port = DEFAULT_PORT): void {
+export interface StartUIOptions {
+  openBrowser?: boolean;
+}
+
+export function buildUIHtml(rawHtml: string, envVars: EnvData): string {
+  // Escape "<" so env values cannot break out of the script tag (e.g. "</script>").
+  const envJson = JSON.stringify(envVars).replace(/</g, '\\u003c');
+  const envScript = `<script>window.__PROMPTARGS_ENV__ = ${envJson};</script>`;
+  return rawHtml.replace('<script>', envScript + '\n<script>');
+}
+
+export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Server {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const htmlPath = join(__dirname, 'ui.html');
   let rawHtml: string;
@@ -68,11 +79,7 @@ export function startUI(port = DEFAULT_PORT): void {
     process.exit(1);
   }
 
-  const envVars = collectEnvVars();
-  // Escape "<" so env values cannot break out of the script tag (e.g. "</script>").
-  const envJson = JSON.stringify(envVars).replace(/</g, '\\u003c');
-  const envScript = `<script>window.__PROMPTARGS_ENV__ = ${envJson};</script>`;
-  const html = rawHtml.replace('<script>', envScript + '\n<script>');
+  const html = buildUIHtml(rawHtml, collectEnvVars());
 
   const ALLOWED_HOSTS = new Set([
     `localhost:${port}`,
@@ -98,13 +105,15 @@ export function startUI(port = DEFAULT_PORT): void {
     console.log(`promptargs builder running at ${url}`);
     console.log('Press Ctrl+C to stop.\n');
 
-    setTimeout(() => {
-      import('node:child_process').then(({ exec }) => {
-        const cmd = process.platform === 'darwin' ? 'open' :
-                    process.platform === 'win32' ? 'start' : 'xdg-open';
-        exec(`${cmd} ${url}`);
-      });
-    }, OPEN_DELAY_MS);
+    if (options.openBrowser ?? true) {
+      setTimeout(() => {
+        import('node:child_process').then(({ exec }) => {
+          const cmd = process.platform === 'darwin' ? 'open' :
+                      process.platform === 'win32' ? 'start' : 'xdg-open';
+          exec(`${cmd} ${url}`);
+        });
+      }, OPEN_DELAY_MS);
+    }
   });
 
   server.on('error', (err: NodeJS.ErrnoException) => {
@@ -114,4 +123,6 @@ export function startUI(port = DEFAULT_PORT): void {
     }
     throw err;
   });
+
+  return server;
 }
