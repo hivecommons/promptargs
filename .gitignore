@@ -1,3 +1,10 @@
 node_modules/
 *.tsbuildinfo
 .prompts/
+
+# OSPS baseline: local secrets and generated dependencies
+.env
+.env.*
+*.env
+*.pem
+*.key
