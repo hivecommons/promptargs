@@ -18,15 +18,15 @@ const SKIP_ENV_EXACT = new Set([
     'TERM_PROGRAM_VERSION', 'TERM_SESSION_ID', 'Apple_PubSub_Socket_Render',
     'MallocNanoZone', 'ORIGINAL_XDG_CURRENT_DESKTOP', 'GIT_ASKPASS',
 ]);
-function shouldSkipEnv(key) {
+export function shouldSkipEnv(key) {
     if (SKIP_ENV_EXACT.has(key))
         return true;
     return SKIP_ENV_PREFIXES.some(p => key.startsWith(p));
 }
-function truncateValue(val, max) {
+export function truncateValue(val, max) {
     return val.length > max ? val.slice(0, max) + '...' : val;
 }
-function collectEnvVars() {
+export function collectEnvVars() {
     const git = {};
     for (const name of AUTODETECT_VARS) {
         const value = autodetect(name);
@@ -44,7 +44,13 @@ function collectEnvVars() {
     }
     return { git, terminal };
 }
-export function startUI(port = DEFAULT_PORT) {
+export function buildUIHtml(rawHtml, envVars) {
+    // Escape "<" so env values cannot break out of the script tag (e.g. "</script>").
+    const envJson = JSON.stringify(envVars).replace(/</g, '\\u003c');
+    const envScript = `<script>window.__PROMPTARGS_ENV__ = ${envJson};</script>`;
+    return rawHtml.replace('<script>', envScript + '\n<script>');
+}
+export function startUI(port = DEFAULT_PORT, options = {}) {
     const __dirname = dirname(fileURLToPath(import.meta.url));
     const htmlPath = join(__dirname, 'ui.html');
     let rawHtml;
@@ -55,11 +61,7 @@ export function startUI(port = DEFAULT_PORT) {
         console.error('UI file not found. Reinstall @hivecommons/promptargs.');
         process.exit(1);
     }
-    const envVars = collectEnvVars();
-    // Escape "<" so env values cannot break out of the script tag (e.g. "</script>").
-    const envJson = JSON.stringify(envVars).replace(/</g, '\\u003c');
-    const envScript = `<script>window.__PROMPTARGS_ENV__ = ${envJson};</script>`;
-    const html = rawHtml.replace('<script>', envScript + '\n<script>');
+    const html = buildUIHtml(rawHtml, collectEnvVars());
     const ALLOWED_HOSTS = new Set([
         `localhost:${port}`,
         `127.0.0.1:${port}`,
@@ -81,13 +83,15 @@ export function startUI(port = DEFAULT_PORT) {
         const url = `http://localhost:${port}`;
         console.log(`promptargs builder running at ${url}`);
         console.log('Press Ctrl+C to stop.\n');
-        setTimeout(() => {
-            import('node:child_process').then(({ exec }) => {
-                const cmd = process.platform === 'darwin' ? 'open' :
-                    process.platform === 'win32' ? 'start' : 'xdg-open';
-                exec(`${cmd} ${url}`);
-            });
-        }, OPEN_DELAY_MS);
+        if (options.openBrowser ?? true) {
+            setTimeout(() => {
+                import('node:child_process').then(({ exec }) => {
+                    const cmd = process.platform === 'darwin' ? 'open' :
+                        process.platform === 'win32' ? 'start' : 'xdg-open';
+                    exec(`${cmd} ${url}`);
+                });
+            }, OPEN_DELAY_MS);
+        }
     });
     server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
@@ -96,5 +100,6 @@ export function startUI(port = DEFAULT_PORT) {
         }
         throw err;
     });
+    return server;
 }
 //# sourceMappingURL=ui.js.map
