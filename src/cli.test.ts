@@ -265,3 +265,22 @@ test('@file array syntax reads one value per line', () => {
   assert.match(runs[1], /Hi Bob/);
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
+
+test('ui subcommand parses --port and surfaces server errors', async () => {
+  // Occupy a port so `promptargs ui` fails fast and deterministically —
+  // this exercises the ui dispatch path without leaving a server running.
+  const { createServer } = await import('node:net');
+  const blocker = createServer();
+  await new Promise<void>(resolve => blocker.listen(0, '127.0.0.1', resolve));
+  const { port } = blocker.address() as { port: number };
+
+  try {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['ui', `--port=${port}`], cwd, home);
+    assert.strictEqual(res.status, 1);
+    assert.match(res.stderr, new RegExp(`Port ${port} is in use`));
+    rmSync(dirname(cwd), { recursive: true, force: true });
+  } finally {
+    await new Promise(resolve => blocker.close(resolve));
+  }
+});

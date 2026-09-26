@@ -2,6 +2,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 import { resolve } from './resolver.js';
 // Variable names are deliberately obscure so the autodetect env-var
 // fallback never picks them up from the test environment.
@@ -105,6 +106,48 @@ describe('resolve glob expansion', () => {
         const pattern = join(tmp, 'nope', '*.zzz');
         const r = await resolve([v('pa_f')], { pa_f: pattern }, false);
         assert.strictEqual(r.values.pa_f, pattern);
+    });
+    it('survives an unreadable glob base (file used as directory)', async () => {
+        // "plain-file/*.md": the base exists but readdirSync throws ENOTDIR;
+        // the expander must skip it instead of crashing, leaving a literal.
+        const file = join(tmp, 'plain-file');
+        writeFileSync(file, 'not a dir');
+        const pattern = join(file, '*.md');
+        const r = await resolve([v('pa_f')], { pa_f: pattern }, false);
+        assert.strictEqual(r.values.pa_f, pattern);
+        assert.strictEqual(r.iterations.length, 1);
+    });
+});
+describe('resolve interactive prompting', () => {
+    // resolve()'s ask() reads from process.stdin via readline; swap in a
+    // PassThrough so answers can be scripted without a child process.
+    async function withStdin(input, fn) {
+        const fake = new PassThrough();
+        const desc = Object.getOwnPropertyDescriptor(process, 'stdin');
+        Object.defineProperty(process, 'stdin', { value: fake, configurable: true });
+        try {
+            fake.write(input);
+            return await fn();
+        }
+        finally {
+            Object.defineProperty(process, 'stdin', desc);
+        }
+    }
+    it('asks for missing values and trims the answer', async () => {
+        const r = await withStdin('  spaced answer  \n', () => resolve([v('pa_ask')], {}, true));
+        assert.strictEqual(r.values.pa_ask, 'spaced answer');
+        assert.deepStrictEqual(r.iterations, [{ pa_ask: 'spaced answer' }]);
+    });
+    it('expands a comma-separated interactive answer into iterations', async () => {
+        const r = await withStdin('one,two,three\n', () => resolve([v('pa_ask')], {}, true));
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_ask), ['one', 'two', 'three']);
+    });
+    it('prefers flags and defaults over prompting', async () => {
+        // A sentinel answer is queued: if resolve prompted for either var it
+        // would consume it and the assertions below would fail.
+        const r = await withStdin('SENTINEL_NOT_CONSUMED\n', () => resolve([v('pa_flag'), v('pa_dflt', 'd')], { pa_flag: 'f' }, true));
+        assert.strictEqual(r.values.pa_flag, 'f');
+        assert.strictEqual(r.values.pa_dflt, 'd');
     });
 });
 //# sourceMappingURL=resolver.test.js.map
