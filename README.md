@@ -284,9 +284,11 @@ Common useful env vars: `NODE_ENV`, `AWS_REGION`, `DATABASE_URL`, `GITHUB_TOKEN`
 You can always override any auto-detected value with a flag. The order is:
 
 1. `--flag=value` (explicit, always wins)
-2. Interactive prompt (if no flag and not `--no-interactive`)
-3. Auto-detect from environment
-4. Template default (`{{name=fallback}}`)
+2. Auto-detect from environment
+3. Template default (`{{name=fallback}}`)
+4. Interactive prompt (only if still unfilled and not `--no-interactive`)
+
+Reserved flag names: `--no-interactive`, `--cross`, `--json`, and `--status` control the CLI itself and never fill template variables of the same name — a `{{json}}` or `{{status}}` variable falls through to auto-detect, its default, or the interactive prompt.
 
 ---
 

@@ -219,4 +219,29 @@ test('@file array syntax reads one value per line', () => {
     assert.match(runs[1], /Hi Bob/);
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
+test('reserved control flags never fill same-named template variables', () => {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['Mode {{cross=zip}} status {{status=ok}}', '--cross', '--status', '--no-interactive'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    // --status wins as a control flag: output is the status line, with both
+    // variables resolved from their template defaults, not from "true".
+    assert.match(res.stdout, /cross=zip/);
+    assert.match(res.stdout, /status=ok/);
+    assert.doesNotMatch(res.stdout, /=true/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('--json controls output format without filling {{json}}', () => {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['Output as {{json=yaml}}', '--json', '--no-interactive'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    assert.strictEqual(JSON.parse(res.stdout), 'Output as yaml');
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('help does not advertise the unimplemented --parallel flag', () => {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['help'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    assert.doesNotMatch(res.stdout, /--parallel/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 //# sourceMappingURL=cli.test.js.map

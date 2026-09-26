@@ -36,9 +36,11 @@ Usage:
 Flags:
   --no-interactive    Skip interactive prompts (use defaults/auto only)
   --cross             Cross-product mode: all combinations of array values
-  --parallel          Run array iterations in parallel (print all at once)
   --json              Output as JSON instead of plain text
   --status            Print status line only (for IDE integration)
+
+Reserved flag names (never fill template variables):
+  no-interactive, cross, json, status
 
 Array values:
   --file=a.go,b.go    Comma-separated → one run per value
@@ -136,7 +138,7 @@ async function main() {
     return;
   }
 
-  const { iterations } = await resolve(vars, flags, interactive, cross);
+  const { iterations } = await resolve(vars, varFlags(flags), interactive, cross);
 
   if (statusOnly) {
     const status = renderStatus(name, vars, iterations[0]);
@@ -166,6 +168,18 @@ async function main() {
   } else {
     console.log(results.join('\n---\n'));
   }
+}
+
+// Control flags that steer the CLI itself; they must never be treated as
+// template variable values (e.g. --json filling {{json}} with "true").
+const RESERVED_FLAGS = new Set(['no-interactive', 'cross', 'json', 'status']);
+
+function varFlags(flags: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(flags)) {
+    if (!RESERVED_FLAGS.has(key)) out[key] = value;
+  }
+  return out;
 }
 
 function parseFlags(args: string[]): Record<string, string> {
