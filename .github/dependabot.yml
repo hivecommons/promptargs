@@ -7,6 +7,11 @@ updates:
     groups:
       npm-all:
         patterns: ["*"]
+    ignore:
+      # TypeScript major bumps change dist/*.js.map output; Dependabot cannot
+      # run `npm run build`, so they always fail the CI dist-sync gate (see #50).
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
