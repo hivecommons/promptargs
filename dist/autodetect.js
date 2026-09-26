@@ -43,11 +43,22 @@ const DETECTORS = {
     date: () => new Date().toISOString().split('T')[0],
 };
 export const AUTODETECT_VARS = Object.keys(DETECTORS);
+// Env var names that look like credentials. The implicit process.env fallback
+// must never expand these into prompt output (templates are repo-controlled),
+// and the builder UI must never embed them in the served page.
+const SENSITIVE_ENV_PATTERN = /TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|API_?KEY|ACCESS_KEY|PRIVATE_KEY|BEARER|COOKIE|(^|_)AUTH(_|$)/i;
+export function isSensitiveEnvName(name) {
+    return SENSITIVE_ENV_PATTERN.test(name);
+}
 export function autodetect(varName) {
     const detector = DETECTORS[varName];
     if (detector)
         return detector();
-    // Fall back to terminal environment variables
+    // Fall back to terminal environment variables — but never implicitly expand
+    // credential-looking names ({{GITHUB_TOKEN}} in a repo template must not
+    // exfiltrate secrets into the generated prompt). Explicit --flags still work.
+    if (isSensitiveEnvName(varName))
+        return undefined;
     return process.env[varName] ?? undefined;
 }
 export function autodetectAll(varNames) {
