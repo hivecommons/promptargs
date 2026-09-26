@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { get } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -141,6 +141,8 @@ test('startUI exits 1 with a reinstall hint when ui.html is missing', () => {
   try {
     copyFileSync(join(__dirname, 'ui.js'), join(dir, 'ui.js'));
     copyFileSync(join(__dirname, 'autodetect.js'), join(dir, 'autodetect.js'));
+    // Node 18 has no ESM syntax detection; mark the temp dir as ESM.
+    writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
     const res = runStartUI(join(dir, 'ui.js'), 0);
     assert.strictEqual(res.status, 1);
     assert.match(res.stderr, /UI file not found\. Reinstall @hivecommons\/promptargs\./);
