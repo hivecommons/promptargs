@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { get } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
+import { spawnSync } from 'node:child_process';
+import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildUIHtml, collectEnvVars, shouldSkipEnv, startUI, truncateValue, } from './ui.js';
 test('shouldSkipEnv filters noisy shell and tooling variables', () => {
     assert.equal(shouldSkipEnv('HOME'), true);
@@ -84,4 +90,47 @@ function request(port, host) {
         req.on('error', reject);
     });
 }
+// startUI exits the process on fatal errors, so those branches are
+// exercised in a child node process rather than in-process.
+const __dirname = dirname(fileURLToPath(import.meta.url));
+function runStartUI(uiModulePath, port) {
+    const script = `
+    import(${JSON.stringify(pathToFileURL(uiModulePath).href)})
+      .then(m => m.startUI(${port}, { openBrowser: false }));
+  `;
+    const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+        encoding: 'utf-8',
+        timeout: 15000,
+    });
+    return { status: res.status, stderr: res.stderr };
+}
+test('startUI exits 1 with a port hint when the port is in use', async () => {
+    const blocker = createNetServer();
+    await new Promise(resolve => blocker.listen(0, '127.0.0.1', resolve));
+    const { port } = blocker.address();
+    try {
+        const res = runStartUI(join(__dirname, 'ui.js'), port);
+        assert.strictEqual(res.status, 1);
+        assert.match(res.stderr, new RegExp(`Port ${port} is in use`));
+        assert.match(res.stderr, new RegExp(`--port=${port + 1}`));
+    }
+    finally {
+        await new Promise(resolve => blocker.close(resolve));
+    }
+});
+test('startUI exits 1 with a reinstall hint when ui.html is missing', () => {
+    // Copy the compiled module (and its one local dep) somewhere without
+    // ui.html so the readFileSync catch branch runs.
+    const dir = mkdtempSync(join(tmpdir(), 'promptargs-ui-test-'));
+    try {
+        copyFileSync(join(__dirname, 'ui.js'), join(dir, 'ui.js'));
+        copyFileSync(join(__dirname, 'autodetect.js'), join(dir, 'autodetect.js'));
+        const res = runStartUI(join(dir, 'ui.js'), 0);
+        assert.strictEqual(res.status, 1);
+        assert.match(res.stderr, /UI file not found\. Reinstall @hivecommons\/promptargs\./);
+    }
+    finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
 //# sourceMappingURL=ui.test.js.map
