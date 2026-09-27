@@ -2,6 +2,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 import { resolve } from './resolver.js';
 // Variable names are deliberately obscure so the autodetect env-var
 // fallback never picks them up from the test environment.
@@ -105,6 +106,53 @@ describe('resolve glob expansion', () => {
         const pattern = join(tmp, 'nope', '*.zzz');
         const r = await resolve([v('pa_f')], { pa_f: pattern }, false);
         assert.strictEqual(r.values.pa_f, pattern);
+    });
+    it('treats a glob whose base is a file (readdir fails) as a literal', async () => {
+        // The base segment exists, so it survives the literal-segment step, but
+        // readdirSync on a regular file throws ENOTDIR — exercising the catch.
+        const file = join(tmp, 'not-a-dir');
+        writeFileSync(file, '');
+        const pattern = join(file, '*.txt');
+        const r = await resolve([v('pa_f')], { pa_f: pattern }, false);
+        assert.strictEqual(r.values.pa_f, pattern);
+        assert.strictEqual(r.iterations.length, 1);
+    });
+});
+describe('resolve interactive ask', () => {
+    // ask() builds its readline interface from process.stdin at call time, so
+    // swapping process.stdin for a scripted stream drives the prompt.
+    function withStdin(lines, fn) {
+        const original = Object.getOwnPropertyDescriptor(process, 'stdin');
+        const fake = new PassThrough();
+        Object.defineProperty(process, 'stdin', { value: fake, configurable: true });
+        queueMicrotask(() => {
+            for (const line of lines)
+                fake.write(line + '\n');
+            fake.end();
+        });
+        return fn().finally(() => {
+            Object.defineProperty(process, 'stdin', original);
+        });
+    }
+    it('asks for a missing value and trims the answer', async () => {
+        const r = await withStdin(['  typed value  '], () => resolve([v('pa_ask')], {}, true));
+        assert.strictEqual(r.values.pa_ask, 'typed value');
+        assert.deepStrictEqual(r.iterations, [{ pa_ask: 'typed value' }]);
+    });
+    it('expands a comma-separated interactive answer into iterations', async () => {
+        const r = await withStdin(['one, two'], () => resolve([v('pa_ask')], {}, true));
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_ask), ['one', 'two']);
+    });
+    it('asks for each unresolved variable in order', async () => {
+        const r = await withStdin(['first', 'second'], () => resolve([v('pa_q1'), v('pa_q2')], {}, true));
+        assert.strictEqual(r.values.pa_q1, 'first');
+        assert.strictEqual(r.values.pa_q2, 'second');
+    });
+    it('does not ask when a flag, default, or non-interactive mode applies', async () => {
+        // No stdin swap here: if resolve tried to read, the test would hang.
+        const r = await resolve([v('pa_flagged'), v('pa_dflt', 'd')], { pa_flagged: 'f' }, false);
+        assert.strictEqual(r.values.pa_flagged, 'f');
+        assert.strictEqual(r.values.pa_dflt, 'd');
     });
 });
 //# sourceMappingURL=resolver.test.js.map
