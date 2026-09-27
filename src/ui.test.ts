@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { get } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { copyFileSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   buildUIHtml,
   collectEnvVars,
@@ -96,3 +100,68 @@ function request(port: number, host: string): Promise<{ statusCode: number; body
     req.on('error', reject);
   });
 }
+
+test('startUI reports EADDRINUSE with guidance and exits 1', async (t) => {
+  const server = startUI(0, { openBrowser: false });
+  await onceListening(server);
+
+  const exitError = new Error('exit-called');
+  const exitCodes: unknown[] = [];
+  t.mock.method(process, 'exit', (((code?: number) => {
+    exitCodes.push(code);
+    throw exitError; // real process.exit never returns; without this the handler would fall through
+  }) as unknown) as typeof process.exit);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+
+  try {
+    const err = Object.assign(new Error('bind failed'), { code: 'EADDRINUSE' });
+    assert.throws(() => server.emit('error', err), /exit-called/);
+    assert.deepStrictEqual(exitCodes, [1]);
+    // The message names the requested port (0 here) and suggests the next one.
+    assert.match(errors.join('\n'), /Port 0 is in use\. Try: promptargs ui --port=1/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test('startUI rethrows server errors that are not EADDRINUSE', async () => {
+  const server = startUI(0, { openBrowser: false });
+  await onceListening(server);
+  try {
+    const err = Object.assign(new Error('boom'), { code: 'EPERM' });
+    assert.throws(() => server.emit('error', err), /boom/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test('startUI exits with reinstall guidance when ui.html is missing', async (t) => {
+  // Copy the compiled modules (but not ui.html) so the readFileSync fails.
+  const here = dirname(fileURLToPath(import.meta.url));
+  const dir = mkdtempSync(join(tmpdir(), 'promptargs-ui-missing-'));
+  for (const entry of readdirSync(here)) {
+    if (entry.endsWith('.js') && !entry.endsWith('.test.js')) {
+      copyFileSync(join(here, entry), join(dir, entry));
+    }
+  }
+
+  const exitError = new Error('exit-called');
+  t.mock.method(process, 'exit', ((() => {
+    throw exitError;
+  }) as unknown) as typeof process.exit);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+
+  try {
+    const mod = await import(pathToFileURL(join(dir, 'ui.js')).href) as typeof import('./ui.js');
+    assert.throws(() => mod.startUI(0, { openBrowser: false }), /exit-called/);
+    assert.match(errors.join('\n'), /UI file not found\. Reinstall @hivecommons\/promptargs\./);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

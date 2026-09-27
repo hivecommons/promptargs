@@ -219,4 +219,56 @@ test('@file array syntax reads one value per line', () => {
     assert.match(runs[1], /Hi Bob/);
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
+test('ui subcommand exits 1 with guidance when the port is already in use', async () => {
+    const { cwd, home } = makeDirs();
+    const { createServer } = await import('node:net');
+    const blocker = createServer();
+    await new Promise((resolve, reject) => {
+        blocker.once('error', reject);
+        blocker.listen(0, '127.0.0.1', resolve);
+    });
+    const { port } = blocker.address();
+    try {
+        const res = runCli(['ui', `--port=${port}`], cwd, home);
+        assert.strictEqual(res.status, 1);
+        assert.match(res.stderr, new RegExp(`Port ${port} is in use`));
+        assert.match(res.stderr, new RegExp(`--port=${port + 1}`));
+    }
+    finally {
+        await new Promise(resolve => blocker.close(() => resolve()));
+        rmSync(dirname(cwd), { recursive: true, force: true });
+    }
+});
+test('ui subcommand with a non-numeric port fails via the top-level error handler', () => {
+    const { cwd, home } = makeDirs();
+    // Number('nope') is NaN; server.listen(NaN) throws synchronously, which must
+    // surface through main().catch as a message + exit 1, not an unhandled crash.
+    const res = runCli(['ui', '--port=nope'], cwd, home);
+    assert.strictEqual(res.status, 1);
+    assert.match(res.stderr, /port/i);
+    assert.doesNotMatch(res.stderr, /at .*cli\.js/); // message only, no stack trace
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('env truncates long diff previews to 60 chars', () => {
+    const { cwd, home } = makeDirs();
+    const git = (...gitArgs) => spawnSync('git', gitArgs, { cwd, env: { ...process.env, HOME: home } });
+    git('init', '-q');
+    git('config', 'user.email', 'test@example.com');
+    git('config', 'user.name', 'Test');
+    writeFileSync(join(cwd, 'file.txt'), 'original line\n');
+    git('add', '.');
+    git('commit', '-q', '-m', 'init');
+    writeFileSync(join(cwd, 'file.txt'), `changed: ${'x'.repeat(200)}\n`);
+    const res = runCli(['env'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    const diffStart = res.stdout.indexOf('{{diff}}');
+    assert.ok(diffStart >= 0, 'expected a {{diff}} entry in env output');
+    // The preview may span lines; grab everything until the next variable entry.
+    const nextVar = res.stdout.indexOf('{{', diffStart + '{{diff}}'.length);
+    const diffSegment = res.stdout.slice(diffStart, nextVar === -1 ? undefined : nextVar);
+    assert.match(diffSegment, /\.\.\./);
+    // preview must not include the full 200-char run of x's
+    assert.doesNotMatch(diffSegment, /x{100}/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 //# sourceMappingURL=cli.test.js.map
