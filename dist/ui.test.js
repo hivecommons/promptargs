@@ -135,4 +135,39 @@ test('startUI exits 1 with a reinstall hint when ui.html is missing', () => {
         rmSync(dir, { recursive: true, force: true });
     }
 });
+test('startUI schedules a browser open by default', () => {
+    // openBrowser defaults to true; run in a child with an empty PATH so the
+    // platform open command is a harmless shell failure, never a real browser.
+    const script = `
+    import(${JSON.stringify(pathToFileURL(join(__dirname, 'ui.js')).href)})
+      .then(m => {
+        const server = m.startUI(0);
+        setTimeout(() => server.close(() => process.exit(0)), 900);
+      });
+  `;
+    const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+        encoding: 'utf-8',
+        timeout: 15000,
+        env: { ...process.env, PATH: '' },
+    });
+    assert.strictEqual(res.status, 0);
+    assert.match(res.stdout, /promptargs builder running at http:\/\/localhost:\d+/);
+});
+test('startUI rethrows non-EADDRINUSE server errors', async (t) => {
+    // Only run where binding port 1 really fails with EACCES; containers with
+    // ip_unprivileged_port_start=0 (or root) can bind it and would hang instead.
+    const probeErr = await new Promise(resolve => {
+        const probe = createNetServer();
+        probe.once('error', err => resolve(err));
+        probe.listen(1, '127.0.0.1', () => probe.close(() => resolve(null)));
+    });
+    if (probeErr?.code !== 'EACCES') {
+        t.skip('binding port 1 did not fail with EACCES');
+        return;
+    }
+    const res = runStartUI(join(__dirname, 'ui.js'), 1);
+    assert.notStrictEqual(res.status, 0);
+    assert.match(res.stderr, /EACCES/);
+    assert.doesNotMatch(res.stderr, /is in use/);
+});
 //# sourceMappingURL=ui.test.js.map

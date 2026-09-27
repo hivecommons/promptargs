@@ -237,4 +237,29 @@ test('ui subcommand parses --port and surfaces server errors', async () => {
         await new Promise(resolve => blocker.close(resolve));
     }
 });
+test('env truncates a long staged diff to a preview with ellipsis', () => {
+    const { cwd, home } = makeDirs();
+    const git = (gitArgs) => spawnSync('git', gitArgs, { cwd, encoding: 'utf-8', env: { ...process.env, HOME: home } });
+    git(['init', '-q']);
+    writeFileSync(join(cwd, 'big.txt'), 'x'.repeat(300) + '\n');
+    git(['add', 'big.txt']);
+    const res = runCli(['env'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    // The diff was detected (green, not "(not detected)") …
+    assert.match(res.stdout, /\x1b\[32m\{\{diff\}\}\x1b\[0m = diff --git/);
+    // … and truncated: the 300-char payload line never appears, the ellipsis does.
+    assert.ok(!res.stdout.includes('x'.repeat(100)), 'full diff body leaked into preview');
+    assert.match(res.stdout, /\.\.\./);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('template read errors reach the top-level handler and exit 1', () => {
+    const { cwd, home } = makeDirs();
+    // A directory named like a template makes readFileSync throw EISDIR,
+    // which propagates through main() to the final .catch handler.
+    mkdirSync(join(cwd, '.prompts', 'broken.md'), { recursive: true });
+    const res = runCli(['show', 'broken'], cwd, home);
+    assert.strictEqual(res.status, 1);
+    assert.match(res.stderr, /EISDIR/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 //# sourceMappingURL=cli.test.js.map
