@@ -22,6 +22,8 @@ npm test
 
 `npm run build` compiles TypeScript into `dist/` and copies the UI HTML. Keep `dist/` in sync when changing `src/` because the package publishes compiled files.
 
+`npm run test:coverage` (Node >= 22.8) runs the same suite with coverage thresholds enforced; use it to check that new code does not drop coverage below the gate.
+
 ## Pull requests
 
 - Work on a feature branch; do not push directly to `main`.
