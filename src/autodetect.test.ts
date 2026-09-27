@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { execSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { autodetect, autodetectAll, AUTODETECT_VARS } from './autodetect.js';
+import { autodetect, autodetectAll, isSensitiveEnvName, AUTODETECT_VARS } from './autodetect.js';
 
 // git-backed detectors read the process cwd, so run them inside a scratch
 // repo with a known origin remote (each test file is its own process).
@@ -73,6 +73,37 @@ describe('environment fallback', () => {
 
   it('returns undefined for unknown names not in the environment', () => {
     assert.strictEqual(autodetect('pa_definitely_not_set'), undefined);
+  });
+
+  it('never expands credential-looking env vars', () => {
+    process.env.PA_TEST_TOKEN = 'sekrit';
+    process.env.PA_TEST_API_KEY = 'sekrit';
+    try {
+      assert.strictEqual(autodetect('PA_TEST_TOKEN'), undefined);
+      assert.strictEqual(autodetect('PA_TEST_API_KEY'), undefined);
+    } finally {
+      delete process.env.PA_TEST_TOKEN;
+      delete process.env.PA_TEST_API_KEY;
+    }
+  });
+});
+
+describe('isSensitiveEnvName', () => {
+  it('flags credential-looking names', () => {
+    for (const name of [
+      'GITHUB_TOKEN', 'GH_TOKEN', 'NPM_TOKEN', 'MY_SECRET', 'DB_PASSWORD',
+      'PGPASSWD', 'AWS_SECRET_ACCESS_KEY', 'OPENAI_API_KEY', 'APIKEY',
+      'GOOGLE_APPLICATION_CREDENTIALS', 'SSH_PRIVATE_KEY', 'AUTH_HEADER',
+      'X_AUTH', 'SESSION_COOKIE', 'BEARER_VALUE', 'gh_token',
+    ]) {
+      assert.strictEqual(isSensitiveEnvName(name), true, `should flag ${name}`);
+    }
+  });
+
+  it('does not flag ordinary names', () => {
+    for (const name of ['EDITOR', 'PATH', 'GOPATH', 'AUTHOR', 'AUTHORIZED_USERS_FILE', 'branch', 'KEYBOARD']) {
+      assert.strictEqual(isSensitiveEnvName(name), false, `should not flag ${name}`);
+    }
   });
 });
 
