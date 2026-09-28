@@ -4,6 +4,7 @@
  */
 
 import type { TemplateVar } from './parser.js';
+import { sanitizeForTerminal } from './sanitize.js';
 
 export function renderStatus(
   templateName: string,
@@ -27,5 +28,7 @@ export function renderStatus(
   const icon = allFilled ? '✅' : '📋';
   const progress = iteration ? ` [${iteration.current}/${iteration.total}]` : '';
 
-  return `${icon} ${templateName}${progress}: ${parts.join('  ')}`;
+  // Values may come from repo-controlled sources (templates, git diff);
+  // never let them inject escape sequences into the status line.
+  return sanitizeForTerminal(`${icon} ${templateName}${progress}: ${parts.join('  ')}`);
 }
