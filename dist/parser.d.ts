@@ -7,5 +7,6 @@ export interface TemplateVar {
     defaultValue?: string;
     raw: string;
 }
+export declare const VAR_PATTERN: RegExp;
 export declare function parseVars(template: string): TemplateVar[];
 export declare function expand(template: string, values: Record<string, string>): string;

@@ -3,7 +3,10 @@
  * Uses Mustache for expansion, with a promptargs extension for defaults.
  */
 import Mustache from 'mustache';
-const VAR_PATTERN = /\{\{(\w+)(?:=([^}]*))?\}\}/g;
+// Exported so any code that needs to recognize the same {{var}} / {{var=default}}
+// grammar (e.g. CLI syntax highlighting) reuses this single definition instead
+// of re-declaring the pattern and risking drift.
+export const VAR_PATTERN = /\{\{(\w+)(?:=([^}]*))?\}\}/g;
 export function parseVars(template) {
     const seen = new Set();
     const vars = [];

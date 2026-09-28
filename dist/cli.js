@@ -11,7 +11,7 @@
  */
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseVars, expand } from './parser.js';
+import { parseVars, expand, VAR_PATTERN } from './parser.js';
 import { findTemplate, loadTemplates } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
@@ -210,7 +210,7 @@ function doShow(templateName) {
         process.exit(1);
         return;
     }
-    const highlighted = tpl.content.replace(/\{\{(\w+)(?:=([^}]*))?\}\}/g, (_m, varName, defaultVal) => {
+    const highlighted = tpl.content.replace(VAR_PATTERN, (_m, varName, defaultVal) => {
         if (defaultVal !== undefined) {
             return `\x1b[33m{{${varName}=${defaultVal}}}\x1b[0m`;
         }
