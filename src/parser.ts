@@ -11,7 +11,10 @@ export interface TemplateVar {
   raw: string;
 }
 
-const VAR_PATTERN = /\{\{(\w+)(?:=([^}]*))?\}\}/g;
+// Exported so any code that needs to recognize the same {{var}} / {{var=default}}
+// grammar (e.g. CLI syntax highlighting) reuses this single definition instead
+// of re-declaring the pattern and risking drift.
+export const VAR_PATTERN = /\{\{(\w+)(?:=([^}]*))?\}\}/g;
 
 export function parseVars(template: string): TemplateVar[] {
   const seen = new Set<string>();
