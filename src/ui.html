@@ -831,7 +831,7 @@
     const maxLen = Math.max(...arrays.map(a => a.length), 1);
     const out = [];
     for (let i = 0; i < maxLen; i++) {
-      out.push(arrays.map(a => a[Math.min(i, a.length - 1)]));
+      out.push(arrays.map(a => a[i % a.length]));
     }
     return out;
   }
