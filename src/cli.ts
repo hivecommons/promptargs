@@ -18,6 +18,7 @@ import { findTemplate, loadTemplates } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
 import { autodetect, AUTODETECT_VARS } from './autodetect.js';
+import { sanitizeForTerminal } from './sanitize.js';
 import { startUI } from './ui.js';
 
 const HELP = `
@@ -216,8 +217,8 @@ function doList() {
       return v.name;
     });
     const source = t.source === 'user' ? ' (user)' : '';
-    console.log(`  ${t.name}${source}`);
-    console.log(`    vars: {{${varNames.join('}}  {{')}}}`);
+    console.log(sanitizeForTerminal(`  ${t.name}${source}`));
+    console.log(sanitizeForTerminal(`    vars: {{${varNames.join('}}  {{')}}}`));
     console.log('');
   }
 }
@@ -235,7 +236,9 @@ function doShow(templateName?: string) {
     return;
   }
 
-  const highlighted = tpl.content.replace(
+  // Sanitize first: templates are repo-controlled and must not be able to
+  // inject their own terminal escapes; only our highlighting below may.
+  const highlighted = sanitizeForTerminal(tpl.content).replace(
     VAR_PATTERN,
     (_m, varName: string, defaultVal?: string) => {
       if (defaultVal !== undefined) {
@@ -245,7 +248,7 @@ function doShow(templateName?: string) {
     },
   );
 
-  console.log(`Template: ${tpl.name} (${tpl.path})\n`);
+  console.log(sanitizeForTerminal(`Template: ${tpl.name} (${tpl.path})`) + '\n');
   console.log(highlighted);
   console.log('\n\x1b[31mred\x1b[0m = required  \x1b[33myellow\x1b[0m = has default');
 }
@@ -261,7 +264,7 @@ function printEnv() {
       if (name === 'diff' && display.length > DIFF_PREVIEW_MAX_CHARS) {
         display = display.slice(0, DIFF_PREVIEW_MAX_CHARS) + '...';
       }
-      console.log(`  \x1b[32m{{${name}}}\x1b[0m = ${display}`);
+      console.log(`  \x1b[32m{{${name}}}\x1b[0m = ${sanitizeForTerminal(display)}`);
     } else {
       console.log(`  \x1b[90m{{${name}}}\x1b[0m = (not detected)`);
     }

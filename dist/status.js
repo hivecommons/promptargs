@@ -2,6 +2,7 @@
  * Status line rendering for Claude Code's status area.
  * Shows current template state: filled vars, unfilled vars, progress.
  */
+import { sanitizeForTerminal } from './sanitize.js';
 export function renderStatus(templateName, vars, values, iteration) {
     const parts = [];
     for (const v of vars) {
@@ -17,6 +18,8 @@ export function renderStatus(templateName, vars, values, iteration) {
     const allFilled = vars.every(v => v.name in values);
     const icon = allFilled ? '✅' : '📋';
     const progress = iteration ? ` [${iteration.current}/${iteration.total}]` : '';
-    return `${icon} ${templateName}${progress}: ${parts.join('  ')}`;
+    // Values may come from repo-controlled sources (templates, git diff);
+    // never let them inject escape sequences into the status line.
+    return sanitizeForTerminal(`${icon} ${templateName}${progress}: ${parts.join('  ')}`);
 }
 //# sourceMappingURL=status.js.map
