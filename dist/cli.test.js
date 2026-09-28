@@ -237,6 +237,29 @@ test('ui subcommand parses --port and surfaces server errors', async () => {
         await new Promise(resolve => blocker.close(resolve));
     }
 });
+test('ui subcommand without --port targets the default port 3700', async () => {
+    // Occupy the default port so `promptargs ui` (no flags) fails fast on
+    // EADDRINUSE, proving the no-port dispatch path reaches startUI's default.
+    const { createServer } = await import('node:net');
+    const blocker = createServer();
+    const bound = await new Promise(resolve => {
+        blocker.once('error', () => resolve(false));
+        blocker.listen(3700, '127.0.0.1', () => resolve(true));
+    });
+    // If binding failed, another process already holds 3700 — the CLI will
+    // still hit EADDRINUSE, so the assertions below hold either way.
+    try {
+        const { cwd, home } = makeDirs();
+        const res = runCli(['ui'], cwd, home);
+        assert.strictEqual(res.status, 1);
+        assert.match(res.stderr, /Port 3700 is in use\. Try: promptargs ui --port=3701/);
+        rmSync(dirname(cwd), { recursive: true, force: true });
+    }
+    finally {
+        if (bound)
+            await new Promise(resolve => blocker.close(resolve));
+    }
+});
 test('env truncates a long staged diff to a preview with ellipsis', () => {
     const { cwd, home } = makeDirs();
     const git = (gitArgs) => spawnSync('git', gitArgs, { cwd, encoding: 'utf-8', env: { ...process.env, HOME: home } });

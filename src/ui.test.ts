@@ -170,6 +170,28 @@ test('startUI schedules a browser open by default', () => {
   assert.match(res.stdout, /promptargs builder running at http:\/\/localhost:\d+/);
 });
 
+test('browser open picks the right command for each platform', () => {
+  // The darwin/win32 arms of the open-command ternary never run on Linux CI;
+  // force each platform value in a child and let the command fail on PATH=''.
+  for (const platform of ['darwin', 'win32', 'linux']) {
+    const script = `
+      Object.defineProperty(process, 'platform', { value: ${JSON.stringify(platform)} });
+      import(${JSON.stringify(pathToFileURL(join(__dirname, 'ui.js')).href)})
+        .then(m => {
+          const server = m.startUI(0);
+          setTimeout(() => server.close(() => process.exit(0)), 900);
+        });
+    `;
+    const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+      encoding: 'utf-8',
+      timeout: 15000,
+      env: { ...process.env, PATH: '' },
+    });
+    assert.strictEqual(res.status, 0, `platform ${platform}: ${res.stderr}`);
+    assert.match(res.stdout, /promptargs builder running at http:\/\/localhost:\d+/);
+  }
+});
+
 test('startUI rethrows non-EADDRINUSE server errors', async t => {
   // Only run where binding port 1 really fails with EACCES; containers with
   // ip_unprivileged_port_start=0 (or root) can bind it and would hang instead.

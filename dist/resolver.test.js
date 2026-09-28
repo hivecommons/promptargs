@@ -107,6 +107,37 @@ describe('resolve glob expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: pattern }, false);
         assert.strictEqual(r.values.pa_f, pattern);
     });
+    it('expands a relative glob against the current directory', async () => {
+        // All other glob tests use absolute patterns; this walks the base === ''
+        // branches (readdir of '.', bare-entry results) in expandGlob.
+        const dir = join(tmp, 'relative');
+        mkdirSync(dir);
+        writeFileSync(join(dir, 'one.txt'), '');
+        writeFileSync(join(dir, 'two.txt'), '');
+        const prevCwd = process.cwd();
+        process.chdir(dir);
+        try {
+            const r = await resolve([v('pa_f')], { pa_f: '*.txt' }, false);
+            assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['one.txt', 'two.txt']);
+            // A literal leading segment resolved relative to the cwd.
+            mkdirSync(join(dir, 'sub'));
+            writeFileSync(join(dir, 'sub', 'three.txt'), '');
+            const r2 = await resolve([v('pa_f')], { pa_f: 'sub/*.txt' }, false);
+            assert.deepStrictEqual(r2.iterations.map(i => i.pa_f), [join('sub', 'three.txt')]);
+        }
+        finally {
+            process.chdir(prevCwd);
+        }
+    });
+    it('expands a ? wildcard segment without a *', async () => {
+        const dir = join(tmp, 'qmark');
+        mkdirSync(dir);
+        writeFileSync(join(dir, 'a1.txt'), '');
+        writeFileSync(join(dir, 'a2.txt'), '');
+        writeFileSync(join(dir, 'a12.txt'), '');
+        const r = await resolve([v('pa_f')], { pa_f: join(dir, 'a?.txt') }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a1.txt'), join(dir, 'a2.txt')]);
+    });
     it('survives an unreadable glob base (file used as directory)', async () => {
         // "plain-file/*.md": the base exists but readdirSync throws ENOTDIR;
         // the expander must skip it instead of crashing, leaving a literal.
