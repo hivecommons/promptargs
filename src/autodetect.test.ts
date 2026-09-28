@@ -1,8 +1,9 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { execSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join, delimiter } from 'node:path';
+import { tmpdir } from 'node:os';
 import { autodetect, autodetectAll, isSensitiveEnvName, AUTODETECT_VARS } from './autodetect.js';
 
 // git-backed detectors read the process cwd, so run them inside a scratch
@@ -118,6 +119,24 @@ describe('autodetectAll', () => {
   it('AUTODETECT_VARS lists the built-in detectors', () => {
     for (const name of ['branch', 'repo', 'org', 'diff', 'pr', 'user', 'date']) {
       assert.ok(AUTODETECT_VARS.includes(name), `missing ${name}`);
+    }
+  });
+});
+
+describe('pr detector', () => {
+  it('returns undefined when gh exits 0 with empty output', t => {
+    // A branch with no PR: gh succeeds but prints nothing, so the detector
+    // must map '' to undefined rather than returning an empty value.
+    if (process.platform === 'win32') return t.skip('POSIX shim script');
+    const shim = mkdtempSync(join(tmpdir(), 'pa-gh-shim-'));
+    writeFileSync(join(shim, 'gh'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+    const prevPath = process.env.PATH;
+    process.env.PATH = `${shim}${delimiter}${prevPath ?? ''}`;
+    try {
+      assert.strictEqual(autodetect('pr'), undefined);
+    } finally {
+      process.env.PATH = prevPath;
+      rmSync(shim, { recursive: true, force: true });
     }
   });
 });
