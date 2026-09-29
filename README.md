@@ -355,6 +355,16 @@ promptargs ui --port=4000
 
 ---
 
+## Privacy & Diagnostics
+
+promptargs does not collect or export telemetry. There is no telemetry SDK, metrics endpoint, or observability backend configured anywhere in this package — nothing you run ever phones home.
+
+All runtime diagnostics are human-readable console output (CLI status/errors, UI startup/port messages). The **Builder UI** (`promptargs ui`) binds to loopback only (`127.0.0.1`) and rejects requests with a non-local `Host` header, so the page — including the auto-detected Git and terminal environment values it embeds (see [Auto-Magic Variables](#auto-magic-variables-)) — is never reachable from other machines on your network.
+
+If observability is ever added in the future, it will be explicit opt-in, bounded to local diagnostics, and will exclude environment values, template/prompt content, file paths, diffs, and user identifiers. No network exporter will be added unless you explicitly configure a backend yourself.
+
+---
+
 ## Write Your Own Template
 
 Create a file in `.prompts/` with any name ending in `.md`:
