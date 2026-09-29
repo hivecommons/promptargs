@@ -22,6 +22,11 @@ concurrency:
 
 jobs:
   copilot-automation:
+    if: >
+      github.event_name != 'pull_request_target' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+        (github.event.pull_request.user.login == 'Copilot' ||
+         endsWith(github.event.pull_request.user.login, '[bot]')))
     uses: hivecommons/infra/.github/workflows/reusable-copilot-automation.yml@1416d68a1fd5bd475b96c8ddfcffc8539bfa6b08
     with:
       pr_number: ${{ github.event.inputs.pr_number || '' }}
