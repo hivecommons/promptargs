@@ -649,9 +649,19 @@
   </div>
 </div>
 
-<script>
+<script type="importmap">
+{ "imports": { "mustache": "./mustache.mjs" } }
+</script>
+<script type="module">
+// Import the canonical {{var}} grammar and iteration logic from the same
+// compiled modules the CLI runs, instead of hand-reimplementing them here
+// (see issue #69). Only splitValues/esc/escHtml stay UI-local: they encode
+// browser-only concerns (no glob/file access, HTML escaping) with no CLI
+// counterpart to drift from.
+import { parseVars, expand as sharedExpand, VAR_PATTERN } from './parser.js';
+import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
+
 (function () {
-  const VAR_RE = /\{\{(\w+)(?:=([^}]*))?\}\}/g;
   const DEBOUNCE_MS = 120;
 
   const PRESETS = [
@@ -726,20 +736,6 @@
   const copyBtn = document.getElementById('copy-btn');
   const modeDesc = document.getElementById('mode-desc');
 
-  function parseVarsFromTemplate(text) {
-    const seen = new Set();
-    const vars = [];
-    let m;
-    VAR_RE.lastIndex = 0;
-    while ((m = VAR_RE.exec(text)) !== null) {
-      if (!seen.has(m[1])) {
-        seen.add(m[1]);
-        vars.push({ name: m[1], defaultValue: m[2] });
-      }
-    }
-    return vars;
-  }
-
   function getRowData() {
     const rows = [];
     for (const tr of varBody.querySelectorAll('tr')) {
@@ -753,7 +749,7 @@
 
   function syncVarsFromTemplate() {
     const text = tmpl.value;
-    const parsed = parseVarsFromTemplate(text);
+    const parsed = parseVars(text);
     const existing = getRowData();
     const existingNames = new Set(existing.map(r => r.name));
 
@@ -814,41 +810,9 @@
     return raw.split(',').map(s => s.trim()).filter(Boolean);
   }
 
-  function cartesian(arrays) {
-    if (arrays.length === 0) return [[]];
-    const first = arrays[0];
-    const rest = cartesian(arrays.slice(1));
-    const out = [];
-    for (const v of first) {
-      for (const r of rest) {
-        out.push([v, ...r]);
-      }
-    }
-    return out;
-  }
-
-  function zip(arrays) {
-    const maxLen = Math.max(...arrays.map(a => a.length), 1);
-    const out = [];
-    for (let i = 0; i < maxLen; i++) {
-      out.push(arrays.map(a => a[i % a.length]));
-    }
-    return out;
-  }
-
-  function expand(template, values) {
-    let result = template;
-    VAR_RE.lastIndex = 0;
-    result = result.replace(VAR_RE, (match, name, def) => {
-      if (name in values) return values[name];
-      if (def !== undefined) return def;
-      return match;
-    });
-    return result;
-  }
-
   function highlightUnfilled(html) {
-    return html.replace(/\{\{(\w+)(?:=[^}]*)?\}\}/g, '<span class="unfilled">$&</span>');
+    VAR_PATTERN.lastIndex = 0;
+    return html.replace(VAR_PATTERN, '<span class="unfilled">$&</span>');
   }
 
   function update() {
@@ -879,16 +843,16 @@
     if (arrayVars.length === 0) {
       combos = [[]];
     } else if (mode === 'cross') {
-      combos = cartesian(arrayVars.map(v => v.values));
+      combos = sharedCartesian(arrayVars.map(v => v.values));
     } else {
-      combos = zip(arrayVars.map(v => v.values));
+      combos = sharedZip(arrayVars.map(v => v.values));
     }
 
     const results = [];
     for (const combo of combos) {
       const vals = { ...scalarValues };
       arrayVars.forEach((v, i) => { vals[v.name] = combo[i]; });
-      results.push({ values: { ...vals }, expanded: expand(text, vals) });
+      results.push({ values: { ...vals }, expanded: sharedExpand(text, vals) });
     }
 
     const count = results.length;

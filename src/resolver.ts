@@ -7,6 +7,7 @@ import { createInterface } from 'node:readline';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { autodetect } from './autodetect.js';
+import { cartesian, zip } from './iterate.js';
 import type { TemplateVar } from './parser.js';
 
 export interface ResolvedValues {
@@ -85,19 +86,6 @@ function expandGlob(pattern: string): string[] {
   return bases.sort();
 }
 
-function cartesian(arrays: string[][]): string[][] {
-  if (arrays.length === 0) return [[]];
-  const [first, ...rest] = arrays;
-  const restCombos = cartesian(rest);
-  const result: string[][] = [];
-  for (const val of first) {
-    for (const combo of restCombos) {
-      result.push([val, ...combo]);
-    }
-  }
-  return result;
-}
-
 export async function resolve(
   vars: TemplateVar[],
   flags: Record<string, string>,
@@ -154,27 +142,15 @@ export async function resolve(
 
   const arrayNames = Object.keys(arrayVars);
   const iterations: Record<string, string>[] = [];
+  const arrays = arrayNames.map(n => arrayVars[n]);
+  const combos = cross ? cartesian(arrays) : zip(arrays);
 
-  if (cross) {
-    const arrays = arrayNames.map(n => arrayVars[n]);
-    const combos = cartesian(arrays);
-    for (const combo of combos) {
-      const iter = { ...values };
-      for (let j = 0; j < arrayNames.length; j++) {
-        iter[arrayNames[j]] = combo[j];
-      }
-      iterations.push(iter);
+  for (const combo of combos) {
+    const iter = { ...values };
+    for (let j = 0; j < arrayNames.length; j++) {
+      iter[arrayNames[j]] = combo[j];
     }
-  } else {
-    const maxLen = Math.max(...arrayNames.map(n => arrayVars[n].length));
-    for (let i = 0; i < maxLen; i++) {
-      const iter = { ...values };
-      for (const name of arrayNames) {
-        const arr = arrayVars[name];
-        iter[name] = arr[i % arr.length];
-      }
-      iterations.push(iter);
-    }
+    iterations.push(iter);
   }
 
   return { values, iterations };
