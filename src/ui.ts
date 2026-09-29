@@ -68,6 +68,15 @@ export function buildUIHtml(rawHtml: string, envVars: EnvData): string {
   return rawHtml.replace('<script>', envScript + '\n<script>');
 }
 
+// Browser-facing modules the builder UI imports directly instead of
+// hand-reimplementing their logic (see buildUIHtml / ui.html). Serving the
+// exact compiled files means the browser runs the same code the CLI does.
+const STATIC_JS_ROUTES: Record<string, string> = {
+  '/parser.js': 'parser.js',
+  '/iterate.js': 'iterate.js',
+  '/mustache.mjs': 'mustache.mjs',
+};
+
 export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Server {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const htmlPath = join(__dirname, 'ui.html');
@@ -95,6 +104,20 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
       res.end('Forbidden');
       return;
     }
+
+    const file = req.url ? STATIC_JS_ROUTES[req.url] : undefined;
+    if (file) {
+      try {
+        const js = readFileSync(join(__dirname, file), 'utf-8');
+        res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
+        res.end(js);
+      } catch {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Not found');
+      }
+      return;
+    }
+
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
   });

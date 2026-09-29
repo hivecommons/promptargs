@@ -75,6 +75,75 @@ test('startUI binds a server that rejects non-local Host headers', async () => {
   }
 });
 
+test('startUI serves the parser/iterate/mustache modules the browser imports', async () => {
+  const server = startUI(0, { openBrowser: false });
+  await onceListening(server);
+  const { port } = server.address() as AddressInfo;
+
+  try {
+    const parser = await request(port, '127.0.0.1:0', '/parser.js');
+    assert.equal(parser.statusCode, 200);
+    assert.match(parser.contentType ?? '', /text\/javascript/);
+    assert.match(parser.body, /export function parseVars/);
+    assert.match(parser.body, /export const VAR_PATTERN/);
+
+    const iterate = await request(port, '127.0.0.1:0', '/iterate.js');
+    assert.equal(iterate.statusCode, 200);
+    assert.match(iterate.body, /export function cartesian/);
+    assert.match(iterate.body, /export function zip/);
+
+    const mustache = await request(port, '127.0.0.1:0', '/mustache.mjs');
+    assert.equal(mustache.statusCode, 200);
+    assert.match(mustache.body, /export default mustache/);
+
+    const missing = await request(port, '127.0.0.1:0', '/does-not-exist.js');
+    assert.equal(missing.statusCode, 200);
+    assert.match(missing.body, /window\.__PROMPTARGS_ENV__/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test('startUI answers 404 for a static route whose backing file is missing', () => {
+  // Copy the compiled ui.js (plus its one local dep) into a directory
+  // without parser.js/iterate.js/mustache.mjs, so requesting a known static
+  // route hits the readFileSync catch branch.
+  const __dirnameUi = dirname(fileURLToPath(import.meta.url));
+  const dir = mkdtempSync(join(tmpdir(), 'promptargs-ui-static-'));
+  try {
+    for (const f of ['ui.js', 'ui.html', 'autodetect.js']) {
+      copyFileSync(join(__dirnameUi, f), join(dir, f));
+    }
+    writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
+    // Intentionally omit parser.js/iterate.js/mustache.mjs so the route 404s.
+
+    const script = `
+      import { get } from 'node:http';
+      import(${JSON.stringify(pathToFileURL(join(dir, 'ui.js')).href)})
+        .then(m => {
+          const server = m.startUI(0, { openBrowser: false });
+          server.once('listening', () => {
+            const { port } = server.address();
+            get({
+              hostname: '127.0.0.1', port, path: '/parser.js',
+              headers: { Host: '127.0.0.1:0' },
+            }, res => {
+              process.stdout.write('STATUS:' + res.statusCode);
+              server.close(() => process.exit(0));
+            });
+          });
+        });
+    `;
+    const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+      encoding: 'utf-8',
+      timeout: 15000,
+    });
+    assert.match(res.stdout, /STATUS:404/, res.stderr);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 function onceListening(server: ReturnType<typeof startUI>): Promise<void> {
   if (server.listening) return Promise.resolve();
   return new Promise(resolve => server.once('listening', resolve));
@@ -86,18 +155,22 @@ function closeServer(server: ReturnType<typeof startUI>): Promise<void> {
   });
 }
 
-function request(port: number, host: string): Promise<{ statusCode: number; body: string }> {
+function request(port: number, host: string, path = '/'): Promise<{ statusCode: number; body: string; contentType?: string }> {
   return new Promise((resolve, reject) => {
     const req = get({
       hostname: '127.0.0.1',
       port,
-      path: '/',
+      path,
       headers: { Host: host },
     }, res => {
       let body = '';
       res.setEncoding('utf8');
       res.on('data', chunk => { body += chunk; });
-      res.on('end', () => resolve({ statusCode: res.statusCode ?? 0, body }));
+      res.on('end', () => resolve({
+        statusCode: res.statusCode ?? 0,
+        body,
+        contentType: res.headers['content-type'],
+      }));
     });
     req.on('error', reject);
   });

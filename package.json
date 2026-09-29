@@ -8,7 +8,7 @@
     "promptargs": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && cp src/ui.html dist/ui.html",
+    "build": "tsc && cp src/ui.html dist/ui.html && cp node_modules/mustache/mustache.mjs dist/mustache.mjs",
     "dev": "tsc --watch",
     "test": "node scripts/run-tests.mjs",
     "test:coverage": "node scripts/run-tests.mjs --coverage",
