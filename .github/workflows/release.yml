@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # npm provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check committed dist/ is in sync with src/
+        run: |
+          test -z "$(git status --porcelain -- dist/)" || {
+            git diff -- dist/
+            git status --short -- dist/
+            echo "::error::dist/ is stale — run 'npm run build' and commit the result"
+            exit 1
+          }
+
+      - name: Test
+        run: npm test
+
+      - name: Check tag matches package.json version
+        run: |
+          pkg="$(node -p "require('./package.json').version")"
+          tag="${GITHUB_REF_NAME#v}"
+          [ "$pkg" = "$tag" ] || {
+            echo "::error::tag v$tag does not match package.json version $pkg"
+            exit 1
+          }
+
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
