@@ -24,9 +24,11 @@ if (testFiles.length === 0) {
 // environment-dependent callbacks (e.g. EACCES skip paths vs. privileged-port
 // binds) that no single environment can fully execute, so including them makes
 // 100% function coverage unreachable. Thresholds sit just below the
-// source-only baseline (99.59% lines / 99.45% branches / 100% functions) so
-// regressions fail CI without making every unreachable-branch judgement call
-// a build break.
+// source-only baseline (99.21% lines / 98.42% branches / 100% functions as of
+// the ui-static-routes refactor, #77) so regressions fail CI without making
+// every unreachable-branch judgement call a build break. The remaining
+// uncovered ui.js lines are exercised in spawned child processes (they call
+// process.exit), which in-process coverage cannot observe.
 //
 // Enforcement is automatic on runtimes that support it, so plain `npm test`
 // (what CI runs) gates coverage on the Node 22+ matrix legs. Pass
@@ -45,8 +47,8 @@ const coverageArgs = withCoverage
   ? [
       '--experimental-test-coverage',
       '--test-coverage-exclude=dist/**/*.test.js',
-      '--test-coverage-lines=97',
-      '--test-coverage-branches=92',
+      '--test-coverage-lines=98',
+      '--test-coverage-branches=96',
       '--test-coverage-functions=100',
     ]
   : [];
