@@ -1,0 +1,1 @@
+- Builder UI: glob values in the generated command now receive the same double-quote escaping as the inlined template, so a pattern containing `$`, backticks, backslashes or `"` is passed to the CLI literally instead of being expanded or breaking the command.

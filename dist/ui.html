@@ -879,16 +879,18 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
     // the characters the shell expands inside double quotes.
     const bareWord = /^[A-Za-z0-9_@%+=:,.\/-]+$/;
     const shellQuote = s => bareWord.test(s) ? s : `'${s.replace(/'/g, `'\\''`)}'`;
+    const dquote = s => `"${s.replace(/[\\"$`]/g, '\\$&')}"`;
     let cli = 'promptargs';
     const hasInline = !text.includes('\n') && text.length < 200;
     if (hasInline) {
-      cli += ` "${text.replace(/[\\"$`]/g, '\\$&')}"`;
+      cli += ` ${dquote(text)}`;
     }
     for (const row of rows) {
       if (!row.values) continue;
       const prefix = row.source === 'file' ? '@' : '';
-      // Globs keep their double quotes so the CLI, not the shell, expands them.
-      const val = row.source === 'glob' ? `"${row.values}"` : shellQuote(`${prefix}${row.values}`);
+      // Globs keep their double quotes so the CLI, not the shell, expands them;
+      // the same escaping as the template keeps the pattern itself literal.
+      const val = row.source === 'glob' ? dquote(row.values) : shellQuote(`${prefix}${row.values}`);
       cli += ` --${row.name}=${val}`;
     }
     if (mode === 'cross' && arrayVars.length > 1) {
