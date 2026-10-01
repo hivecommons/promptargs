@@ -1,0 +1,1 @@
+- Builder UI: the generated `promptargs` command now shell-quotes values containing whitespace or metacharacters and escapes `$`, backticks and backslashes in the inlined template, so the `explain`/`fix` presets no longer produce a command whose prompt the shell silently truncates (#86).
