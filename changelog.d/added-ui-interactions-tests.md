@@ -1,0 +1,1 @@
+- Behavior tests for the builder UI's variable-table and preset wiring in `ui.html` (`syncVarsFromTemplate`, `addVarRow`, `insertAtCursor`, `scheduleUpdate`, `loadPreset`, `renderPresets`, `renderEnvChips`).
