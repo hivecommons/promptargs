@@ -213,11 +213,13 @@ function doShow(templateName) {
     }
     // Sanitize first: templates are repo-controlled and must not be able to
     // inject their own terminal escapes; only our highlighting below may.
-    const highlighted = sanitizeForTerminal(tpl.content).replace(VAR_PATTERN, (_m, varName, defaultVal) => {
+    const highlighted = sanitizeForTerminal(tpl.content).replace(VAR_PATTERN, (raw, _varName, defaultVal) => {
+        // Colour the tag exactly as written so padded tags ({{ name }}) are
+        // shown as the author typed them.
         if (defaultVal !== undefined) {
-            return `\x1b[33m{{${varName}=${defaultVal}}}\x1b[0m`;
+            return `\x1b[33m${raw}\x1b[0m`;
         }
-        return `\x1b[31m{{${varName}}}\x1b[0m`;
+        return `\x1b[31m${raw}\x1b[0m`;
     });
     console.log(sanitizeForTerminal(`Template: ${tpl.name} (${tpl.path})`) + '\n');
     console.log(highlighted);

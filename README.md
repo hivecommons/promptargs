@@ -116,6 +116,8 @@ A blank looks like this: `{{name}}`
 
 A blank with a default looks like this: `{{name=hello}}` (promptargs extension)
 
+Padding inside the braces is fine too — `{{ name }}` and `{{ name=hello }}` mean the same thing.
+
 That's the basics. You also get the full Mustache spec — comments (`{{! ignore me}}`), sections, partials, and more.
 
 ### Red means "you need to fill this in"

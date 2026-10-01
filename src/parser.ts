@@ -14,7 +14,14 @@ export interface TemplateVar {
 // Exported so any code that needs to recognize the same {{var}} / {{var=default}}
 // grammar (e.g. CLI syntax highlighting) reuses this single definition instead
 // of re-declaring the pattern and risking drift.
-export const VAR_PATTERN = /\{\{(\w+)(?:=([^}]*))?\}\}/g;
+//
+// Whitespace padding inside the delimiters ({{ name }}, {{ name=default }}) is
+// accepted because Mustache accepts it: a padded tag that this pattern did not
+// recognize would still be handed to Mustache as a variable, which renders it
+// as an empty string — the blank silently vanished instead of being asked for,
+// filled from --flags, highlighted by `show`, or preserved as {{name}}.
+// Trailing padding after a default is not part of the default.
+export const VAR_PATTERN = /\{\{\s*(\w+)(?:=([^}]*?))?\s*\}\}/g;
 
 export function parseVars(template: string): TemplateVar[] {
   const seen = new Set<string>();
