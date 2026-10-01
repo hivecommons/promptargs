@@ -233,7 +233,7 @@ test('update HTML-escapes template text, values, and labels before rendering', (
   assert.ok(!html.includes('<b>'), 'raw template markup must not reach the preview');
   assert.match(html, /&lt;b&gt;&lt;img src=x onerror=alert\(1\)&gt;&lt;\/b&gt; &amp; a/);
   assert.match(html, /iter-label">\[1\/2\] x=&lt;img src=x onerror=alert\(1\)&gt; {2}y=a</);
-  assert.match(h.cliText.innerHTML, /--x=&lt;img src=x onerror=alert\(1\)&gt;,ok/);
+  assert.match(h.cliText.innerHTML, /--x='&lt;img src=x onerror=alert\(1\)&gt;,ok'/);
 });
 
 test('update inlines the template in the command only when it is short and single-line', () => {

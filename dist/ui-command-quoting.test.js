@@ -84,4 +84,9 @@ test('shell metacharacters in values and the template are literal', () => {
 test('a comma-separated array value stays a bare word so arrays still parse', () => {
     assert.equal(commandFor('{{f}}', [{ name: 'f', values: 'a.go,b.go' }]), 'promptargs "{{f}}" --f=a.go,b.go');
 });
+test('a glob value keeps its double quotes but shell-expandable characters inside are escaped', () => {
+    const cmd = commandFor('{{src}}', [{ name: 'src', values: 'src/$HOME/`x`/"q"/*.go', source: 'glob' }]);
+    assert.equal(cmd, 'promptargs "{{src}}" --src="src/\\$HOME/\\`x\\`/\\"q\\"/*.go"');
+    assert.deepEqual(shellWords(cmd), ['{{src}}', '--src=src/$HOME/`x`/"q"/*.go']);
+});
 //# sourceMappingURL=ui-command-quoting.test.js.map
