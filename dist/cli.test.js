@@ -135,6 +135,28 @@ test('show highlights required and defaulted variables', () => {
     assert.match(res.stdout, /\x1b\[33m\{\{file=main\.go\}\}\x1b\[0m/);
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
+test('show highlights whitespace-padded tags as written', () => {
+    const { cwd, home } = makeDirs();
+    mkdirSync(join(cwd, '.prompts'));
+    writeFileSync(join(cwd, '.prompts', 'padded.md'), 'Fix {{ issue }} in {{ file=main.go }}.');
+    const res = runCli(['show', 'padded'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    assert.match(res.stdout, /\x1b\[31m\{\{ issue \}\}\x1b\[0m/);
+    assert.match(res.stdout, /\x1b\[33m\{\{ file=main\.go \}\}\x1b\[0m/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('padded tags are filled from flags and reported in --status', () => {
+    const { cwd, home } = makeDirs();
+    const tpl = 'Review {{ file }} for {{ focus=bugs }}';
+    const run = runCli([tpl, '--file=a.ts', '--no-interactive'], cwd, home);
+    assert.strictEqual(run.status, 0);
+    assert.strictEqual(run.stdout.trim(), 'Review a.ts for bugs');
+    const status = runCli([tpl, '--no-interactive', '--status'], cwd, home);
+    assert.strictEqual(status.status, 0);
+    // Without padding support the status line claimed ✅ with only focus listed.
+    assert.match(status.stdout, /📋 inline: file=___  focus=bugs\(default\)/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 test('show without a template name exits 1 with usage', () => {
     const { cwd, home } = makeDirs();
     const res = runCli(['show'], cwd, home);

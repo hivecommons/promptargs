@@ -26,6 +26,29 @@ describe('parseVars', () => {
     const vars = parseVars('No variables here');
     assert.strictEqual(vars.length, 0);
   });
+
+  it('accepts whitespace padding inside the delimiters, as Mustache does', () => {
+    const vars = parseVars('Review {{ file }} for {{ focus=bugs }} in {{\tbranch }}');
+    assert.deepStrictEqual(
+      vars.map(v => [v.name, v.defaultValue]),
+      [
+        ['file', undefined],
+        ['focus', 'bugs'],
+        ['branch', undefined],
+      ],
+    );
+    assert.strictEqual(vars[0].raw, '{{ file }}');
+  });
+
+  it('treats padded and unpadded spellings as the same variable', () => {
+    const vars = parseVars('{{name}} and {{ name }}');
+    assert.strictEqual(vars.length, 1);
+  });
+
+  it('keeps interior whitespace in defaults', () => {
+    const vars = parseVars('{{ audience=junior developer }}');
+    assert.strictEqual(vars[0].defaultValue, 'junior developer');
+  });
 });
 
 describe('expand', () => {
@@ -65,5 +88,16 @@ describe('expand', () => {
   it('does not HTML-escape values', () => {
     const result = expand('{{code}}', { code: '<div class="test">' });
     assert.strictEqual(result, '<div class="test">');
+  });
+
+  it('fills padded tags from values and defaults', () => {
+    const result = expand('Review {{ file }} for {{ focus=bugs }}', { file: 'a.ts' });
+    assert.strictEqual(result, 'Review a.ts for bugs');
+  });
+
+  it('preserves unfilled padded tags instead of erasing them', () => {
+    // Before padding was recognised, Mustache rendered {{ name }} as "".
+    const result = expand('Hello {{ name }}, see {{file}}', { file: 'x' });
+    assert.strictEqual(result, 'Hello {{name}}, see x');
   });
 });
