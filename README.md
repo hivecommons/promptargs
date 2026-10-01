@@ -296,9 +296,11 @@ Common useful env vars: `NODE_ENV`, `AWS_REGION`, `DATABASE_URL`, `GITHUB_TOKEN`
 You can always override any auto-detected value with a flag. The order is:
 
 1. `--flag=value` (explicit, always wins)
-2. Interactive prompt (if no flag and not `--no-interactive`)
-3. Auto-detect from environment
-4. Template default (`{{name=fallback}}`)
+2. Auto-detect from environment (git context and terminal env vars)
+3. Template default (`{{name=fallback}}`)
+4. Interactive prompt — only for variables still unfilled, and only without `--no-interactive`
+
+A variable that auto-detects or has a default is never prompted for; pass `--name=value` to override it.
 
 ---
 
