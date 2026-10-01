@@ -291,7 +291,9 @@ promptargs "Connect to {{DATABASE_URL}} in {{AWS_REGION}}"
 
 In the **Builder UI** (`promptargs ui`), click "Show terminal env" to see all available env vars from your shell. Click any one to insert it at the cursor.
 
-Common useful env vars: `NODE_ENV`, `AWS_REGION`, `DATABASE_URL`, `GITHUB_TOKEN`, `CI`, `USER`, `EDITOR`, `PATH`.
+Common useful env vars: `NODE_ENV`, `AWS_REGION`, `DATABASE_URL`, `CI`, `USER`, `EDITOR`, `PATH`, `SHELL`.
+
+Credential-looking names (anything matching `TOKEN`, `SECRET`, `PASSWORD`, `KEY`, `CREDENTIAL`, `BEARER`, `COOKIE`, or `AUTH`, e.g. `GITHUB_TOKEN`) are intentionally **excluded** from auto-detection — a repo-controlled template can never expand `{{GITHUB_TOKEN}}` into its value, even though an explicit `--flag=value` can still pass any value you choose. This also applies to the Builder UI's "Show terminal env" list.
 
 ### Priority
 
