@@ -54,6 +54,30 @@ describe('git detectors', () => {
   it('detects the git user name', () => {
     assert.strictEqual(autodetect('user'), 'PA Tester');
   });
+
+  it('returns undefined for branch on a detached HEAD', () => {
+    // `git branch --show-current` exits 0 and prints nothing when detached;
+    // that must not become an empty value that beats the template default.
+    execSync('git checkout -q --detach', { stdio: 'pipe' });
+    try {
+      assert.strictEqual(autodetect('branch'), undefined);
+      assert.ok(!('branch' in autodetectAll(['branch'])));
+    } finally {
+      execSync('git checkout -q pa-test-branch', { stdio: 'pipe' });
+    }
+  });
+
+  it('returns undefined for diff on a clean tree and the diff once there is one', () => {
+    assert.strictEqual(autodetect('diff'), undefined);
+    writeFileSync(join(repo, 'tracked.txt'), 'one\n');
+    execSync('git add tracked.txt && git commit -q -m add', { stdio: 'pipe' });
+    writeFileSync(join(repo, 'tracked.txt'), 'two\n');
+    try {
+      assert.match(autodetect('diff') ?? '', /^diff --git a\/tracked\.txt/);
+    } finally {
+      execSync('git checkout -q -- tracked.txt', { stdio: 'pipe' });
+    }
+  });
 });
 
 describe('date detector', () => {
