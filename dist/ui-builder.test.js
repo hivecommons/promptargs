@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { compileInlineScript } from './ui-harness.js';
 /**
  * Behavior tests for ui.html's builder logic: `update()` (preview rendering
  * and the copyable CLI command) plus the PRESETS catalogue.
@@ -62,8 +63,10 @@ function makeHarness(mode = 'zip') {
     const src = ['getRowData', 'splitValues', 'escHtml', 'highlightUnfilled', 'update']
         .map(extractFunction)
         .join('\n');
-    // eslint-disable-next-line no-new-func
-    const factory = new Function('tmpl', 'varBody', 'previewBody', 'previewCount', 'cliText', 'mode', 'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN', `${src}\nreturn update;`);
+    const factory = compileInlineScript('ui-update', [
+        'tmpl', 'varBody', 'previewBody', 'previewCount', 'cliText', 'mode',
+        'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
+    ], `${src}\nreturn update;`);
     const update = factory(tmpl, varBody, previewBody, previewCount, cliText, mode, cartesian, zip, expand, VAR_PATTERN);
     return {
         update,

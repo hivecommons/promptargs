@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { VAR_PATTERN, expand } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { compileInlineScript } from './ui-harness.js';
 
 /**
  * Regression tests for the shell safety of the command `update()` in
@@ -46,12 +47,10 @@ function commandFor(template: string, rows: Row[]): string {
   };
   const src = ['getRowData', 'splitValues', 'escHtml', 'highlightUnfilled', 'update']
     .map(extractFunction).join('\n');
-  // eslint-disable-next-line no-new-func
-  const factory = new Function(
+  const factory = compileInlineScript<() => void>('ui-update', [
     'tmpl', 'varBody', 'previewBody', 'previewCount', 'cliText', 'mode',
     'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
-    `${src}\nreturn update;`,
-  );
+  ], `${src}\nreturn update;`);
   const update = factory({ value: template }, varBody, node(), node(), cliText, 'zip', cartesian, zip, expand, VAR_PATTERN);
   update();
   return cliText.innerHTML

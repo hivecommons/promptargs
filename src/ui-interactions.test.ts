@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { compileInlineScript } from './ui-harness.js';
 
 /**
  * Behavior tests for ui.html's variable-table and preset wiring:
@@ -248,25 +249,24 @@ function makeHarness(debounceMs = 1): Harness {
     'scheduleUpdate', 'loadPreset', 'renderPresets', 'renderEnvChips',
   ];
   const src = names.map(extractFunction).join('\n');
-  // eslint-disable-next-line no-new-func
-  const factory = new Function(
+  type Api = Omit<Harness, 'mode' | 'rowData' | 'cli' | 'tmpl' | 'varBody' | 'presetGrid' | 'modeDesc' | 'modeButtons' | 'previewBody' | 'previewCount' | 'cliText'> & { mode: string };
+  const factory = compileInlineScript<Api>('ui-interactions', [
     'document', 'tmpl', 'varBody', 'presetGrid', 'modeDesc',
     'previewBody', 'previewCount', 'cliText', 'PRESETS', 'DEBOUNCE_MS',
     'parseVars', 'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
-    `let mode = 'zip';
+  ], `let mode = 'zip';
      let debounceTimer = null;
      ${src}
      return {
        get mode() { return mode; },
        syncVarsFromTemplate, addVarRow, insertAtCursor, loadPreset,
        renderPresets, renderEnvChips, scheduleUpdate,
-     };`,
-  );
+     };`);
   const api = factory(
     document, tmpl, varBody, presetGrid, modeDesc,
     previewBody, previewCount, cliText, presets, debounceMs,
     parseVars, cartesian, zip, expand, VAR_PATTERN,
-  ) as Omit<Harness, 'mode' | 'rowData' | 'cli' | 'tmpl' | 'varBody' | 'presetGrid' | 'modeDesc' | 'modeButtons' | 'previewBody' | 'previewCount' | 'cliText'> & { mode: string };
+  );
 
   return {
     tmpl, varBody, presetGrid, modeDesc, modeButtons, previewBody, previewCount, cliText,
@@ -418,6 +418,44 @@ test('scheduleUpdate debounces: many calls in the window produce a single sync a
   await tick(40);
   assert.deepEqual(h.rowData(), [['name', '', 'manual']]);
   assert.equal(h.cli(), 'promptargs "Hello {{name}}"');
+});
+
+test('update zips comma-separated rows in zip mode and renders one iteration per pair', async () => {
+  const h = makeHarness(5);
+  h.tmpl.value = 'Review {{file}} for {{focus}}';
+  h.addVarRow('file', 'a.go,b.go', 'manual');
+  h.addVarRow('focus', 'x,y', 'manual');
+  h.scheduleUpdate();
+  await tick(20);
+  assert.equal(h.mode(), 'zip');
+  assert.equal(h.previewCount.textContent, '2 results');
+  assert.ok(h.previewBody.innerHTML.includes('[1/2] file=a.go  focus=x'));
+  assert.ok(h.previewBody.innerHTML.includes('[2/2] file=b.go  focus=y'));
+  assert.equal(h.cli(), 'promptargs "Review {{file}} for {{focus}}" --file=a.go,b.go --focus=x,y');
+});
+
+test('update with a blank template renders the empty state and a bare command', async () => {
+  const h = makeHarness(5);
+  h.addVarRow('name', 'World', 'manual');
+  h.tmpl.value = '  \n ';
+  h.scheduleUpdate();
+  await tick(20);
+  assert.ok(h.previewBody.innerHTML.includes('Type a template above'));
+  assert.equal(h.previewCount.textContent, '0 results');
+  assert.equal(h.previewCount.className, 'preview-count empty');
+  assert.equal(h.cli(), 'promptargs');
+});
+
+test('update keeps a glob pattern quoted and prefixes an @file value in the command', async () => {
+  const h = makeHarness(5);
+  h.tmpl.value = 'Review {{files}} against {{spec}}';
+  h.addVarRow('files', 'src/*.go', 'glob');
+  h.addVarRow('spec', 'docs/spec.md', 'file');
+  h.scheduleUpdate();
+  await tick(20);
+  assert.equal(h.previewCount.textContent, '1 result');
+  assert.ok(h.previewBody.innerHTML.includes('Review src/*.go against docs/spec.md'));
+  assert.equal(h.cli(), 'promptargs "Review {{files}} against {{spec}}" --files="src/*.go" --spec=@docs/spec.md');
 });
 
 // --- loadPreset / renderPresets ----------------------------------------------

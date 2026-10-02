@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { compileInlineScript } from './ui-harness.js';
 
 /**
  * Behavior tests for the top-level wiring of ui.html's inline script: the
@@ -264,12 +265,10 @@ function loadPage(env?: EnvPayload): Page {
   };
   const window = env === undefined ? {} : { __PROMPTARGS_ENV__: env };
 
-  // eslint-disable-next-line no-new-func
-  const run = new Function(
+  const run = compileInlineScript<void>('ui-bootstrap', [
     'document', 'window', 'navigator',
     'parseVars', 'sharedExpand', 'VAR_PATTERN', 'sharedCartesian', 'sharedZip',
-    iifeBody,
-  );
+  ], iifeBody);
   run(document, window, navigator, parseVars, expand, VAR_PATTERN, cartesian, zip);
 
   return {
@@ -358,6 +357,54 @@ test('"+ add variable" appends an empty manual row without rendering', () => {
   assert.equal(p.rowData().length, n + 1);
   assert.deepEqual(p.rowData()[n], ['', '', 'manual']);
   assert.equal(p.cli(), cliBefore, 'an unnamed row changes nothing until it is filled in');
+});
+
+test('a row\'s insert button inserts {{name}} at the caret; an unnamed row inserts nothing', () => {
+  const p = loadPage();
+  const [first] = p.rowData();
+  const end = p.tmpl.value.length;
+  p.tmpl.setSelectionRange(end, end);
+  p.varBody.rows[0].insertBtn.fire('click');
+  assert.ok(p.tmpl.value.endsWith(`{{${first[0]}}}`));
+  assert.deepEqual(p.activeChips(), []);
+
+  p.addBtn.fire('click');
+  const after = p.tmpl.value;
+  p.varBody.rows[p.varBody.rows.length - 1].insertBtn.fire('click');
+  assert.equal(p.tmpl.value, after);
+});
+
+test('clearing the template renders the empty-state preview and a bare command', () => {
+  const p = loadPage();
+  p.tmpl.value = '   ';
+  p.tmpl.fire('input');
+  mock.timers.tick(DEBOUNCE_MS);
+  assert.ok(p.previewBody.innerHTML.includes('Type a template above'));
+  assert.equal(p.previewCount.textContent, '0 results');
+  assert.equal(p.previewCount.className, 'preview-count empty');
+  assert.equal(p.cli(), 'promptargs');
+});
+
+test('editing a row to a glob or @file source re-renders with the matching command syntax', () => {
+  const p = loadPage();
+  for (const r of [...p.varBody.rows]) r.rmBtn.fire('click');
+  p.tmpl.value = 'Review {{files}} against {{spec}}';
+  p.tmpl.fire('input');
+  mock.timers.tick(DEBOUNCE_MS);
+  const rows = p.varBody.rows;
+  assert.deepEqual(rows.map(r => r.nameInput.value), ['files', 'spec']);
+  const files = rows.find(r => r.nameInput.value === 'files')!;
+  const spec = rows.find(r => r.nameInput.value === 'spec')!;
+  files.valuesInput.value = 'src/*.go';
+  files.sourceSelect.value = 'glob';
+  spec.valuesInput.value = 'docs/spec.md';
+  spec.sourceSelect.value = 'file';
+  files.sourceSelect.fire('input');
+  spec.valuesInput.fire('input');
+  mock.timers.tick(DEBOUNCE_MS);
+  assert.equal(p.previewCount.textContent, '1 result');
+  assert.ok(p.previewBody.innerHTML.includes('Review src/*.go against docs/spec.md'));
+  assert.equal(p.cli(), 'promptargs "Review {{files}} against {{spec}}" --files="src/*.go" --spec=@docs/spec.md');
 });
 
 // --- mode buttons ------------------------------------------------------------

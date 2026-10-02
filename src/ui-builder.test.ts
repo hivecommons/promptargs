@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { compileInlineScript } from './ui-harness.js';
 
 /**
  * Behavior tests for ui.html's builder logic: `update()` (preview rendering
@@ -88,16 +89,14 @@ function makeHarness(mode: 'zip' | 'cross' = 'zip'): Harness {
   const src = ['getRowData', 'splitValues', 'escHtml', 'highlightUnfilled', 'update']
     .map(extractFunction)
     .join('\n');
-  // eslint-disable-next-line no-new-func
-  const factory = new Function(
+  const factory = compileInlineScript<() => void>('ui-update', [
     'tmpl', 'varBody', 'previewBody', 'previewCount', 'cliText', 'mode',
     'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
-    `${src}\nreturn update;`,
-  );
+  ], `${src}\nreturn update;`);
   const update = factory(
     tmpl, varBody, previewBody, previewCount, cliText, mode,
     cartesian, zip, expand, VAR_PATTERN,
-  ) as () => void;
+  );
 
   return {
     update,
