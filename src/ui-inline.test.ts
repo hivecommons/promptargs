@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolve } from './resolver.js';
 import type { TemplateVar } from './parser.js';
+import { compileInlineScript } from './ui-harness.js';
 
 /**
  * Regression tests for ui.html's browser <script>.
@@ -40,8 +41,7 @@ function extractFunction(name: string): string {
 
 function instantiate<T>(name: string): T {
   const src = extractFunction(name);
-  // eslint-disable-next-line no-new-func
-  return new Function(`return ${src};`)() as T;
+  return compileInlineScript<T>(`ui-fn-${name}`, [], `return ${src};`)();
 }
 
 const uiSplitValues = instantiate<(raw: string, source: string) => string[]>('splitValues');

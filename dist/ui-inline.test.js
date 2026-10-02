@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolve } from './resolver.js';
+import { compileInlineScript } from './ui-harness.js';
 /**
  * Regression tests for ui.html's browser <script>.
  *
@@ -37,8 +38,7 @@ function extractFunction(name) {
 }
 function instantiate(name) {
     const src = extractFunction(name);
-    // eslint-disable-next-line no-new-func
-    return new Function(`return ${src};`)();
+    return compileInlineScript(`ui-fn-${name}`, [], `return ${src};`)();
 }
 const uiSplitValues = instantiate('splitValues');
 const uiEsc = instantiate('esc');
