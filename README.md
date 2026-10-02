@@ -2,7 +2,7 @@
   <img src="docs/assets/promptargs-logo.svg" alt="Promptargs" width="120" height="120">
 </p>
 
-# Promptargs
+# promptargs 🏴‍☠️
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
@@ -457,3 +457,5 @@ If you installed the skill (see [Install](#as-a-skill)), use it directly inside 
 ## License
 
 Apache-2.0
+
+Pirate flag icon: [Twemoji](https://twemoji.twitter.com/), [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
