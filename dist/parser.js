@@ -44,8 +44,10 @@ export function expand(template, values) {
     }
     // Convert {{var=default}} to {{var}} so Mustache can handle it
     const normalized = template.replace(VAR_PATTERN, (_match, name) => `{{${name}}}`);
-    // Disable HTML escaping — we want raw text output
-    Mustache.escape = (text) => text;
-    return Mustache.render(normalized, view);
+    // Disable HTML escaping for this render only — we want raw text output.
+    // Passed via the per-call config (4th arg) rather than assigning to the
+    // module-level Mustache.escape, which would permanently disable escaping
+    // for every other consumer of the shared `mustache` module in this process.
+    return Mustache.render(normalized, view, undefined, { escape: (text) => text });
 }
 //# sourceMappingURL=parser.js.map

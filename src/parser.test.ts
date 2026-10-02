@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import Mustache from 'mustache';
 import { parseVars, expand } from './parser.js';
 
 describe('parseVars', () => {
@@ -99,5 +100,16 @@ describe('expand', () => {
     // Before padding was recognised, Mustache rendered {{ name }} as "".
     const result = expand('Hello {{ name }}, see {{file}}', { file: 'x' });
     assert.strictEqual(result, 'Hello {{name}}, see x');
+  });
+
+  it('does not mutate the shared Mustache.escape global', () => {
+    // `expand` must disable escaping for its own render only, via the
+    // per-call config, not by assigning Mustache.escape — that would leak
+    // into any other code in the process that also imports `mustache` and
+    // relies on its default HTML-escaping behavior.
+    const before = Mustache.escape;
+    expand('{{code}}', { code: '<b>' });
+    assert.strictEqual(Mustache.escape, before);
+    assert.strictEqual(Mustache.escape('<b>'), '&lt;b&gt;');
   });
 });

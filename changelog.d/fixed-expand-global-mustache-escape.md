@@ -1,0 +1,1 @@
+- `expand()` no longer mutates the shared `mustache` module's global `escape` function to disable HTML-escaping; it now passes a per-call `escape` override instead, so other code in the same process that uses `mustache` for HTML output is no longer left with escaping silently disabled after `expand()` runs (#116).
