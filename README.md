@@ -1,6 +1,12 @@
-# promptargs 🏴‍☠️
+<p align="center">
+  <img src="docs/assets/promptargs-logo.svg" alt="promptargs" width="120" height="120">
+</p>
 
-**Template arguments for AI prompts.**
+# promptargs
+
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+promptargs fills template variables in AI prompts for repeatable CLI and skill workflows.
 
 You write a prompt with blanks (`{{like_this}}`), and promptargs fills them in.
 

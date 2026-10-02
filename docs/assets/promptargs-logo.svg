@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">promptargs template logo</title>
+  <desc id="desc">Curly braces around a prompt cursor on a deep indigo tile.</desc>
+  <rect x="28" y="28" width="200" height="200" rx="44" fill="#2D1B69" stroke="#120B2E" stroke-width="8"/>
+  <path d="M100 76c-23 0-34 13-34 34v10c0 9-6 15-16 15 10 0 16 6 16 15v10c0 21 11 34 34 34" fill="none" stroke="#B9A7FF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M156 76c23 0 34 13 34 34v10c0 9 6 15 16 15-10 0-16 6-16 15v10c0 21-11 34-34 34" fill="none" stroke="#B9A7FF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M111 128h34" stroke="#FFE066" stroke-width="12" stroke-linecap="round"/>
+</svg>
