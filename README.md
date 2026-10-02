@@ -1,4 +1,6 @@
-# promptargs 🏴‍☠️
+<p align="center"><img src="docs/assets/promptargs-logo.svg" alt="promptargs logo" width="160"></p>
+
+# promptargs
 
 **Template arguments for AI prompts.**
 
