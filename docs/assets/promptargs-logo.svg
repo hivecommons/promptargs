@@ -1,0 +1,15 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">promptargs logo</title>
+  <desc id="desc">A pirate flag inspired prompt template card with highlighted argument blanks.</desc>
+  <rect x="28" y="44" width="200" height="168" rx="28" fill="#1A1510"/>
+  <path d="M56 80h144" stroke="#E0B04F" stroke-width="12" stroke-linecap="round"/>
+  <path d="M56 118h34" stroke="#FFF4D5" stroke-width="10" stroke-linecap="round"/>
+  <path d="M110 118h88" stroke="#1F7A8C" stroke-width="10" stroke-linecap="round"/>
+  <path d="M56 154h58" stroke="#FFF4D5" stroke-width="10" stroke-linecap="round"/>
+  <path d="M134 154h64" stroke="#E0B04F" stroke-width="10" stroke-linecap="round"/>
+  <path d="M83 181c16-13 34-13 50 0 16-13 34-13 50 0" fill="none" stroke="#FFF4D5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M80 96c10-20 32-27 48-13 16-14 38-7 48 13-18-7-31-4-48 8-17-12-30-15-48-8z" fill="#1F7A8C"/>
+  <circle cx="108" cy="100" r="8" fill="#E0B04F"/>
+  <circle cx="148" cy="100" r="8" fill="#E0B04F"/>
+</svg>
