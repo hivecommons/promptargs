@@ -85,6 +85,30 @@ test('startUI binds a server that rejects non-local Host headers', async () => {
         await closeServer(server);
     }
 });
+test('startUI logs a rejected Host once on stderr without echoing it, and totals on close', async () => {
+    const lines = [];
+    const origError = console.error;
+    console.error = (...args) => { lines.push(args.join(' ')); };
+    const server = startUI(0, { openBrowser: false });
+    try {
+        await onceListening(server);
+        const { port } = server.address();
+        for (let i = 0; i < 3; i++) {
+            assert.equal((await request(port, 'evil.example')).statusCode, 403);
+        }
+        assert.equal(lines.length, 1);
+        assert.match(lines[0], /rejected request with unexpected Host header/);
+        assert.doesNotMatch(lines[0], /evil\.example/);
+        await closeServer(server);
+        assert.equal(lines.length, 2);
+        assert.match(lines[1], /rejected 3 requests/);
+    }
+    finally {
+        console.error = origError;
+        if (server.listening)
+            await closeServer(server);
+    }
+});
 test('startUI serves the parser/iterate/mustache modules the browser imports', async () => {
     const server = startUI(0, { openBrowser: false });
     await onceListening(server);
@@ -144,6 +168,7 @@ test('startUI answers 404 for a static route whose backing file is missing', () 
             timeout: 15000,
         });
         assert.match(res.stdout, /STATUS:404/, res.stderr);
+        assert.match(res.stderr, /failed to load static asset \/parser\.js \(ENOENT\)/);
     }
     finally {
         rmSync(dir, { recursive: true, force: true });

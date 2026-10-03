@@ -77,9 +77,14 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
         `127.0.0.1:${port}`,
         `[::1]:${port}`,
     ]);
+    let rejectedHosts = 0;
     const server = createServer((req, res) => {
         // Reject non-local Host headers to block DNS-rebinding reads of env data.
         if (!req.headers.host || !ALLOWED_HOSTS.has(req.headers.host)) {
+            // Never log the Host header or URL: both are attacker-controlled.
+            if (rejectedHosts++ === 0) {
+                console.error('promptargs: rejected request with unexpected Host header (further rejections suppressed)');
+            }
             res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end('Forbidden');
             return;
@@ -91,7 +96,8 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
                 res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
                 res.end(js);
             }
-            catch {
+            catch (err) {
+                console.error(`promptargs: failed to load static asset ${req.url} (${err.code ?? 'unknown'})`);
                 res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
                 res.end('Not found');
             }
@@ -114,6 +120,11 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
                     exec(`${cmd} ${url}`);
                 });
             }, OPEN_DELAY_MS);
+        }
+    });
+    server.on('close', () => {
+        if (rejectedHosts > 1) {
+            console.error(`promptargs: rejected ${rejectedHosts} requests with unexpected Host headers in total`);
         }
     });
     server.on('error', (err) => {
