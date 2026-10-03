@@ -6,7 +6,9 @@ How a release of `@hivecommons/promptargs` ships, and how to back out a bad one.
 
 1. A PR bumps `version` in `package.json` and merges to `main`.
 2. `auto-release.yml` creates the GitHub release `v<version>` if none exists.
-3. Publishing that release triggers `release.yml`, which builds, verifies `dist/` is in sync with `src/`, runs the tests, checks the tag matches `package.json`, and runs `npm publish --provenance`.
+3. `auto-release.yml` explicitly dispatches `release.yml` with the release tag, which builds, verifies `dist/` is in sync with `src/`, runs the tests, checks the tag matches `package.json`, and runs `npm publish --provenance`.
+
+Human-published GitHub releases also trigger the same `release.yml` publish path. Releases created with `GITHUB_TOKEN` do not trigger release-event workflows, so the automatic path needs the explicit dispatch and `actions: write` permission.
 
 A failure in step 3 leaves a GitHub release without a matching npm version.
 
@@ -37,6 +39,15 @@ npm versions are immutable. Never try to republish the same version.
 5. **Record it.** Add a `changelog.d` entry describing the regression and the fixed version.
 
 ## Failed publish (release exists, npm version missing)
+
+If no `Release` run exists (including the original `v0.7.0` release), or the dispatch failed after creating the release, check that the version is absent from npm, then dispatch the publish workflow after the workflow fix has merged:
+
+```bash
+npm view @hivecommons/promptargs versions --json
+GH_TOKEN="$GH_TOKEN" gh workflow run release.yml --repo hivecommons/promptargs --ref main -f tag=v0.7.0
+```
+
+Replace `v0.7.0` with the missing release tag. Run the workflow from `main` so it uses the updated workflow even for older tags; it checks out `refs/tags/<tag>` and validates that tag against the checked-out package version before publishing. Do not move or recreate the existing tag. The auto-release workflow skips existing releases, so it will not retry this publication automatically.
 
 1. Open the failed `Release` run and read the failing step (dist drift, tests, tag/version mismatch, or npm auth).
 2. If the cause was in the repository, fix it on `main` and bump the patch version. The tag already points at the broken commit.
