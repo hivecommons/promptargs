@@ -46,6 +46,26 @@ test('collectEnvVars includes terminal env values without skipped keys', () => {
   }
 });
 
+test('collectEnvVars omits credential-looking names and credential-shaped values', () => {
+  const keys = ['PROMPTARGS_TEST_SIGNING_KEY', 'PROMPTARGS_TEST_DB_URL', 'PROMPTARGS_TEST_PLAIN'] as const;
+  const saved = Object.fromEntries(keys.map(k => [k, process.env[k]]));
+  process.env['PROMPTARGS_TEST_SIGNING_KEY'] = 'sig';
+  process.env['PROMPTARGS_TEST_DB_URL'] = 'postgres://app:hunter2@db.internal/app';
+  process.env['PROMPTARGS_TEST_PLAIN'] = 'plain';
+
+  try {
+    const env = collectEnvVars();
+    assert.equal(env.terminal['PROMPTARGS_TEST_SIGNING_KEY'], undefined);
+    assert.equal(env.terminal['PROMPTARGS_TEST_DB_URL'], undefined);
+    assert.equal(env.terminal['PROMPTARGS_TEST_PLAIN'], 'plain');
+  } finally {
+    for (const k of keys) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+  }
+});
+
 test('buildUIHtml escapes env JSON so values cannot escape the script tag', () => {
   const html = buildUIHtml('<html><head><script></script></head></html>', {
     git: {},

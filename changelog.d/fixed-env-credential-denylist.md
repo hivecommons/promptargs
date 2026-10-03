@@ -1,0 +1,1 @@
+- Implicit env-var auto-detection and the Builder UI's terminal-env list now also refuse `*_KEY`, `*_PWD`, `*_PAT`, `*_PASS`, `*_DSN`, `WEBHOOK`, `JWT`, `HMAC`, `OAUTH` and `CONNECTION_STRING` names, and any value shaped like a credential (URL with embedded password, PEM block, JWT, well-known token prefixes) regardless of name. Explicit `--flag=value` is unchanged.

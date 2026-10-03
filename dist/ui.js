@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { autodetect, isSensitiveEnvName, AUTODETECT_VARS } from './autodetect.js';
+import { autodetect, isSensitiveEnvName, isSensitiveEnvValue, AUTODETECT_VARS } from './autodetect.js';
 const DEFAULT_PORT = 3700;
 const OPEN_DELAY_MS = 500;
 const DIFF_PREVIEW_MAX_CHARS = 60;
@@ -38,8 +38,9 @@ export function collectEnvVars() {
     }
     const terminal = {};
     for (const [key, val] of Object.entries(process.env)) {
-        // Never embed credential-looking values in the served page.
-        if (!val || shouldSkipEnv(key) || isSensitiveEnvName(key))
+        // Never embed credential-looking names or credential-shaped values in the
+        // served page.
+        if (!val || shouldSkipEnv(key) || isSensitiveEnvName(key) || isSensitiveEnvValue(val))
             continue;
         terminal[key] = truncateValue(val, ENV_VAL_PREVIEW_MAX_CHARS);
     }
