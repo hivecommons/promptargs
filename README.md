@@ -415,8 +415,8 @@ promptargs review --file=src/main.ts --no-interactive | claude -p "do this revie
 # Goose
 promptargs review --file=src/main.ts --no-interactive | goose run
 
-# Copilot
-promptargs review --file=src/main.ts --no-interactive | gh copilot explain
+# Copilot CLI (needs the standalone `copilot` CLI, installed and signed in)
+copilot -p "$(promptargs review --file=src/main.ts --no-interactive)"
 ```
 
 ### As a skill inside your AI tool
