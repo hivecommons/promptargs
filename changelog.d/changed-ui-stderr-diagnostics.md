@@ -1,0 +1,1 @@
+- `promptargs ui` now prints a single stderr line on the first request rejected for an unexpected `Host` header (with a total at shutdown) and on static-asset load failures, without echoing attacker-controlled values. (#136)
