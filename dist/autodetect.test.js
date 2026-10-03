@@ -4,7 +4,7 @@ import { execSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join, delimiter } from 'node:path';
 import { tmpdir } from 'node:os';
-import { autodetect, autodetectAll, isSensitiveEnvName, AUTODETECT_VARS } from './autodetect.js';
+import { autodetect, autodetectAll, isSensitiveEnvName, isSensitiveEnvValue, AUTODETECT_VARS } from './autodetect.js';
 // git-backed detectors read the process cwd, so run them inside a scratch
 // repo with a known origin remote (each test file is its own process).
 let repo;
@@ -102,6 +102,18 @@ describe('environment fallback', () => {
             delete process.env.PA_TEST_API_KEY;
         }
     });
+    it('never expands credential-shaped values under innocuous names', () => {
+        process.env.PA_TEST_DATABASE_URL = 'postgres://app:hunter2@db.internal/app';
+        process.env.PA_TEST_PLAIN_URL = 'postgres://db.internal/app';
+        try {
+            assert.strictEqual(autodetect('PA_TEST_DATABASE_URL'), undefined);
+            assert.strictEqual(autodetect('PA_TEST_PLAIN_URL'), 'postgres://db.internal/app');
+        }
+        finally {
+            delete process.env.PA_TEST_DATABASE_URL;
+            delete process.env.PA_TEST_PLAIN_URL;
+        }
+    });
 });
 describe('isSensitiveEnvName', () => {
     it('flags credential-looking names', () => {
@@ -110,13 +122,53 @@ describe('isSensitiveEnvName', () => {
             'PGPASSWD', 'AWS_SECRET_ACCESS_KEY', 'OPENAI_API_KEY', 'APIKEY',
             'GOOGLE_APPLICATION_CREDENTIALS', 'SSH_PRIVATE_KEY', 'AUTH_HEADER',
             'X_AUTH', 'SESSION_COOKIE', 'BEARER_VALUE', 'gh_token',
+            // Suffix conventions outside API_/ACCESS_/PRIVATE_KEY
+            'OPENAI_KEY', 'STRIPE_KEY', 'SIGNING_KEY', 'ENCRYPTION_KEY', 'HIVE_HEARTBEAT_KEY',
+            'LICENSE_KEY', 'SSH_KEYS', 'KEY', 'MYSQL_PWD', 'ORACLE_PWD', 'GITHUB_PAT', 'AZURE_DEVOPS_PAT',
+            'PAT', 'GIT_PASS', 'SSH_PASSPHRASE', 'SLACK_WEBHOOK_URL', 'DISCORD_WEBHOOK', 'SENTRY_DSN',
+            'DB_CONNECTION_STRING', 'AZURE_CONN_STR', 'JWT_SIGNING', 'HMAC_VALUE', 'OAUTH_CLIENT_ID',
         ]) {
             assert.strictEqual(isSensitiveEnvName(name), true, `should flag ${name}`);
         }
     });
     it('does not flag ordinary names', () => {
-        for (const name of ['EDITOR', 'PATH', 'GOPATH', 'AUTHOR', 'AUTHORIZED_USERS_FILE', 'branch', 'KEYBOARD']) {
+        for (const name of [
+            'EDITOR', 'PATH', 'GOPATH', 'AUTHOR', 'AUTHORIZED_USERS_FILE', 'branch', 'KEYBOARD',
+            'PWD', 'OLDPWD', 'PATTERN', 'PATCH_LEVEL', 'PASSENGER_COUNT', 'MONKEY', 'DSNAME', 'COMPASS',
+        ]) {
             assert.strictEqual(isSensitiveEnvName(name), false, `should not flag ${name}`);
+        }
+    });
+});
+describe('isSensitiveEnvValue', () => {
+    it('flags credential-shaped values regardless of name', () => {
+        for (const value of [
+            'postgres://app:hunter2@db.internal:5432/app',
+            'redis://:p4ss@cache.internal/0',
+            'mongodb+srv://user:pw@cluster0.example.net/db',
+            '-----BEGIN OPENSSH PRIVATE KEY-----\nabc',
+            'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig',
+            'ghp_' + 'A'.repeat(36),
+            'github_pat_' + 'A'.repeat(22) + '_' + 'b'.repeat(59),
+            'glpat-' + 'x'.repeat(20),
+            'sk-' + 'x'.repeat(48),
+            'sk_live_' + 'x'.repeat(24),
+            'xoxb-' + '1'.repeat(12) + '-abc',
+            'AKIA' + 'A'.repeat(16),
+            'AIza' + 'a'.repeat(35),
+            'npm_' + 'a'.repeat(36),
+            'hvs.' + 'a'.repeat(24),
+        ]) {
+            assert.strictEqual(isSensitiveEnvValue(value), true, `should flag ${value.slice(0, 12)}...`);
+        }
+    });
+    it('does not flag ordinary values', () => {
+        for (const value of [
+            'main', '/usr/local/bin:/usr/bin', 'https://github.com/hivecommons/promptargs',
+            'postgres://db.internal/app', 'https://user@example.com/path', 'user@example.com',
+            'skills', 'sk-short', 'eyJ-not-a-jwt', 'AKIA-nope', 'Hello, world', '42',
+        ]) {
+            assert.strictEqual(isSensitiveEnvValue(value), false, `should not flag ${value}`);
         }
     });
 });

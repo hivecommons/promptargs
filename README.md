@@ -299,9 +299,9 @@ promptargs "Connect to {{DATABASE_URL}} in {{AWS_REGION}}"
 
 In the **Builder UI** (`promptargs ui`), click "Show terminal env" to see all available env vars from your shell. Click any one to insert it at the cursor.
 
-Common useful env vars: `NODE_ENV`, `AWS_REGION`, `DATABASE_URL`, `CI`, `USER`, `EDITOR`, `PATH`, `SHELL`.
+Common useful env vars: `NODE_ENV`, `AWS_REGION`, `CI`, `USER`, `EDITOR`, `PATH`, `SHELL`.
 
-Credential-looking names (anything matching `TOKEN`, `SECRET`, `PASSWORD`, `KEY`, `CREDENTIAL`, `BEARER`, `COOKIE`, or `AUTH`, e.g. `GITHUB_TOKEN`) are intentionally **excluded** from auto-detection — a repo-controlled template can never expand `{{GITHUB_TOKEN}}` into its value, even though an explicit `--flag=value` can still pass any value you choose. This also applies to the Builder UI's "Show terminal env" list.
+Credential-looking names are intentionally **excluded** from auto-detection: anything containing `TOKEN`, `SECRET`, `PASSWORD`/`PASSWD`/`PASSPHRASE`, `CREDENTIAL`, `API_KEY`/`ACCESS_KEY`/`PRIVATE_KEY`, `BEARER`, `COOKIE`, `WEBHOOK`, `JWT`, `HMAC`, `OAUTH`, `CONNECTION_STRING`, or the `_`-delimited words `AUTH`, `KEY`/`KEYS`, `PWD`, `PAT`, `PASS`, `DSN` (so `GITHUB_TOKEN`, `SIGNING_KEY`, `MYSQL_PWD`, `GITHUB_PAT` and `SLACK_WEBHOOK_URL` are all refused, while `PATH`, `PWD`, `KEYBOARD` and `AUTHOR` still work). Credential-**shaped** values are excluded whatever the name: URLs with a password in them (`postgres://user:pass@host/db`), PEM blocks, JWTs, and well-known token prefixes (`ghp_`, `github_pat_`, `glpat-`, `sk-`, `xoxb-`, `AKIA…`, `npm_…`, …). A repo-controlled template can therefore never expand `{{GITHUB_TOKEN}}` or `{{DATABASE_URL}}` into a secret, even though an explicit `--flag=value` can still pass any value you choose. This also applies to the Builder UI's "Show terminal env" list.
 
 ### Priority
 
