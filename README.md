@@ -421,7 +421,7 @@ promptargs review --file=src/main.ts --no-interactive | gh copilot explain
 
 ### As a skill inside your AI tool
 
-If you installed the skill (see [Install](#as-a-skill)), use it directly inside your session:
+If you installed the skill (see [Install](#as-a-slash-command--skill)), use it directly inside your session:
 
 **Claude Code:**
 ```
