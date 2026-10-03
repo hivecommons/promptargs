@@ -77,6 +77,9 @@ async function main() {
         const flags = parseFlags(args.slice(1));
         const port = flags['port'] ? Number(flags['port']) : undefined;
         startUI(port);
+        // Exit normally so the UI can print its local rejection summary.
+        process.once('SIGINT', () => process.exit(130));
+        process.once('SIGTERM', () => process.exit(143));
         return;
     }
     if (args[0] === 'init') {

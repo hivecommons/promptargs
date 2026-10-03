@@ -60,6 +60,7 @@ const STATIC_JS_ROUTES = {
     '/iterate.js': 'iterate.js',
     '/mustache.mjs': 'mustache.mjs',
 };
+let rejectedHostCount = 0;
 export function startUI(port = DEFAULT_PORT, options = {}) {
     const __dirname = dirname(fileURLToPath(import.meta.url));
     const htmlPath = join(__dirname, 'ui.html');
@@ -80,18 +81,31 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
     const server = createServer((req, res) => {
         // Reject non-local Host headers to block DNS-rebinding reads of env data.
         if (!req.headers.host || !ALLOWED_HOSTS.has(req.headers.host)) {
+            rejectedHostCount++;
+            if (rejectedHostCount === 1) {
+                console.error('promptargs: rejected request with unexpected Host header (further rejections suppressed)');
+                process.once('exit', () => {
+                    console.error(`promptargs: rejected ${rejectedHostCount} request(s) with unexpected Host header in total`);
+                });
+            }
             res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end('Forbidden');
             return;
         }
-        const file = req.url ? STATIC_JS_ROUTES[req.url] : undefined;
+        const route = req.url && Object.hasOwn(STATIC_JS_ROUTES, req.url) ? req.url : undefined;
+        const file = route ? STATIC_JS_ROUTES[route] : undefined;
         if (file) {
             try {
                 const js = readFileSync(join(__dirname, file), 'utf-8');
                 res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
                 res.end(js);
             }
-            catch {
+            catch (err) {
+                const code = err.code;
+                // Only a short error identifier is useful here, never an error message
+                // (which can contain filesystem paths) or other arbitrary text.
+                const safeCode = typeof code === 'string' && /^[A-Z0-9_]{1,40}$/.test(code) ? code : 'UNKNOWN';
+                console.error(`promptargs: failed to load static asset ${route} (${safeCode})`);
                 res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
                 res.end('Not found');
             }

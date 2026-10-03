@@ -77,7 +77,8 @@ test('buildUIHtml escapes env JSON so values cannot escape the script tag', () =
   assert.match(html, /\\u003c\/script>\\u003cscript>alert\(1\)\\u003c\/script>/);
 });
 
-test('startUI binds a server that rejects non-local Host headers', async () => {
+test('startUI warns only once for repeated rejected Host headers', async t => {
+  const stderr = t.mock.method(console, 'error', () => {});
   const server = startUI(0, { openBrowser: false });
   await onceListening(server);
   const { port } = server.address() as AddressInfo;
@@ -90,6 +91,11 @@ test('startUI binds a server that rejects non-local Host headers', async () => {
     const forbidden = await request(port, 'evil.example');
     assert.equal(forbidden.statusCode, 403);
     assert.equal(forbidden.body, 'Forbidden');
+    const repeated = await request(port, 'another-secret.example', '/private-url');
+    assert.equal(repeated.statusCode, 403);
+    assert.deepEqual(stderr.mock.calls.map(call => call.arguments), [[
+      'promptargs: rejected request with unexpected Host header (further rejections suppressed)',
+    ]]);
   } finally {
     await closeServer(server);
   }
@@ -158,7 +164,9 @@ test('startUI answers 404 for a static route whose backing file is missing', () 
       encoding: 'utf-8',
       timeout: 15000,
     });
+    assert.equal(res.status, 0, res.stderr);
     assert.match(res.stdout, /STATUS:404/, res.stderr);
+    assert.equal(res.stderr, 'promptargs: failed to load static asset /parser.js (ENOENT)\n');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -301,4 +309,47 @@ test('startUI rethrows non-EADDRINUSE server errors', async t => {
   assert.notStrictEqual(res.status, 0);
   assert.match(res.stderr, /EACCES/);
   assert.doesNotMatch(res.stderr, /is in use/);
+});
+
+test('UI CLI prints a rejection total on SIGINT and SIGTERM, and stays quiet without rejections', () => {
+  for (const [signal, count, exitCode] of [['SIGINT', 3, 130], ['SIGTERM', 2, 143], ['SIGINT', 0, 130]] as const) {
+    const script = `
+      import { get } from 'node:http';
+      const log = console.log;
+      console.log = (...args) => {
+        log(...args);
+        if (!String(args[0]).startsWith('promptargs builder running')) return;
+        (async () => {
+          for (let i = 0; i < ${count}; i++) {
+            await new Promise((resolve, reject) => {
+              get({ hostname: '127.0.0.1', port: serverPort, path: '/secret-url',
+                headers: { Host: 'secret-host.example' } }, res => {
+                if (res.statusCode !== 403) throw new Error('expected 403');
+                res.resume();
+                res.on('end', resolve);
+              }).on('error', reject);
+            });
+          }
+          process.kill(process.pid, ${JSON.stringify(signal)});
+        })();
+      };
+      // Intercept listen only to discover the OS-assigned port without races.
+      const http = await import('node:http');
+      const listen = http.Server.prototype.listen;
+      let serverPort;
+      http.Server.prototype.listen = function (...args) {
+        this.prependOnceListener('listening', () => { serverPort = this.address().port; });
+        return listen.apply(this, args);
+      };
+      process.argv = [process.execPath, 'cli.js', 'ui', '--port=0'];
+      await import(${JSON.stringify(pathToFileURL(join(__dirname, 'cli.js')).href)});
+    `;
+    const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+      encoding: 'utf-8', timeout: 15000,
+    });
+    assert.equal(res.status, exitCode, res.stderr);
+    assert.equal(res.stderr, count === 0 ? '' :
+      'promptargs: rejected request with unexpected Host header (further rejections suppressed)\n' +
+      `promptargs: rejected ${count} request(s) with unexpected Host header in total\n`);
+  }
 });
