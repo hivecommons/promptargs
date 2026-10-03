@@ -24,6 +24,14 @@ npm test
 
 `npm run test:coverage` (Node >= 22.8) runs the same suite with coverage thresholds enforced; use it to check that new code does not drop coverage below the gate.
 
+## Changelog fragments
+
+For a user-visible change, add one Markdown file to `changelog.d/` named `<category>-<slug>.md`, where the category is `added`, `changed`, or `fixed`. The file holds a single user-facing line describing the change, ending with the PR or issue number, for example `(#86)`. See the existing files in `changelog.d/` for the style.
+
+## Releases
+
+Releases ship from a version bump in `package.json`. See [runbooks/release-rollback.md](runbooks/release-rollback.md) for how a release is published and how to roll one back.
+
 ## Pull requests
 
 - Work on a feature branch; do not push directly to `main`.
