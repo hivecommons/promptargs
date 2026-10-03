@@ -1,16 +1,15 @@
 name: Auto Release
 
-# release.yml only runs on `release: published`, but nothing ever created a
-# release, so it has never fired. This workflow closes that gap: whenever
-# main advances, it checks whether the current package.json version already
-# has a matching tag/release and, if not, publishes one — which in turn
-# triggers release.yml to build, test, and `npm publish`.
+# When main advances, create a release for the current package version and
+# explicitly dispatch release.yml to build, test, and publish to npm.
+# Releases created with GITHUB_TOKEN do not start release-event workflows.
 on:
   push:
     branches: [main]
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: auto-release
@@ -50,3 +49,14 @@ jobs:
             --title "${{ steps.version.outputs.tag }}" \
             --target "${{ github.sha }}" \
             --generate-notes
+
+      - name: Start npm publication
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh workflow run release.yml \
+            --repo "${{ github.repository }}" \
+            --ref main \
+            -f tag="$RELEASE_TAG"

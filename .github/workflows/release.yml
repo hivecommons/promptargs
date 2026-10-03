@@ -3,6 +3,12 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish (for example v0.7.0)
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -14,8 +20,12 @@ jobs:
     permissions:
       contents: read
       id-token: write   # npm provenance
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -43,7 +53,7 @@ jobs:
       - name: Check tag matches package.json version
         run: |
           pkg="$(node -p "require('./package.json').version")"
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${RELEASE_TAG#v}"
           [ "$pkg" = "$tag" ] || {
             echo "::error::tag v$tag does not match package.json version $pkg"
             exit 1
