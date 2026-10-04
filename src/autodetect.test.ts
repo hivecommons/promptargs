@@ -137,6 +137,7 @@ describe('isSensitiveEnvName', () => {
       'LICENSE_KEY', 'SSH_KEYS', 'KEY', 'MYSQL_PWD', 'ORACLE_PWD', 'GITHUB_PAT', 'AZURE_DEVOPS_PAT',
       'PAT', 'GIT_PASS', 'SSH_PASSPHRASE', 'SLACK_WEBHOOK_URL', 'DISCORD_WEBHOOK', 'SENTRY_DSN',
       'DB_CONNECTION_STRING', 'AZURE_CONN_STR', 'JWT_SIGNING', 'HMAC_VALUE', 'OAUTH_CLIENT_ID',
+      'AUTHORIZATION', 'HTTP_AUTHORIZATION', 'AUTHORIZATION_HEADER', 'authorisation',
     ]) {
       assert.strictEqual(isSensitiveEnvName(name), true, `should flag ${name}`);
     }
@@ -170,6 +171,8 @@ describe('isSensitiveEnvValue', () => {
       'AIza' + 'a'.repeat(35),
       'npm_' + 'a'.repeat(36),
       'hvs.' + 'a'.repeat(24),
+      'Bearer ' + 'a'.repeat(40),
+      'Basic dXNlcjpwYXNz',
     ]) {
       assert.strictEqual(isSensitiveEnvValue(value), true, `should flag ${value.slice(0, 12)}...`);
     }
@@ -180,6 +183,7 @@ describe('isSensitiveEnvValue', () => {
       'main', '/usr/local/bin:/usr/bin', 'https://github.com/hivecommons/promptargs',
       'postgres://db.internal/app', 'https://user@example.com/path', 'user@example.com',
       'skills', 'sk-short', 'eyJ-not-a-jwt', 'AKIA-nope', 'Hello, world', '42',
+      'Bearer', 'Basic', 'Bearer-Token-Co', 'basically fine',
     ]) {
       assert.strictEqual(isSensitiveEnvValue(value), false, `should not flag ${value}`);
     }
