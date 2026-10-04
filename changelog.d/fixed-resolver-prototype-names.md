@@ -1,0 +1,1 @@
+- Resolver: variables named after `Object.prototype` members (`{{constructor}}`, `{{toString}}`, `{{__proto__}}`) are no longer mistaken for supplied flags, which crashed resolution with a TypeError.

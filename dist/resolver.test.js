@@ -181,4 +181,25 @@ describe('resolve interactive prompting', () => {
         assert.strictEqual(r.values.pa_dflt, 'd');
     });
 });
+describe('resolve prototype-named variables', () => {
+    for (const name of ['constructor', 'toString', 'hasOwnProperty']) {
+        it(`does not treat {{${name}}} as supplied by flags`, async () => {
+            const r = await resolve([v(name, 'dflt')], {}, false);
+            assert.strictEqual(r.values[name], 'dflt');
+        });
+        it(`still honours an explicit ${name} flag`, async () => {
+            const r = await resolve([v(name)], { [name]: 'given' }, false);
+            assert.strictEqual(r.values[name], 'given');
+        });
+    }
+    it('does not treat {{__proto__}} as supplied by flags', async () => {
+        const r = await resolve([v('__proto__', 'dflt')], {}, false);
+        assert.strictEqual(typeof r.values, 'object');
+        assert.strictEqual(r.iterations.length, 1);
+    });
+    it('leaves unresolved prototype-named variables missing', async () => {
+        const r = await resolve([v('constructor')], {}, false);
+        assert.strictEqual(Object.hasOwn(r.values, 'constructor'), false);
+    });
+});
 //# sourceMappingURL=resolver.test.js.map

@@ -86,14 +86,15 @@ export function isSensitiveEnvValue(value) {
     return SENSITIVE_ENV_VALUE_PATTERN.test(value);
 }
 export function autodetect(varName) {
-    const detector = DETECTORS[varName];
-    if (detector)
-        return detector();
+    // Own-property check: {{constructor}} / {{toString}} must not resolve to
+    // Object.prototype members.
+    if (Object.hasOwn(DETECTORS, varName))
+        return DETECTORS[varName]();
     // Fall back to terminal environment variables — but never implicitly expand
     // credential-looking names ({{GITHUB_TOKEN}} in a repo template must not
     // exfiltrate secrets into the generated prompt) or credential-shaped values
     // under innocuous names ({{DATABASE_URL}}). Explicit --flags still work.
-    if (isSensitiveEnvName(varName))
+    if (isSensitiveEnvName(varName) || !Object.hasOwn(process.env, varName))
         return undefined;
     const value = process.env[varName];
     if (value === undefined || isSensitiveEnvValue(value))
