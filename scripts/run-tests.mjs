@@ -2,17 +2,19 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-function findTestFiles(dir) {
+function findTestFiles(dir, suffix) {
   return readdirSync(dir)
     .flatMap((entry) => {
       const path = join(dir, entry);
-      return statSync(path).isDirectory() ? findTestFiles(path) : path;
+      return statSync(path).isDirectory() ? findTestFiles(path, suffix) : path;
     })
-    .filter((path) => path.endsWith('.test.js'))
+    .filter((path) => path.endsWith(suffix))
     .sort();
 }
 
-const testFiles = findTestFiles('dist');
+// Compiled source tests live in dist/; tests for the release tooling itself
+// (plain ESM, nothing to compile) live next to it in scripts/.
+const testFiles = [...findTestFiles('dist', '.test.js'), ...findTestFiles('scripts', '.test.mjs')];
 
 if (testFiles.length === 0) {
   console.error('No compiled test files found in dist/. Run npm run build first.');
@@ -48,6 +50,7 @@ const coverageArgs = withCoverage
   ? [
       '--experimental-test-coverage',
       '--test-coverage-exclude=dist/**/*.test.js',
+      '--test-coverage-exclude=scripts/**/*.test.mjs',
       '--test-coverage-lines=98',
       '--test-coverage-branches=96',
       '--test-coverage-functions=100',
