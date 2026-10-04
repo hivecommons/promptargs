@@ -59,6 +59,13 @@ test('tarball ships no test scratch output', () => {
   assert.deepStrictEqual(scratch, []);
 });
 
+test('tarball ships no test-only helper modules', () => {
+  // src/ui-harness.ts is imported only by the ui-*.test.ts suites; it is not
+  // named *.test.* so the glob above does not catch it (#158).
+  const helpers = packed.filter((p) => p.startsWith('dist/ui-harness.'));
+  assert.deepStrictEqual(helpers, [], `test helpers leaked into the tarball:\n${helpers.join('\n')}`);
+});
+
 test('tarball ships package.json, README and LICENSE', () => {
   for (const f of ['package.json', 'README.md', 'LICENSE']) {
     assert.ok(packed.includes(f), `${f} missing from tarball`);
