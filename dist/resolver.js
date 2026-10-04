@@ -83,7 +83,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
     let hasArrays = false;
     for (const v of vars) {
         // 1. Check flags
-        if (v.name in flags) {
+        if (Object.hasOwn(flags, v.name)) {
             const expanded = expandArrayValue(flags[v.name]);
             if (expanded.length > 1) {
                 arrayVars[v.name] = expanded;
