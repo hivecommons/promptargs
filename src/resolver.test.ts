@@ -12,6 +12,13 @@ function v(name: string, defaultValue?: string): TemplateVar {
   return { name, defaultValue, raw: `{{${name}}}` };
 }
 
+// resolve() returns null-prototype objects so prototype-named variables
+// (constructor, __proto__, ...) are ordinary keys; deepStrictEqual compares
+// prototypes, so expected iterations must be null-prototype too.
+function bare(obj: Record<string, string>): Record<string, string> {
+  return Object.assign(Object.create(null) as Record<string, string>, obj);
+}
+
 let tmp: string;
 
 before(() => {
@@ -26,7 +33,7 @@ describe('resolve scalar values', () => {
   it('takes values from flags', async () => {
     const r = await resolve([v('pa_x')], { pa_x: 'hello' }, false);
     assert.strictEqual(r.values.pa_x, 'hello');
-    assert.deepStrictEqual(r.iterations, [{ pa_x: 'hello' }]);
+    assert.deepStrictEqual(r.iterations, [bare({ pa_x: 'hello' })]);
   });
 
   it('flags win over defaults', async () => {
@@ -42,7 +49,7 @@ describe('resolve scalar values', () => {
   it('leaves unfilled vars unset when non-interactive', async () => {
     const r = await resolve([v('pa_missing')], {}, false);
     assert.ok(!('pa_missing' in r.values));
-    assert.deepStrictEqual(r.iterations, [{}]);
+    assert.deepStrictEqual(r.iterations, [bare({})]);
   });
 
   it('autodetect wins over defaults', async () => {
@@ -233,7 +240,7 @@ describe('resolve interactive prompting', () => {
       resolve([v('pa_ask')], {}, true),
     );
     assert.strictEqual(r.values.pa_ask, 'spaced answer');
-    assert.deepStrictEqual(r.iterations, [{ pa_ask: 'spaced answer' }]);
+    assert.deepStrictEqual(r.iterations, [bare({ pa_ask: 'spaced answer' })]);
   });
 
   it('expands a comma-separated interactive answer into iterations', async () => {
