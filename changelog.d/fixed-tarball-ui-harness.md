@@ -1,0 +1,1 @@
+- The npm tarball no longer ships the test-only `dist/ui-harness.*` helper (`.js`, `.js.map`, `.d.ts`), which only the UI test suites import. (#158)
