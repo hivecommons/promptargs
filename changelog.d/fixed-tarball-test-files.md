@@ -1,0 +1,1 @@
+- The npm tarball no longer ships the compiled `*.test.*` files (`.js`, `.js.map`, `.d.ts`) from `dist/`, cutting the package from 89 to 38 files.
