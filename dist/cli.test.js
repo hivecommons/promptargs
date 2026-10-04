@@ -307,4 +307,12 @@ test('template read errors reach the top-level handler and exit 1', () => {
     assert.match(res.stderr, /EISDIR/);
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
+test('--parallel is not advertised in help or the README', () => {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['help'], cwd, home);
+    assert.doesNotMatch(res.stdout, /--parallel/);
+    const readme = readFileSync(join(__dirname, '..', 'README.md'), 'utf-8');
+    assert.doesNotMatch(readme, /--parallel/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 //# sourceMappingURL=cli.test.js.map

@@ -1,0 +1,1 @@
+- Removed the `--parallel` flag from `promptargs help` and the README: it was never implemented and had no effect. Array iterations are always expanded in order and printed together.
