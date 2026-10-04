@@ -1,1 +1,1 @@
-- Added `src/package.test.ts`, a packaging-contract test that runs `npm pack --dry-run` and fails if compiled test files leak into the tarball or if any runtime module/asset (`ui.html`, `mustache.mjs`, `STATIC_JS_ROUTES` targets, `main`, `bin`) drops out of it.
+Added `src/package.test.ts`, a packaging-contract test that runs `npm pack --dry-run` and fails if compiled test files leak into the tarball or if any runtime module/asset (`ui.html`, `mustache.mjs`, `STATIC_JS_ROUTES` targets, `main`, `bin`) drops out of it.
