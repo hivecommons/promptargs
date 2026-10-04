@@ -245,12 +245,6 @@ promptargs "Review {{file}} for {{focus}}" \
 
 3 files × 3 focuses = 9 runs. Use `--cross` when you want the full matrix.
 
-By default, array iterations run one at a time and print as they finish. Add `--parallel` to run every iteration at once and print all results together:
-
-```bash
-promptargs review --file=api.go,auth.go,db.go --parallel
-```
-
 ---
 
 ## Where Templates Live
@@ -448,7 +442,6 @@ If you installed the skill (see [Install](#as-a-slash-command--skill)), use it d
 | `promptargs env` | Show auto-detected variable values |
 | `--no-interactive` | Skip questions, use defaults only |
 | `--cross` | Cross-product mode (all combinations) |
-| `--parallel` | Run array iterations in parallel |
 | `--json` | Output as JSON |
 | `--status` | Output status line only |
 | `... \| claude -p "do this"` | Pipe to Claude |

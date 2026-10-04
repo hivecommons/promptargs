@@ -37,7 +37,6 @@ Usage:
 Flags:
   --no-interactive    Skip interactive prompts (use defaults/auto only)
   --cross             Cross-product mode: all combinations of array values
-  --parallel          Run array iterations in parallel (print all at once)
   --json              Output as JSON instead of plain text
   --status            Print status line only (for IDE integration)
 
