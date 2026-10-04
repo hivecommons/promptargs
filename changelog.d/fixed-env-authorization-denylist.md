@@ -1,0 +1,1 @@
+- Implicit env-var auto-detection and the Builder UI's terminal-env list now also refuse `AUTHORIZATION`-style names (`HTTP_AUTHORIZATION`, `AUTHORIZATION_HEADER`) and any value shaped like an HTTP `Bearer …`/`Basic …` header, regardless of name. Explicit `--flag=value` is unchanged. (#148)

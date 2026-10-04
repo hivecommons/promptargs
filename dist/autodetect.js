@@ -57,7 +57,7 @@ export const AUTODETECT_VARS = Object.keys(DETECTORS);
 const SENSITIVE_ENV_PATTERN = new RegExp([
     'TOKEN', 'SECRET', 'PASSWORD', 'PASSWD', 'PASSPHRASE', 'CREDENTIAL',
     'API_?KEY', 'ACCESS_KEY', 'PRIVATE_KEY', 'BEARER', 'COOKIE', 'WEBHOOK',
-    'JWT', 'HMAC', 'OAUTH', 'CONN(?:ECTION)?_?STR(?:ING)?',
+    'JWT', 'HMAC', 'OAUTH', 'AUTHORI[SZ]ATION', 'CONN(?:ECTION)?_?STR(?:ING)?',
     '(?:^|_)AUTH(?:_|$)', '(?:^|_)KEYS?(?:_|$)', '_PWD(?:_|$)',
     '(?:^|_)PAT(?:_|$)', '(?:^|_)PASS(?:_|$)', '(?:^|_)DSN(?:_|$)',
 ].join('|'), 'i');
@@ -66,12 +66,14 @@ export function isSensitiveEnvName(name) {
 }
 // Values that are credentials regardless of what the variable is called:
 // a URL carrying a password in its userinfo (DATABASE_URL, REDIS_URL,
-// MONGO_URI, SENTRY_DSN), PEM blocks, JWTs, and the fixed prefixes vendors
-// stamp on their tokens so scanners can recognise them.
+// MONGO_URI, SENTRY_DSN), PEM blocks, JWTs, HTTP Authorization header values
+// (Bearer/Basic), and the fixed prefixes vendors stamp on their tokens so
+// scanners can recognise them.
 const SENSITIVE_ENV_VALUE_PATTERN = new RegExp([
     '^[a-z][a-z0-9+.-]*://[^/\\s:@]*:[^/\\s@]+@',
     '-----BEGIN ',
     '^eyJ[\\w-]+\\.eyJ[\\w-]+\\.',
+    '^(?:Bearer|Basic)\\s+\\S+',
     '^(?:gh[pousr]_|github_pat_)[A-Za-z0-9_]{20,}',
     '^glpat-[\\w-]{20,}',
     '^sk-[A-Za-z0-9_-]{20,}',
