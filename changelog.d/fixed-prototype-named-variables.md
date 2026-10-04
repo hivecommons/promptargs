@@ -1,0 +1,1 @@
+- Prototype-named variables (`{{constructor}}`, `{{toString}}`, `{{__proto__}}`) are now handled as ordinary names in `expand()`, `renderStatus()` and `resolve()`: unresolved ones stay unresolved, and `__proto__` defaults and flags are no longer dropped.

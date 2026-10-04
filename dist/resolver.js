@@ -78,8 +78,8 @@ function expandGlob(pattern) {
     return bases.sort();
 }
 export async function resolve(vars, flags, interactive, cross = false) {
-    const values = {};
-    const arrayVars = {};
+    const values = Object.create(null);
+    const arrayVars = Object.create(null);
     let hasArrays = false;
     for (const v of vars) {
         // 1. Check flags
@@ -127,7 +127,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
     const arrays = arrayNames.map(n => arrayVars[n]);
     const combos = cross ? cartesian(arrays) : zip(arrays);
     for (const combo of combos) {
-        const iter = { ...values };
+        const iter = Object.assign(Object.create(null), values);
         for (let j = 0; j < arrayNames.length; j++) {
             iter[arrayNames[j]] = combo[j];
         }

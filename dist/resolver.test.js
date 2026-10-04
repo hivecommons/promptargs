@@ -194,8 +194,15 @@ describe('resolve prototype-named variables', () => {
     }
     it('does not treat {{__proto__}} as supplied by flags', async () => {
         const r = await resolve([v('__proto__', 'dflt')], {}, false);
-        assert.strictEqual(typeof r.values, 'object');
+        assert.strictEqual(Object.hasOwn(r.values, '__proto__'), true);
+        assert.strictEqual(r.values['__proto__'], 'dflt');
         assert.strictEqual(r.iterations.length, 1);
+    });
+    it('keeps an explicit __proto__ flag as an ordinary value', async () => {
+        const flags = JSON.parse('{"__proto__":"given"}');
+        const r = await resolve([v('__proto__')], flags, false);
+        assert.strictEqual(Object.hasOwn(r.values, '__proto__'), true);
+        assert.strictEqual(r.values['__proto__'], 'given');
     });
     it('leaves unresolved prototype-named variables missing', async () => {
         const r = await resolve([v('constructor')], {}, false);

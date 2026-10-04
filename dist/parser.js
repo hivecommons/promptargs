@@ -32,13 +32,13 @@ export function parseVars(template) {
 }
 export function expand(template, values) {
     const vars = parseVars(template);
-    const view = { ...values };
+    const view = Object.assign(Object.create(null), values);
     for (const v of vars) {
-        if (!(v.name in view) && v.defaultValue !== undefined) {
+        if (!Object.hasOwn(view, v.name) && v.defaultValue !== undefined) {
             view[v.name] = v.defaultValue;
         }
         // Preserve unfilled vars as {{name}} in output
-        if (!(v.name in view)) {
+        if (!Object.hasOwn(view, v.name)) {
             view[v.name] = `{{${v.name}}}`;
         }
     }
