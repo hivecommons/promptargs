@@ -10,7 +10,9 @@ How a release of `@hivecommons/promptargs` ships, and how to back out a bad one.
 
 Human-published GitHub releases also trigger the same `release.yml` publish path. Releases created with `GITHUB_TOKEN` do not trigger release-event workflows, so the automatic path needs the explicit dispatch and `actions: write` permission.
 
-A failure in step 3 leaves a GitHub release without a matching npm version.
+After publishing, `release.yml` checks the exact tagged version on the public npm registry up to six times, waiting ten seconds between attempts. A successful run confirms that version is available.
+
+A failure in step 3 can leave a GitHub release without a matching npm version. If only the post-publish verification failed, check the registry before retrying: publication may have succeeded, and npm versions cannot be republished.
 
 ## Verify a release
 

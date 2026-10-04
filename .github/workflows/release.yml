@@ -62,3 +62,17 @@ jobs:
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify the version is live on npm
+        run: |
+          want="${RELEASE_TAG#v}"
+          package="$(node -p "require('./package.json').name")"
+          for attempt in 1 2 3 4 5 6; do
+            got="$(npm view "$package@$want" version --registry=https://registry.npmjs.org 2>/dev/null || true)"
+            [ "$got" = "$want" ] && exit 0
+            if [ "$attempt" -lt 6 ]; then
+              sleep 10
+            fi
+          done
+          echo "::error::npm does not serve $package@$want after publish"
+          exit 1
