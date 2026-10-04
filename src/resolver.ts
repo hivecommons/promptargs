@@ -92,8 +92,8 @@ export async function resolve(
   interactive: boolean,
   cross = false,
 ): Promise<ResolvedValues> {
-  const values: Record<string, string> = {};
-  const arrayVars: Record<string, string[]> = {};
+  const values = Object.create(null) as Record<string, string>;
+  const arrayVars = Object.create(null) as Record<string, string[]>;
   let hasArrays = false;
 
   for (const v of vars) {
@@ -146,7 +146,7 @@ export async function resolve(
   const combos = cross ? cartesian(arrays) : zip(arrays);
 
   for (const combo of combos) {
-    const iter = { ...values };
+    const iter = Object.assign(Object.create(null) as Record<string, string>, values);
     for (let j = 0; j < arrayNames.length; j++) {
       iter[arrayNames[j]] = combo[j];
     }

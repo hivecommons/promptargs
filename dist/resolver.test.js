@@ -9,6 +9,12 @@ import { resolve } from './resolver.js';
 function v(name, defaultValue) {
     return { name, defaultValue, raw: `{{${name}}}` };
 }
+// resolve() returns null-prototype objects so prototype-named variables
+// (constructor, __proto__, ...) are ordinary keys; deepStrictEqual compares
+// prototypes, so expected iterations must be null-prototype too.
+function bare(obj) {
+    return Object.assign(Object.create(null), obj);
+}
 let tmp;
 before(() => {
     tmp = mkdtempSync(join(process.cwd(), '.pa-resolver-'));
@@ -20,7 +26,7 @@ describe('resolve scalar values', () => {
     it('takes values from flags', async () => {
         const r = await resolve([v('pa_x')], { pa_x: 'hello' }, false);
         assert.strictEqual(r.values.pa_x, 'hello');
-        assert.deepStrictEqual(r.iterations, [{ pa_x: 'hello' }]);
+        assert.deepStrictEqual(r.iterations, [bare({ pa_x: 'hello' })]);
     });
     it('flags win over defaults', async () => {
         const r = await resolve([v('pa_x', 'dflt')], { pa_x: 'flag' }, false);
@@ -33,7 +39,7 @@ describe('resolve scalar values', () => {
     it('leaves unfilled vars unset when non-interactive', async () => {
         const r = await resolve([v('pa_missing')], {}, false);
         assert.ok(!('pa_missing' in r.values));
-        assert.deepStrictEqual(r.iterations, [{}]);
+        assert.deepStrictEqual(r.iterations, [bare({})]);
     });
     it('autodetect wins over defaults', async () => {
         process.env.pa_env_var = 'from-env';
@@ -167,7 +173,7 @@ describe('resolve interactive prompting', () => {
     it('asks for missing values and trims the answer', async () => {
         const r = await withStdin('  spaced answer  \n', () => resolve([v('pa_ask')], {}, true));
         assert.strictEqual(r.values.pa_ask, 'spaced answer');
-        assert.deepStrictEqual(r.iterations, [{ pa_ask: 'spaced answer' }]);
+        assert.deepStrictEqual(r.iterations, [bare({ pa_ask: 'spaced answer' })]);
     });
     it('expands a comma-separated interactive answer into iterations', async () => {
         const r = await withStdin('one,two,three\n', () => resolve([v('pa_ask')], {}, true));
@@ -194,8 +200,15 @@ describe('resolve prototype-named variables', () => {
     }
     it('does not treat {{__proto__}} as supplied by flags', async () => {
         const r = await resolve([v('__proto__', 'dflt')], {}, false);
-        assert.strictEqual(typeof r.values, 'object');
+        assert.strictEqual(Object.hasOwn(r.values, '__proto__'), true);
+        assert.strictEqual(r.values['__proto__'], 'dflt');
         assert.strictEqual(r.iterations.length, 1);
+    });
+    it('keeps an explicit __proto__ flag as an ordinary value', async () => {
+        const flags = JSON.parse('{"__proto__":"given"}');
+        const r = await resolve([v('__proto__')], flags, false);
+        assert.strictEqual(Object.hasOwn(r.values, '__proto__'), true);
+        assert.strictEqual(r.values['__proto__'], 'given');
     });
     it('leaves unresolved prototype-named variables missing', async () => {
         const r = await resolve([v('constructor')], {}, false);

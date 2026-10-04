@@ -15,7 +15,7 @@ export function renderStatus(
   const parts: string[] = [];
 
   for (const v of vars) {
-    const val = values[v.name];
+    const val = Object.hasOwn(values, v.name) ? values[v.name] : undefined;
     if (val !== undefined) {
       const source = v.defaultValue === val ? '(default)' : '';
       parts.push(`${v.name}=${val}${source}`);
@@ -24,7 +24,7 @@ export function renderStatus(
     }
   }
 
-  const allFilled = vars.every(v => v.name in values);
+  const allFilled = vars.every(v => Object.hasOwn(values, v.name));
   const icon = allFilled ? '✅' : '📋';
   const progress = iteration ? ` [${iteration.current}/${iteration.total}]` : '';
 

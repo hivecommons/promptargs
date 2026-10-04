@@ -30,4 +30,20 @@ describe('renderStatus', () => {
         assert.strictEqual(out, '✅ plain: ');
     });
 });
+describe('renderStatus with prototype-named variables', () => {
+    for (const name of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+        it(`treats unresolved ${name} as missing`, () => {
+            const out = renderStatus('t', [v(name)], {});
+            assert.strictEqual(out, `📋 t: ${name}=___`);
+        });
+        it(`shows the explicit value for ${name}`, () => {
+            const values = JSON.parse(`{"${name}":"given"}`);
+            assert.strictEqual(renderStatus('t', [v(name)], values), `✅ t: ${name}=given`);
+        });
+        it(`marks a defaulted ${name} as default`, () => {
+            const values = JSON.parse(`{"${name}":"dflt"}`);
+            assert.strictEqual(renderStatus('t', [v(name, 'dflt')], values), `✅ t: ${name}=dflt(default)`);
+        });
+    }
+});
 //# sourceMappingURL=status.test.js.map

@@ -90,4 +90,18 @@ describe('expand', () => {
         assert.strictEqual(Mustache.escape('<b>'), '&lt;b&gt;');
     });
 });
+describe('expand with prototype-named variables', () => {
+    for (const name of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+        it(`preserves unresolved {{${name}}}`, () => {
+            assert.strictEqual(expand(`x {{${name}}} y`, {}), `x {{${name}}} y`);
+        });
+        it(`applies the default for {{${name}=dflt}}`, () => {
+            assert.strictEqual(expand(`x {{${name}=dflt}} y`, {}), 'x dflt y');
+        });
+        it(`uses an explicit value for {{${name}}}`, () => {
+            const values = JSON.parse(`{"${name}":"given"}`);
+            assert.strictEqual(expand(`x {{${name}=dflt}} y`, values), 'x given y');
+        });
+    }
+});
 //# sourceMappingURL=parser.test.js.map
