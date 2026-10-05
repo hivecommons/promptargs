@@ -44,11 +44,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          node scripts/release-notes.mjs changelog.d > "$RUNNER_TEMP/release-notes.md"
+          if [ ! -s "$RUNNER_TEMP/release-notes.md" ]; then
+            echo "No changelog.d fragments; using a minimal release note."
+            printf 'Release %s\n' "${{ steps.version.outputs.tag }}" > "$RUNNER_TEMP/release-notes.md"
+          fi
           gh release create "${{ steps.version.outputs.tag }}" \
             --repo "${{ github.repository }}" \
             --title "${{ steps.version.outputs.tag }}" \
             --target "${{ github.sha }}" \
-            --generate-notes
+            --notes-file "$RUNNER_TEMP/release-notes.md"
 
       - name: Start npm publication
         if: steps.version.outputs.exists == 'false'

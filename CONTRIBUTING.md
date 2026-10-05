@@ -26,7 +26,7 @@ npm test
 
 ## Changelog fragments
 
-For a user-visible change, add one Markdown file to `changelog.d/` named `<category>-<slug>.md`, where the category is `added`, `changed`, or `fixed`. The file holds a single user-facing line describing the change, ending with the PR or issue number, for example `(#86)`. See the existing files in `changelog.d/` for the style.
+For a user-visible change, add one Markdown file to `changelog.d/` named `<category>-<slug>.md`, where the category is `added`, `changed`, or `fixed`. The file holds a single user-facing line describing the change, ending with the PR or issue number, for example `(#86)`. See the existing files in `changelog.d/` for the style. `scripts/release-notes.mjs` renders these fragments, grouped by category, into the GitHub release notes when `auto-release.yml` publishes a release.
 
 ## Releases
 
