@@ -1,0 +1,1 @@
+Raise the declared `engines.node` floor from `>=18` to `>=22`, matching the tested CI matrix; Node 18 and 20 are EOL/untested and are no longer declared as supported (npm `engines` is advisory without `engine-strict`, so existing installs keep working).
