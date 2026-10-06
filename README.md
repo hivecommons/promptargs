@@ -28,6 +28,8 @@ Works as a **CLI** and as a **skill** in Claude Code, Copilot, Goose, and Bob.
 
 ## Install
 
+Requires Node.js 22 or newer.
+
 ### CLI
 
 ```bash
