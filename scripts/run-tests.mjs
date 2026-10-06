@@ -1,8 +1,9 @@
 import { spawnSync } from 'node:child_process';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-function findTestFiles(dir, suffix) {
+export function findTestFiles(dir, suffix) {
   return readdirSync(dir)
     .flatMap((entry) => {
       const path = join(dir, entry);
@@ -14,11 +15,13 @@ function findTestFiles(dir, suffix) {
 
 // Compiled source tests live in dist/; tests for the release tooling itself
 // (plain ESM, nothing to compile) live next to it in scripts/.
-const testFiles = [...findTestFiles('dist', '.test.js'), ...findTestFiles('scripts', '.test.mjs')];
+export const TEST_SOURCES = [
+  ['dist', '.test.js'],
+  ['scripts', '.test.mjs'],
+];
 
-if (testFiles.length === 0) {
-  console.error('No compiled test files found in dist/. Run npm run build first.');
-  process.exit(1);
+export function collectTestFiles(root = '.') {
+  return TEST_SOURCES.flatMap(([dir, suffix]) => findTestFiles(join(root, dir), suffix));
 }
 
 // Coverage thresholds require Node >= 22.8 for the --test-coverage-* flags.
@@ -36,29 +39,43 @@ if (testFiles.length === 0) {
 // Enforcement is automatic on runtimes that support it, so plain `npm test`
 // (what CI runs) gates coverage on the Node 22+ matrix legs. Pass
 // --no-coverage to opt out, or --coverage to force it on older runtimes.
-function supportsCoverageThresholds() {
-  const [major, minor] = process.versions.node.split('.').map(Number);
+export function supportsCoverageThresholds(version = process.versions.node) {
+  const [major, minor] = version.split('.').map(Number);
   return major > 22 || (major === 22 && minor >= 8);
 }
 
-const withCoverage = process.argv.includes('--coverage')
-  ? true
-  : process.argv.includes('--no-coverage')
-    ? false
-    : supportsCoverageThresholds();
-const coverageArgs = withCoverage
-  ? [
-      '--experimental-test-coverage',
-      '--test-coverage-exclude=dist/**/*.test.js',
-      '--test-coverage-exclude=scripts/**/*.test.mjs',
-      '--test-coverage-lines=98',
-      '--test-coverage-branches=96',
-      '--test-coverage-functions=100',
-    ]
-  : [];
+export function coverageEnabled(argv, version = process.versions.node) {
+  if (argv.includes('--coverage')) return true;
+  if (argv.includes('--no-coverage')) return false;
+  return supportsCoverageThresholds(version);
+}
 
-const result = spawnSync(process.execPath, ['--test', ...coverageArgs, ...testFiles], {
-  stdio: 'inherit',
-});
+export const COVERAGE_ARGS = [
+  '--experimental-test-coverage',
+  '--test-coverage-exclude=dist/**/*.test.js',
+  '--test-coverage-exclude=scripts/**/*.test.mjs',
+  '--test-coverage-lines=98',
+  '--test-coverage-branches=96',
+  '--test-coverage-functions=100',
+];
 
-process.exit(result.status ?? 1);
+export function buildNodeArgs(testFiles, argv, version = process.versions.node) {
+  const coverageArgs = coverageEnabled(argv, version) ? COVERAGE_ARGS : [];
+  return ['--test', ...coverageArgs, ...testFiles];
+}
+
+export function runTests(argv, { root = '.', spawn = spawnSync, log = console.error } = {}) {
+  const testFiles = collectTestFiles(root);
+
+  if (testFiles.length === 0) {
+    log('No compiled test files found in dist/. Run npm run build first.');
+    return 1;
+  }
+
+  const result = spawn(process.execPath, buildNodeArgs(testFiles, argv), { stdio: 'inherit' });
+  return result.status ?? 1;
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  process.exit(runTests(process.argv.slice(2)));
+}
