@@ -4,7 +4,7 @@ Thank you for helping improve promptargs.
 
 ## Local setup
 
-Use Node.js 18 or newer, then install dependencies:
+Use Node.js 22 or newer, then install dependencies:
 
 ```bash
 npm ci
