@@ -1,0 +1,1 @@
+- Removed the shared `.claude/settings.json` statusLine command that pointed at a script outside the repository (#175)

@@ -1,6 +1,0 @@
-{
-  "statusLine": {
-    "type": "command",
-    "command": "bash /Users/andan02/.claude/statusline-promptargs.sh"
-  }
-}
