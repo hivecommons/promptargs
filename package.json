@@ -34,7 +34,7 @@
   },
   "homepage": "https://github.com/hivecommons/promptargs#readme",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "files": [
     "dist",
