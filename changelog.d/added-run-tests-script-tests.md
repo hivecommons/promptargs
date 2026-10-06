@@ -1,0 +1,1 @@
+Tests for `scripts/run-tests.mjs` — the runner behind `npm test` that decides whether coverage thresholds are enforced — covering test discovery, the Node version gate, `--coverage`/`--no-coverage` precedence, and exit-code propagation; the runner now exports those helpers so it is measured by the coverage report it enforces.
