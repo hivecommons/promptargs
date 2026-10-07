@@ -103,10 +103,13 @@ export async function resolve(
       if (expanded.length > 1) {
         arrayVars[v.name] = expanded;
         hasArrays = true;
-      } else {
-        values[v.name] = expanded[0];
+        continue;
       }
-      continue;
+      // An empty expansion falls through as if the flag were absent
+      if (expanded.length === 1) {
+        values[v.name] = expanded[0];
+        continue;
+      }
     }
 
     // 2. Auto-detect
@@ -130,7 +133,7 @@ export async function resolve(
         arrayVars[v.name] = expanded;
         hasArrays = true;
       } else {
-        values[v.name] = expanded[0];
+        values[v.name] = expanded[0] ?? '';
       }
     }
   }

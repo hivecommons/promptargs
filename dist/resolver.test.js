@@ -63,6 +63,16 @@ describe('resolve array expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: `@${listFile}` }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['one', 'two', 'three']);
     });
+    it('falls through to the default for an empty @file', async () => {
+        const emptyFile = join(tmp, 'empty.txt');
+        writeFileSync(emptyFile, '\n\n');
+        const r = await resolve([v('pa_f', 'dflt')], { pa_f: `@${emptyFile}` }, false);
+        assert.strictEqual(r.values.pa_f, 'dflt');
+    });
+    it('leaves the variable absent for a separator-only flag with no default', async () => {
+        const r = await resolve([v('pa_f')], { pa_f: ',' }, false);
+        assert.strictEqual(Object.hasOwn(r.values, 'pa_f'), false);
+    });
     it('treats @nonexistent as a literal value', async () => {
         const r = await resolve([v('pa_f')], { pa_f: '@/no/such/file' }, false);
         assert.strictEqual(r.values.pa_f, '@/no/such/file');

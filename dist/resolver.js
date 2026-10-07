@@ -88,11 +88,13 @@ export async function resolve(vars, flags, interactive, cross = false) {
             if (expanded.length > 1) {
                 arrayVars[v.name] = expanded;
                 hasArrays = true;
+                continue;
             }
-            else {
+            // An empty expansion falls through as if the flag were absent
+            if (expanded.length === 1) {
                 values[v.name] = expanded[0];
+                continue;
             }
-            continue;
         }
         // 2. Auto-detect
         const auto = autodetect(v.name);
@@ -114,7 +116,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
                 hasArrays = true;
             }
             else {
-                values[v.name] = expanded[0];
+                values[v.name] = expanded[0] ?? '';
             }
         }
     }
