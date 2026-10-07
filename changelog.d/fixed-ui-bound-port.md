@@ -1,0 +1,1 @@
+- `promptargs ui`: the Host allow-list and printed URL now use the port the server actually bound, so `--port=0` no longer rejects every request with 403, and an invalid `--port` (such as `--port=abc`) exits 1 with a usage error instead of crashing. (#183)

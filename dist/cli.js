@@ -74,7 +74,14 @@ async function main() {
     }
     if (args[0] === 'ui') {
         const flags = parseFlags(args.slice(1));
-        const port = flags['port'] ? Number(flags['port']) : undefined;
+        let port;
+        if (flags['port']) {
+            port = Number(flags['port']);
+            if (!Number.isInteger(port) || port < 0 || port > 65535) {
+                console.error('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
+                process.exit(1);
+            }
+        }
         startUI(port);
         return;
     }

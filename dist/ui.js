@@ -72,11 +72,8 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
         process.exit(1);
     }
     const html = buildUIHtml(rawHtml, collectEnvVars());
-    const ALLOWED_HOSTS = new Set([
-        `localhost:${port}`,
-        `127.0.0.1:${port}`,
-        `[::1]:${port}`,
-    ]);
+    // Filled once the server is bound, because port 0 means the OS picks one.
+    const ALLOWED_HOSTS = new Set();
     let rejectedHosts = 0;
     const server = createServer((req, res) => {
         // Reject non-local Host headers to block DNS-rebinding reads of env data.
@@ -109,7 +106,11 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
     // Bind loopback only: the page embeds environment variables and must never
     // be reachable from other machines on the network.
     server.listen(port, '127.0.0.1', () => {
-        const url = `http://localhost:${port}`;
+        const boundPort = server.address().port;
+        ALLOWED_HOSTS.add(`localhost:${boundPort}`);
+        ALLOWED_HOSTS.add(`127.0.0.1:${boundPort}`);
+        ALLOWED_HOSTS.add(`[::1]:${boundPort}`);
+        const url = `http://localhost:${boundPort}`;
         console.log(`promptargs builder running at ${url}`);
         console.log('Press Ctrl+C to stop.\n');
         if (options.openBrowser ?? true) {
