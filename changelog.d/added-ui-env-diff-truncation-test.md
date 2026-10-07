@@ -1,0 +1,1 @@
+Added a builder-UI test that drives `collectEnvVars()` from a scratch git repo with a large working-tree change, pinning the 60-character `diff` preview cap and the verbatim pass-through of `branch`/`user`, so the env payload embedded in the served page is now covered end to end.

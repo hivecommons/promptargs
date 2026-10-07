@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { get } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
-import { spawnSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -43,6 +43,34 @@ test('collectEnvVars includes terminal env values without skipped keys', () => {
     else process.env['PROMPTARGS_TEST_VISIBLE'] = savedVisible;
     if (savedHome === undefined) delete process.env['HOME'];
     else process.env['HOME'] = savedHome;
+  }
+});
+
+test('collectEnvVars truncates the git diff preview to 60 chars but passes other git values through verbatim', () => {
+  // The served page embeds autodetected git values; only `diff` is capped so a
+  // large working-tree change does not bloat the HTML. Drive it from a scratch
+  // repo with a diff well over the cap.
+  const prevCwd = process.cwd();
+  const repo = mkdtempSync(join(tmpdir(), 'promptargs-ui-env-'));
+  try {
+    process.chdir(repo);
+    const run = (cmd: string) => execSync(cmd, { stdio: 'pipe' });
+    run('git init -q -b pa-ui-env-branch');
+    run('git config user.email pa@test.local');
+    run('git config user.name "PA Tester"');
+    writeFileSync('tracked.txt', 'before\n');
+    run('git add tracked.txt && git commit -q -m add');
+    writeFileSync('tracked.txt', `${'x'.repeat(200)}\n`);
+
+    const env = collectEnvVars();
+    assert.equal(env.git['branch'], 'pa-ui-env-branch');
+    assert.equal(env.git['user'], 'PA Tester');
+    assert.match(env.git['diff'] ?? '', /^diff --git a\/tracked\.txt/);
+    assert.equal(env.git['diff']?.length, 60 + '...'.length);
+    assert.ok(env.git['diff']?.endsWith('...'));
+  } finally {
+    process.chdir(prevCwd);
+    rmSync(repo, { recursive: true, force: true });
   }
 });
 
