@@ -1,0 +1,1 @@
+Added packaging tests that pin the `#!/usr/bin/env node` shebang on every `bin` target and run the bin exec()ed straight out of a real `npm pack` tarball, so a dropped shebang or lost exec bit on `dist/cli.js` fails CI instead of breaking `npx promptargs` after publish.
