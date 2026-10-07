@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -92,11 +93,8 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
 
   const html = buildUIHtml(rawHtml, collectEnvVars());
 
-  const ALLOWED_HOSTS = new Set([
-    `localhost:${port}`,
-    `127.0.0.1:${port}`,
-    `[::1]:${port}`,
-  ]);
+  // Filled once the server is bound, because port 0 means the OS picks one.
+  const ALLOWED_HOSTS = new Set<string>();
 
   let rejectedHosts = 0;
 
@@ -133,7 +131,11 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
   // Bind loopback only: the page embeds environment variables and must never
   // be reachable from other machines on the network.
   server.listen(port, '127.0.0.1', () => {
-    const url = `http://localhost:${port}`;
+    const boundPort = (server.address() as AddressInfo).port;
+    ALLOWED_HOSTS.add(`localhost:${boundPort}`);
+    ALLOWED_HOSTS.add(`127.0.0.1:${boundPort}`);
+    ALLOWED_HOSTS.add(`[::1]:${boundPort}`);
+    const url = `http://localhost:${boundPort}`;
     console.log(`promptargs builder running at ${url}`);
     console.log('Press Ctrl+C to stop.\n');
 

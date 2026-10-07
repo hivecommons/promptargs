@@ -101,7 +101,7 @@ test('startUI binds a server that rejects non-local Host headers', async () => {
     await onceListening(server);
     const { port } = server.address();
     try {
-        const allowed = await request(port, '127.0.0.1:0');
+        const allowed = await request(port, `127.0.0.1:${port}`);
         assert.equal(allowed.statusCode, 200);
         assert.match(allowed.body, /window\.__PROMPTARGS_ENV__/);
         const forbidden = await request(port, 'evil.example');
@@ -141,21 +141,36 @@ test('startUI serves the parser/iterate/mustache modules the browser imports', a
     await onceListening(server);
     const { port } = server.address();
     try {
-        const parser = await request(port, '127.0.0.1:0', '/parser.js');
+        const parser = await request(port, `127.0.0.1:${port}`, '/parser.js');
         assert.equal(parser.statusCode, 200);
         assert.match(parser.contentType ?? '', /text\/javascript/);
         assert.match(parser.body, /export function parseVars/);
         assert.match(parser.body, /export const VAR_PATTERN/);
-        const iterate = await request(port, '127.0.0.1:0', '/iterate.js');
+        const iterate = await request(port, `127.0.0.1:${port}`, '/iterate.js');
         assert.equal(iterate.statusCode, 200);
         assert.match(iterate.body, /export function cartesian/);
         assert.match(iterate.body, /export function zip/);
-        const mustache = await request(port, '127.0.0.1:0', '/mustache.mjs');
+        const mustache = await request(port, `127.0.0.1:${port}`, '/mustache.mjs');
         assert.equal(mustache.statusCode, 200);
         assert.match(mustache.body, /export default mustache/);
-        const missing = await request(port, '127.0.0.1:0', '/does-not-exist.js');
+        const missing = await request(port, `127.0.0.1:${port}`, '/does-not-exist.js');
         assert.equal(missing.statusCode, 200);
         assert.match(missing.body, /window\.__PROMPTARGS_ENV__/);
+    }
+    finally {
+        await closeServer(server);
+    }
+});
+test('startUI with port 0 accepts every loopback Host carrying the actual bound port', async () => {
+    const server = startUI(0, { openBrowser: false });
+    await onceListening(server);
+    const { port } = server.address();
+    try {
+        assert.notEqual(port, 0);
+        for (const host of [`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`]) {
+            assert.equal((await request(port, host)).statusCode, 200, host);
+        }
+        assert.equal((await request(port, 'localhost:0')).statusCode, 403);
     }
     finally {
         await closeServer(server);
@@ -182,7 +197,7 @@ test('startUI answers 404 for a static route whose backing file is missing', () 
             const { port } = server.address();
             get({
               hostname: '127.0.0.1', port, path: '/parser.js',
-              headers: { Host: '127.0.0.1:0' },
+              headers: { Host: '127.0.0.1:' + port },
             }, res => {
               process.stdout.write('STATUS:' + res.statusCode);
               server.close(() => process.exit(0));

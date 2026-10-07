@@ -157,6 +157,15 @@ test('padded tags are filled from flags and reported in --status', () => {
     assert.match(status.stdout, /📋 inline: file=___  focus=bugs\(default\)/);
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
+test('ui subcommand rejects a non-numeric, bare or out-of-range --port', () => {
+    const { cwd, home } = makeDirs();
+    for (const arg of ['--port=abc', '--port', '--port=1.5', '--port=70000', '--port=-1']) {
+        const res = runCli(['ui', arg], cwd, home);
+        assert.strictEqual(res.status, 1, arg);
+        assert.match(res.stderr, /Invalid --port/, arg);
+    }
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 test('show without a template name exits 1 with usage', () => {
     const { cwd, home } = makeDirs();
     const res = runCli(['show'], cwd, home);
