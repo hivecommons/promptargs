@@ -1,0 +1,1 @@
+- Builder UI: environment values containing dollar-sign replacement patterns ($&, $-backtick, $') are now injected literally instead of expanding into surrounding page HTML. (#191)
