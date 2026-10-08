@@ -1,0 +1,1 @@
+Added README "Use as a Library" drift tests to `src/index.test.ts`: the documented snippet is executed against the real entry point and the "Other exports" sentence must name exactly the exported API. (#187)
