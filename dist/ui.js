@@ -50,7 +50,7 @@ export function buildUIHtml(rawHtml, envVars) {
     // Escape "<" so env values cannot break out of the script tag (e.g. "</script>").
     const envJson = JSON.stringify(envVars).replace(/</g, '\\u003c');
     const envScript = `<script>window.__PROMPTARGS_ENV__ = ${envJson};</script>`;
-    return rawHtml.replace('<script>', envScript + '\n<script>');
+    return rawHtml.replace(/<script\b/, `${envScript}\n$&`);
 }
 // Browser-facing modules the builder UI imports directly instead of
 // hand-reimplementing their logic (see buildUIHtml / ui.html). Serving the

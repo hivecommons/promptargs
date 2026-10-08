@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { get } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { execSync, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -95,6 +95,14 @@ test('buildUIHtml escapes env JSON so values cannot escape the script tag', () =
     assert.match(html, /window\.__PROMPTARGS_ENV__/);
     assert.doesNotMatch(html, /<\/script><script>alert\(1\)<\/script>/);
     assert.match(html, /\\u003c\/script>\\u003cscript>alert\(1\)\\u003c\/script>/);
+});
+test('buildUIHtml injects env data before the module script in the real ui.html', () => {
+    const realHtml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'ui.html'), 'utf-8');
+    const html = buildUIHtml(realHtml, { git: { branch: 'main' }, terminal: {} });
+    const envIdx = html.indexOf('window.__PROMPTARGS_ENV__ =');
+    const moduleIdx = html.indexOf('<script type="module">');
+    assert.notEqual(envIdx, -1);
+    assert.ok(moduleIdx > envIdx);
 });
 test('startUI binds a server that rejects non-local Host headers', async () => {
     const server = startUI(0, { openBrowser: false });
