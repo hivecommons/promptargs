@@ -375,6 +375,29 @@ If observability is ever added in the future, it will be explicit opt-in, bounde
 
 ---
 
+## Use as a Library
+
+The package also exports its building blocks as an ES module (Node.js 22+). Install it first with `npm install @hivecommons/promptargs`.
+
+```js
+import { parseVars, expand } from '@hivecommons/promptargs';
+
+const template = 'Review {{file}} for {{focus=correctness}} issues.';
+
+parseVars(template);
+// [{ name: 'file', ... }, { name: 'focus', defaultValue: 'correctness', ... }]
+
+expand(template, { file: 'src/app.ts', focus: 'security' });
+// 'Review src/app.ts for security issues.'
+
+expand(template, { file: 'src/app.ts' });
+// 'Review src/app.ts for correctness issues.'  (defaults fill missing values)
+```
+
+Variables with no value and no default are left as `{{name}}` in the output. Other exports: `autodetect`, `autodetectAll`, `AUTODETECT_VARS`, `loadTemplates`, `findTemplate`, `resolve` and `renderStatus`.
+
+---
+
 ## Write Your Own Template
 
 Create a file in `.prompts/` with any name ending in `.md`:
