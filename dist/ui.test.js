@@ -96,6 +96,20 @@ test('buildUIHtml escapes env JSON so values cannot escape the script tag', () =
     assert.doesNotMatch(html, /<\/script><script>alert\(1\)<\/script>/);
     assert.match(html, /\\u003c\/script>\\u003cscript>alert\(1\)\\u003c\/script>/);
 });
+test('buildUIHtml inserts env JSON literally when values contain replacement patterns', () => {
+    const rawHtml = '<html><head><title>before</title><script></script><p>after</p></head></html>';
+    const envVars = {
+        git: { branch: "x$'y" },
+        terminal: { PROMPTARGS_TEST: 'a$`b$&c$$d' },
+    };
+    const html = buildUIHtml(rawHtml, envVars);
+    const start = html.indexOf('window.__PROMPTARGS_ENV__ = ') + 'window.__PROMPTARGS_ENV__ = '.length;
+    const end = html.indexOf(';</script>', start);
+    assert.deepStrictEqual(JSON.parse(html.slice(start, end)), envVars);
+    assert.strictEqual((html.match(/<\/script>/g) ?? []).length, 2);
+    assert.strictEqual((html.match(/<title>/g) ?? []).length, 1);
+    assert.strictEqual((html.match(/<p>after<\/p>/g) ?? []).length, 1);
+});
 test('buildUIHtml injects env data before the module script in the real ui.html', () => {
     const realHtml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'ui.html'), 'utf-8');
     const html = buildUIHtml(realHtml, { git: { branch: 'main' }, terminal: {} });
