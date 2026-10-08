@@ -1,7 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import * as api from './index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // package.json "main" points at dist/index.js — this file is the public API
 // surface consumers get from `import ... from '@hivecommons/promptargs'`.
@@ -71,4 +76,69 @@ test('smoke: exported parseVars + expand round-trip through the entry point', ()
   );
   const out = api.expand('Hello {{name}}', { name: 'World' });
   assert.strictEqual(out, 'Hello World');
+});
+
+// README "Use as a Library" is the first thing library consumers copy. Its
+// snippet shows concrete inputs and commented outputs, and a closing sentence
+// enumerates the remaining exports. Pin both to the real entry point so an
+// edit to either side — the docs or the API — fails here instead of shipping
+// a README that lies.
+
+function readmeLibrarySection(): string {
+  const readme = readFileSync(join(__dirname, '..', 'README.md'), 'utf-8');
+  const start = readme.indexOf('## Use as a Library');
+  assert.notStrictEqual(start, -1, 'README lost its "Use as a Library" section');
+  const rest = readme.slice(start + '## Use as a Library'.length);
+  const next = rest.search(/\n## /);
+  return next === -1 ? rest : rest.slice(0, next);
+}
+
+test('README library snippet: parseVars/expand produce the documented results', () => {
+  const section = readmeLibrarySection();
+  const template = 'Review {{file}} for {{focus=correctness}} issues.';
+  assert.ok(
+    section.includes(`const template = '${template}';`),
+    'README snippet template changed — update this test alongside the docs',
+  );
+
+  const vars = api.parseVars(template);
+  assert.deepStrictEqual(
+    vars.map((v) => [v.name, v.defaultValue]),
+    [['file', undefined], ['focus', 'correctness']],
+  );
+  assert.ok(section.includes("{ name: 'file', ..."));
+  assert.ok(section.includes("{ name: 'focus', defaultValue: 'correctness', ..."));
+
+  const explicit = 'Review src/app.ts for security issues.';
+  assert.strictEqual(api.expand(template, { file: 'src/app.ts', focus: 'security' }), explicit);
+  assert.ok(section.includes(`// '${explicit}'`));
+
+  const defaulted = 'Review src/app.ts for correctness issues.';
+  assert.strictEqual(api.expand(template, { file: 'src/app.ts' }), defaulted);
+  assert.ok(section.includes(`// '${defaulted}'`));
+});
+
+test('README library section: unset variables without a default stay as {{name}}', () => {
+  const section = readmeLibrarySection();
+  assert.match(section, /no value and no default are left as `\{\{name\}\}`/);
+  assert.strictEqual(api.expand('Hello {{name}}', {}), 'Hello {{name}}');
+  assert.strictEqual(
+    api.expand('Review {{file}} for {{focus=correctness}} issues.', {}),
+    'Review {{file}} for correctness issues.',
+  );
+});
+
+test('README library section names every export exactly once', () => {
+  const section = readmeLibrarySection();
+  const imported = /import \{ ([^}]+) \} from '@hivecommons\/promptargs';/.exec(section);
+  assert.ok(imported, 'README snippet lost its import line');
+  const others = /Other exports: ([^\n]+)\./.exec(section);
+  assert.ok(others, 'README lost its "Other exports:" sentence');
+
+  const importedNames = imported[1].split(',').map((n) => n.trim());
+  const otherNames = [...others[1].matchAll(/`([A-Za-z_$][\w$]*)`/g)].map((m) => m[1]);
+  const documented = [...importedNames, ...otherNames];
+
+  assert.deepStrictEqual([...new Set(documented)].length, documented.length, 'duplicate names in README');
+  assert.deepStrictEqual(documented.sort(), Object.keys(api).sort());
 });
