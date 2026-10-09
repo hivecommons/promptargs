@@ -12,6 +12,9 @@ function runCli(args, cwd, home) {
         cwd,
         encoding: 'utf-8',
         env: { ...process.env, HOME: home, USERPROFILE: home },
+        // A CLI that unexpectedly starts the UI server would otherwise block the
+        // suite until the CI job timeout; fail the test instead.
+        timeout: 30_000,
     });
     return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
@@ -159,10 +162,19 @@ test('padded tags are filled from flags and reported in --status', () => {
 });
 test('ui subcommand rejects a non-numeric, bare or out-of-range --port', () => {
     const { cwd, home } = makeDirs();
-    for (const arg of ['--port=abc', '--port', '--port=1.5', '--port=70000', '--port=-1']) {
+    for (const arg of ['--port=abc', '--port', '--port=1.5', '--port=70000', '--port=-1', '--port=']) {
         const res = runCli(['ui', arg], cwd, home);
         assert.strictEqual(res.status, 1, arg);
         assert.match(res.stderr, /Invalid --port/, arg);
+    }
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('extra positional arguments are rejected instead of ignored', () => {
+    const { cwd, home } = makeDirs();
+    for (const args of [['review', 'no-interactive'], ['ui', 'extra']]) {
+        const res = runCli(args, cwd, home);
+        assert.strictEqual(res.status, 1, args.join(' '));
+        assert.match(res.stderr, /Unexpected argument: (no-interactive|extra)/, args.join(' '));
     }
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
@@ -376,11 +388,12 @@ test('--var value accepts a value that starts with a single dash', () => {
 });
 test('switches never consume the following token even if it is not a flag', () => {
     // "yes" after --json is a stray positional, not a value: --json stays a
-    // switch and the template variable named "json" sees the switch's "true".
+    // switch, so "yes" is left over and rejected as an unexpected argument
+    // rather than being bound as the value of json.
     const { cwd, home } = makeDirs();
     const res = runCli(['X {{json}}', '--json', 'yes', '--no-interactive'], cwd, home);
-    assert.strictEqual(res.status, 0);
-    assert.strictEqual(JSON.parse(res.stdout), 'X true');
+    assert.strictEqual(res.status, 1);
+    assert.match(res.stderr, /Unexpected argument: yes/);
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
 test('ui subcommand accepts the space-separated --port value form', async () => {
