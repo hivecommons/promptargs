@@ -86,7 +86,7 @@ async function main() {
   if (args[0] === 'ui') {
     const flags = parseFlags(args.slice(1));
     let port: number | undefined;
-    if (flags['port']) {
+    if ('port' in flags) {
       port = Number(flags['port']);
       if (!Number.isInteger(port) || port < 0 || port > 65535) {
         console.error('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
@@ -182,7 +182,10 @@ function parseFlags(args: string[]): Record<string, string> {
   const flags: Record<string, string> = {};
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (!arg.startsWith('--')) continue;
+    if (!arg.startsWith('--')) {
+      console.error(`Unexpected argument: ${arg}`);
+      process.exit(1);
+    }
     const eq = arg.indexOf('=');
     if (eq > 0) {
       flags[arg.slice(2, eq)] = arg.slice(eq + 1);

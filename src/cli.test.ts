@@ -182,10 +182,20 @@ test('padded tags are filled from flags and reported in --status', () => {
 
 test('ui subcommand rejects a non-numeric, bare or out-of-range --port', () => {
   const { cwd, home } = makeDirs();
-  for (const arg of ['--port=abc', '--port', '--port=1.5', '--port=70000', '--port=-1']) {
+  for (const arg of ['--port=abc', '--port', '--port=1.5', '--port=70000', '--port=-1', '--port=']) {
     const res = runCli(['ui', arg], cwd, home);
     assert.strictEqual(res.status, 1, arg);
     assert.match(res.stderr, /Invalid --port/, arg);
+  }
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('extra positional arguments are rejected instead of ignored', () => {
+  const { cwd, home } = makeDirs();
+  for (const args of [['review', 'no-interactive'], ['ui', 'extra']]) {
+    const res = runCli(args, cwd, home);
+    assert.strictEqual(res.status, 1, args.join(' '));
+    assert.match(res.stderr, /Unexpected argument: (no-interactive|extra)/, args.join(' '));
   }
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
