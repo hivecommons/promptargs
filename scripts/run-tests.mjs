@@ -59,9 +59,15 @@ export const COVERAGE_ARGS = [
   '--test-coverage-functions=100',
 ];
 
+// Per-test ceiling so an async hang (a server never closed, a promise never
+// settled) fails with the test's name instead of running to the CI job's
+// 10-minute limit. It cannot interrupt a blocking spawnSync: those need their
+// own `timeout:` option, which spawn-timeout-guard.test.ts enforces.
+export const TEST_TIMEOUT_ARGS = ['--test-timeout=60000'];
+
 export function buildNodeArgs(testFiles, argv, version = process.versions.node) {
   const coverageArgs = coverageEnabled(argv, version) ? COVERAGE_ARGS : [];
-  return ['--test', ...coverageArgs, ...testFiles];
+  return ['--test', ...TEST_TIMEOUT_ARGS, ...coverageArgs, ...testFiles];
 }
 
 export function runTests(argv, { root = '.', spawn = spawnSync, log = console.error } = {}) {

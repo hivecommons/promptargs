@@ -29,7 +29,7 @@ const SCRIPT = fileURLToPath(new URL('./release-notes.mjs', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 function runScript(args, cwd) {
-  const result = spawnSync(process.execPath, [SCRIPT, ...args], { cwd, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [SCRIPT, ...args], { cwd, encoding: 'utf8', timeout: 30_000 });
   assert.equal(result.status, 0, result.stderr);
   return result.stdout;
 }

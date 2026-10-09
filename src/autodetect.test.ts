@@ -15,7 +15,7 @@ before(() => {
   prevCwd = process.cwd();
   repo = mkdtempSync(join(process.cwd(), '.pa-auto-'));
   process.chdir(repo);
-  const run = (cmd: string) => execSync(cmd, { stdio: 'pipe' });
+  const run = (cmd: string) => execSync(cmd, { stdio: 'pipe', timeout: 10_000 });
   run('git init -q -b pa-test-branch');
   run('git config user.email pa@test.local');
   run('git config user.name "PA Tester"');
@@ -42,12 +42,12 @@ describe('git detectors', () => {
   });
 
   it('detects repo/org from ssh-style remotes', () => {
-    execSync('git remote set-url origin git@github.com:ssh-org/ssh-repo.git', { stdio: 'pipe' });
+    execSync('git remote set-url origin git@github.com:ssh-org/ssh-repo.git', { stdio: 'pipe', timeout: 10_000 });
     try {
       assert.strictEqual(autodetect('repo'), 'ssh-repo');
       assert.strictEqual(autodetect('org'), 'ssh-org');
     } finally {
-      execSync('git remote set-url origin https://github.com/pa-test-org/pa-test-repo.git', { stdio: 'pipe' });
+      execSync('git remote set-url origin https://github.com/pa-test-org/pa-test-repo.git', { stdio: 'pipe', timeout: 10_000 });
     }
   });
 
@@ -58,24 +58,24 @@ describe('git detectors', () => {
   it('returns undefined for branch on a detached HEAD', () => {
     // `git branch --show-current` exits 0 and prints nothing when detached;
     // that must not become an empty value that beats the template default.
-    execSync('git checkout -q --detach', { stdio: 'pipe' });
+    execSync('git checkout -q --detach', { stdio: 'pipe', timeout: 10_000 });
     try {
       assert.strictEqual(autodetect('branch'), undefined);
       assert.ok(!('branch' in autodetectAll(['branch'])));
     } finally {
-      execSync('git checkout -q pa-test-branch', { stdio: 'pipe' });
+      execSync('git checkout -q pa-test-branch', { stdio: 'pipe', timeout: 10_000 });
     }
   });
 
   it('returns undefined for diff on a clean tree and the diff once there is one', () => {
     assert.strictEqual(autodetect('diff'), undefined);
     writeFileSync(join(repo, 'tracked.txt'), 'one\n');
-    execSync('git add tracked.txt && git commit -q -m add', { stdio: 'pipe' });
+    execSync('git add tracked.txt && git commit -q -m add', { stdio: 'pipe', timeout: 10_000 });
     writeFileSync(join(repo, 'tracked.txt'), 'two\n');
     try {
       assert.match(autodetect('diff') ?? '', /^diff --git a\/tracked\.txt/);
     } finally {
-      execSync('git checkout -q -- tracked.txt', { stdio: 'pipe' });
+      execSync('git checkout -q -- tracked.txt', { stdio: 'pipe', timeout: 10_000 });
     }
   });
 });

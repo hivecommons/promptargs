@@ -76,6 +76,7 @@ test('promptargs init writes templates byte-identical to examples/', () => {
       cwd,
       encoding: 'utf-8',
       env: { ...process.env, HOME: home, USERPROFILE: home },
+      timeout: 30_000,
     });
     assert.strictEqual(res.status, 0, res.stderr);
 
