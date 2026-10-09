@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {
   COVERAGE_ARGS,
   TEST_SOURCES,
+  TEST_TIMEOUT_ARGS,
   buildNodeArgs,
   collectTestFiles,
   coverageEnabled,
@@ -105,13 +106,17 @@ test('COVERAGE_ARGS pin the thresholds and exclude only test files', () => {
   assert.ok(!COVERAGE_ARGS.some((a) => a.includes('run-tests')));
 });
 
-test('buildNodeArgs puts --test first, coverage flags next, test files last', () => {
+test('buildNodeArgs puts --test first, then the per-test timeout, coverage flags, test files last', () => {
   const files = ['dist/a.test.js', 'scripts/b.test.mjs'];
-  assert.deepEqual(buildNodeArgs(files, ['--coverage'], '18.0.0'), ['--test', ...COVERAGE_ARGS, ...files]);
-  assert.deepEqual(buildNodeArgs(files, ['--no-coverage'], '26.0.0'), ['--test', ...files]);
-  assert.deepEqual(buildNodeArgs(files, [], '20.0.0'), ['--test', ...files]);
-  assert.deepEqual(buildNodeArgs(files, [], '22.8.0'), ['--test', ...COVERAGE_ARGS, ...files]);
+  assert.deepEqual(buildNodeArgs(files, ['--coverage'], '18.0.0'), ['--test', ...TEST_TIMEOUT_ARGS, ...COVERAGE_ARGS, ...files]);
+  assert.deepEqual(buildNodeArgs(files, ['--no-coverage'], '26.0.0'), ['--test', ...TEST_TIMEOUT_ARGS, ...files]);
+  assert.deepEqual(buildNodeArgs(files, [], '20.0.0'), ['--test', ...TEST_TIMEOUT_ARGS, ...files]);
+  assert.deepEqual(buildNodeArgs(files, [], '22.8.0'), ['--test', ...TEST_TIMEOUT_ARGS, ...COVERAGE_ARGS, ...files]);
   assert.deepEqual(buildNodeArgs(files, []), buildNodeArgs(files, [], process.versions.node));
+});
+
+test('TEST_TIMEOUT_ARGS pins a per-test ceiling well inside the 10-minute CI job timeout', () => {
+  assert.deepEqual(TEST_TIMEOUT_ARGS, ['--test-timeout=60000']);
 });
 
 test('runTests reports an empty dist/ and returns 1 without spawning', () => {
@@ -143,7 +148,7 @@ test('runTests spawns node --test on the discovered files and returns its status
   assert.deepEqual(calls, [
     {
       cmd: process.execPath,
-      args: ['--test', join(root, 'dist', 'a.test.js'), join(root, 'scripts', 'b.test.mjs')],
+      args: ['--test', ...TEST_TIMEOUT_ARGS, join(root, 'dist', 'a.test.js'), join(root, 'scripts', 'b.test.mjs')],
       options: { stdio: 'inherit' },
     },
   ]);
@@ -161,7 +166,7 @@ test('runTests forwards coverage flags and maps a signal-killed run (null status
     },
   });
   assert.equal(result, 1);
-  assert.deepEqual(seen, ['--test', ...COVERAGE_ARGS, join(root, 'dist', 'a.test.js')]);
+  assert.deepEqual(seen, ['--test', ...TEST_TIMEOUT_ARGS, ...COVERAGE_ARGS, join(root, 'dist', 'a.test.js')]);
 });
 
 // package.json `test` runs `node scripts/run-tests.mjs`; these cover the

@@ -14,8 +14,8 @@ function npmPack(extraArgs) {
     const args = ['pack', '--json', '--ignore-scripts', ...extraArgs];
     const npmCli = process.env.npm_execpath;
     const res = npmCli
-        ? spawnSync(process.execPath, [npmCli, ...args], { cwd: ROOT, encoding: 'utf-8' })
-        : spawnSync('npm', args, { cwd: ROOT, encoding: 'utf-8', shell: process.platform === 'win32' });
+        ? spawnSync(process.execPath, [npmCli, ...args], { cwd: ROOT, encoding: 'utf-8', timeout: 60_000 })
+        : spawnSync('npm', args, { cwd: ROOT, encoding: 'utf-8', shell: process.platform === 'win32', timeout: 60_000 });
     assert.strictEqual(res.status, 0, `npm ${args.join(' ')} failed:\n${res.stderr}`);
     return JSON.parse(res.stdout);
 }
@@ -108,7 +108,7 @@ test('packed bin runs when exec()ed directly, the way npm installs it', { skip: 
     try {
         const [report] = npmPack(['--pack-destination', scratch]);
         const tarball = join(scratch, report.filename);
-        const untar = spawnSync('tar', ['-xzf', tarball, '-C', scratch], { encoding: 'utf-8' });
+        const untar = spawnSync('tar', ['-xzf', tarball, '-C', scratch], { encoding: 'utf-8', timeout: 10_000 });
         assert.strictEqual(untar.status, 0, `tar failed:\n${untar.stderr}`);
         const unpacked = join(scratch, 'package');
         // The tarball carries only the package; resolve its runtime dependency
@@ -121,6 +121,7 @@ test('packed bin runs when exec()ed directly, the way npm installs it', { skip: 
                 cwd: scratch,
                 encoding: 'utf-8',
                 env: { ...process.env, HOME: scratch, USERPROFILE: scratch },
+                timeout: 30_000,
             });
             assert.strictEqual(res.status, 0, `bin "${name}" exited ${res.status}:\n${res.stderr}`);
             assert.strictEqual(res.stdout.trim(), 'Hello World');

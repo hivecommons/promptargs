@@ -305,7 +305,7 @@ test('ui subcommand without --port targets the default port 3700', async () => {
 });
 test('env truncates a long staged diff to a preview with ellipsis', () => {
     const { cwd, home } = makeDirs();
-    const git = (gitArgs) => spawnSync('git', gitArgs, { cwd, encoding: 'utf-8', env: { ...process.env, HOME: home } });
+    const git = (gitArgs) => spawnSync('git', gitArgs, { cwd, encoding: 'utf-8', env: { ...process.env, HOME: home }, timeout: 10_000 });
     git(['init', '-q']);
     writeFileSync(join(cwd, 'big.txt'), 'x'.repeat(300) + '\n');
     git(['add', 'big.txt']);

@@ -54,7 +54,7 @@ test('collectEnvVars truncates the git diff preview to 60 chars but passes other
   const repo = mkdtempSync(join(tmpdir(), 'promptargs-ui-env-'));
   try {
     process.chdir(repo);
-    const run = (cmd: string) => execSync(cmd, { stdio: 'pipe' });
+    const run = (cmd: string) => execSync(cmd, { stdio: 'pipe', timeout: 10_000 });
     run('git init -q -b pa-ui-env-branch');
     run('git config user.email pa@test.local');
     run('git config user.name "PA Tester"');

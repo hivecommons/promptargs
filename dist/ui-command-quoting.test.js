@@ -56,7 +56,7 @@ function commandFor(template, rows) {
 /** What a POSIX shell would hand to the CLI for the generated command. */
 function shellWords(command) {
     const args = command.replace(/^promptargs /, '');
-    const r = spawnSync('sh', ['-c', `printf '%s\\n' ${args}`], { encoding: 'utf-8' });
+    const r = spawnSync('sh', ['-c', `printf '%s\\n' ${args}`], { encoding: 'utf-8', timeout: 5_000 });
     assert.equal(r.status, 0, r.stderr);
     return r.stdout.replace(/\n$/, '').split('\n');
 }

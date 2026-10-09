@@ -1,0 +1,1 @@
+Test-suite hang guard: every sync child_process call in a test sets a timeout (enforced by a scan test), and the runner passes --test-timeout so a hung test fails by name instead of running to the CI job limit. (#199)
