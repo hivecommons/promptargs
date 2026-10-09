@@ -11,15 +11,14 @@
  *   promptargs show <template>          # show template with vars highlighted
  */
 
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { parseVars, expand, VAR_PATTERN } from './parser.js';
-import { findTemplate, loadTemplates } from './loader.js';
+
+import { parseVars, expand } from './parser.js';
+import { findTemplate } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
-import { autodetect, AUTODETECT_VARS } from './autodetect.js';
-import { sanitizeForTerminal } from './sanitize.js';
 import { startUI } from './ui.js';
+import { UsageError, parseFlags, parsePort } from './flags.js';
+import { doInit, doList, doShow, printEnv } from './commands.js';
 
 const HELP = `
 promptargs — Template arguments for AI prompts 🏴‍☠️
@@ -55,20 +54,6 @@ Templates live in:
   ~/.prompts/         User-level (personal templates)
 `;
 
-const EXAMPLE_REVIEW = `Review {{file}} for {{focus=correctness}} issues.
-Be {{tone=concise}} in your feedback.
-Focus on real bugs, not style nitpicks.
-`;
-
-const EXAMPLE_EXPLAIN = `Explain what {{file}} does in {{style=simple}} terms.
-Assume the reader is a {{audience=junior developer}}.
-`;
-
-const EXAMPLE_FIX = `Fix the {{issue}} in {{file}}.
-The expected behavior is: {{expected}}
-The actual behavior is: {{actual}}
-`;
-
 async function main() {
   const args = process.argv.slice(2);
 
@@ -85,16 +70,7 @@ async function main() {
 
   if (args[0] === 'ui') {
     const flags = parseFlags(args.slice(1));
-    let port: number | undefined;
-    if ('port' in flags) {
-      // Number('') is 0, so an empty --port= must be rejected before the range check.
-      port = Number(flags['port']);
-      if (flags['port'] === '' || !Number.isInteger(port) || port < 0 || port > 65535) {
-        console.error('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
-        process.exit(1);
-      }
-    }
-    startUI(port);
+    startUI(parsePort(flags));
     return;
   }
 
@@ -127,11 +103,11 @@ async function main() {
   } else {
     const tpl = findTemplate(templateName);
     if (!tpl) {
-      console.error(`Template "${templateName}" not found.`);
-      console.error('Run "promptargs list" to see available templates.');
-      console.error('Run "promptargs init" to create example templates.');
-      process.exit(1);
-      return;
+      throw new UsageError(
+        `Template "${templateName}" not found.\n` +
+          'Run "promptargs list" to see available templates.\n' +
+          'Run "promptargs init" to create example templates.',
+      );
     }
     content = tpl.content;
     name = tpl.name;
@@ -175,124 +151,6 @@ async function main() {
   } else {
     console.log(results.join('\n---\n'));
   }
-}
-
-const SWITCHES = new Set(['no-interactive', 'cross', 'json', 'status']);
-
-function parseFlags(args: string[]): Record<string, string> {
-  const flags: Record<string, string> = {};
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (!arg.startsWith('--')) {
-      console.error(`Unexpected argument: ${arg}`);
-      process.exit(1);
-    }
-    const eq = arg.indexOf('=');
-    if (eq > 0) {
-      flags[arg.slice(2, eq)] = arg.slice(eq + 1);
-      continue;
-    }
-    const name = arg.slice(2);
-    if (SWITCHES.has(name)) {
-      flags[name] = 'true';
-    } else if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
-      flags[name] = args[++i];
-    } else {
-      console.error(`Invalid --${name}: --${name} requires a value: --${name}=<value>`);
-      process.exit(1);
-    }
-  }
-  return flags;
-}
-
-function doInit() {
-  const dir = join(process.cwd(), '.prompts');
-  if (existsSync(dir)) {
-    console.log('.prompts/ already exists!');
-    return;
-  }
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'review.md'), EXAMPLE_REVIEW);
-  writeFileSync(join(dir, 'explain.md'), EXAMPLE_EXPLAIN);
-  writeFileSync(join(dir, 'fix.md'), EXAMPLE_FIX);
-  console.log('Created .prompts/ with 3 example templates:');
-  console.log('  review.md  — Code review with focus area');
-  console.log('  explain.md — Explain code simply');
-  console.log('  fix.md     — Bug fix template');
-  console.log('');
-  console.log('Try it: promptargs review --file=src/main.ts');
-}
-
-function doList() {
-  const templates = loadTemplates();
-  if (templates.length === 0) {
-    console.log('No templates found.');
-    console.log('Run "promptargs init" to create example templates.');
-    return;
-  }
-  console.log('Available templates:\n');
-  for (const t of templates) {
-    const vars = parseVars(t.content);
-    const varNames = vars.map(v => {
-      if (v.defaultValue !== undefined) return `${v.name}=${v.defaultValue}`;
-      return v.name;
-    });
-    const source = t.source === 'user' ? ' (user)' : '';
-    console.log(sanitizeForTerminal(`  ${t.name}${source}`));
-    console.log(sanitizeForTerminal(`    vars: {{${varNames.join('}}  {{')}}}`));
-    console.log('');
-  }
-}
-
-function doShow(templateName?: string) {
-  if (!templateName) {
-    console.error('Usage: promptargs show <template>');
-    process.exit(1);
-    return;
-  }
-  const tpl = findTemplate(templateName);
-  if (!tpl) {
-    console.error(`Template "${templateName}" not found.`);
-    process.exit(1);
-    return;
-  }
-
-  // Sanitize first: templates are repo-controlled and must not be able to
-  // inject their own terminal escapes; only our highlighting below may.
-  const highlighted = sanitizeForTerminal(tpl.content).replace(
-    VAR_PATTERN,
-    (raw, _varName: string, defaultVal?: string) => {
-      // Colour the tag exactly as written so padded tags ({{ name }}) are
-      // shown as the author typed them.
-      if (defaultVal !== undefined) {
-        return `\x1b[33m${raw}\x1b[0m`;
-      }
-      return `\x1b[31m${raw}\x1b[0m`;
-    },
-  );
-
-  console.log(sanitizeForTerminal(`Template: ${tpl.name} (${tpl.path})`) + '\n');
-  console.log(highlighted);
-  console.log('\n\x1b[31mred\x1b[0m = required  \x1b[33myellow\x1b[0m = has default');
-}
-
-const DIFF_PREVIEW_MAX_CHARS = 60;
-
-function printEnv() {
-  console.log('Auto-detected variables:\n');
-  for (const name of AUTODETECT_VARS) {
-    const value = autodetect(name);
-    if (value !== undefined) {
-      let display = value;
-      if (name === 'diff' && display.length > DIFF_PREVIEW_MAX_CHARS) {
-        display = display.slice(0, DIFF_PREVIEW_MAX_CHARS) + '...';
-      }
-      console.log(`  \x1b[32m{{${name}}}\x1b[0m = ${sanitizeForTerminal(display)}`);
-    } else {
-      console.log(`  \x1b[90m{{${name}}}\x1b[0m = (not detected)`);
-    }
-  }
-  console.log('');
 }
 
 main().catch(err => {
