@@ -324,4 +324,34 @@ test('--parallel is not advertised in help or the README', () => {
     assert.doesNotMatch(readme, /--parallel/);
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
+test('--var value (space-separated) binds the value', () => {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['Review {{file}} for {{focus=bugs}}', '--file', 'src/x', '--no-interactive'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    assert.match(res.stdout, /Review src\/x for bugs/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('--var=value behaviour is unchanged', () => {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['Review {{file}}', '--file=src/x', '--no-interactive'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    assert.match(res.stdout, /Review src\/x/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('--json followed by another arg still acts as a switch', () => {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['Review {{file}}', '--json', '--file=src/x', '--no-interactive'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    assert.doesNotThrow(() => JSON.parse(res.stdout));
+    assert.match(res.stdout, /src\/x/);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('bare --var with no value errors instead of binding "true"', () => {
+    const { cwd, home } = makeDirs();
+    const res = runCli(['Review {{file}}', '--no-interactive', '--file'], cwd, home);
+    assert.strictEqual(res.status, 1);
+    assert.match(res.stderr, /--file requires a value: --file=<value>/);
+    assert.strictEqual(res.stdout, '');
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 //# sourceMappingURL=cli.test.js.map
