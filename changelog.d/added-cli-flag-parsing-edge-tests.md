@@ -1,0 +1,1 @@
+Tests pinning CLI flag-parsing edge cases: a bare `--var` followed by another flag errors instead of swallowing it, single-dash values bind, switches never consume the next token, and `ui --port <n>` space form reaches the port validator and server.

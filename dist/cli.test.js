@@ -354,4 +354,56 @@ test('bare --var with no value errors instead of binding "true"', () => {
     assert.strictEqual(res.stdout, '');
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
+test('bare --var followed by another flag errors instead of swallowing the flag', () => {
+    // A naive `args[++i]` would bind "--json" / "--focus=x" as the value of
+    // --file. The next token starting with "--" must leave --file bare.
+    const { cwd, home } = makeDirs();
+    for (const next of ['--json', '--focus=x', '--no-interactive']) {
+        const res = runCli(['Review {{file}} {{focus=bugs}}', '--file', next, '--no-interactive'], cwd, home);
+        assert.strictEqual(res.status, 1, next);
+        assert.match(res.stderr, /Invalid --file: --file requires a value: --file=<value>/, next);
+        assert.strictEqual(res.stdout, '', next);
+    }
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('--var value accepts a value that starts with a single dash', () => {
+    // Only "--" marks the next token as a flag; "-O2" or "-" is a value.
+    const { cwd, home } = makeDirs();
+    const res = runCli(['Build {{opt}}', '--opt', '-O2', '--no-interactive'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    assert.strictEqual(res.stdout.trim(), 'Build -O2');
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('switches never consume the following token even if it is not a flag', () => {
+    // "yes" after --json is a stray positional, not a value: --json stays a
+    // switch and the template variable named "json" sees the switch's "true".
+    const { cwd, home } = makeDirs();
+    const res = runCli(['X {{json}}', '--json', 'yes', '--no-interactive'], cwd, home);
+    assert.strictEqual(res.status, 0);
+    assert.strictEqual(JSON.parse(res.stdout), 'X true');
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
+test('ui subcommand accepts the space-separated --port value form', async () => {
+    // Out-of-range via the space form must hit the integer validator, not the
+    // "requires a value" parser error.
+    const { cwd, home } = makeDirs();
+    const bad = runCli(['ui', '--port', '70000'], cwd, home);
+    assert.strictEqual(bad.status, 1);
+    assert.match(bad.stderr, /Invalid --port: expected an integer from 0 to 65535/);
+    assert.doesNotMatch(bad.stderr, /requires a value/);
+    // In-range via the space form must reach startUI with that port.
+    const { createServer } = await import('node:net');
+    const blocker = createServer();
+    await new Promise(resolve => blocker.listen(0, '127.0.0.1', resolve));
+    const { port } = blocker.address();
+    try {
+        const res = runCli(['ui', '--port', String(port)], cwd, home);
+        assert.strictEqual(res.status, 1);
+        assert.match(res.stderr, new RegExp(`Port ${port} is in use`));
+    }
+    finally {
+        await new Promise(resolve => blocker.close(resolve));
+        rmSync(dirname(cwd), { recursive: true, force: true });
+    }
+});
 //# sourceMappingURL=cli.test.js.map
