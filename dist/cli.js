@@ -173,7 +173,7 @@ function parseFlags(args) {
             flags[name] = args[++i];
         }
         else {
-            console.error(`--${name} requires a value: --${name}=<value>`);
+            console.error(`Invalid --${name}: --${name} requires a value: --${name}=<value>`);
             process.exit(1);
         }
     }

@@ -194,7 +194,7 @@ function parseFlags(args: string[]): Record<string, string> {
     } else if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
       flags[name] = args[++i];
     } else {
-      console.error(`--${name} requires a value: --${name}=<value>`);
+      console.error(`Invalid --${name}: --${name} requires a value: --${name}=<value>`);
       process.exit(1);
     }
   }

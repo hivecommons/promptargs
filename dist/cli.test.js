@@ -350,7 +350,7 @@ test('bare --var with no value errors instead of binding "true"', () => {
     const { cwd, home } = makeDirs();
     const res = runCli(['Review {{file}}', '--no-interactive', '--file'], cwd, home);
     assert.strictEqual(res.status, 1);
-    assert.match(res.stderr, /--file requires a value: --file=<value>/);
+    assert.match(res.stderr, /Invalid --file: --file requires a value: --file=<value>/);
     assert.strictEqual(res.stdout, '');
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
