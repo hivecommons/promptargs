@@ -450,11 +450,12 @@ test('--var value accepts a value that starts with a single dash', () => {
 
 test('switches never consume the following token even if it is not a flag', () => {
   // "yes" after --json is a stray positional, not a value: --json stays a
-  // switch and the template variable named "json" sees the switch's "true".
+  // switch, so "yes" is left over and rejected as an unexpected argument
+  // rather than being bound as the value of json.
   const { cwd, home } = makeDirs();
   const res = runCli(['X {{json}}', '--json', 'yes', '--no-interactive'], cwd, home);
-  assert.strictEqual(res.status, 0);
-  assert.strictEqual(JSON.parse(res.stdout), 'X true');
+  assert.strictEqual(res.status, 1);
+  assert.match(res.stderr, /Unexpected argument: yes/);
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
