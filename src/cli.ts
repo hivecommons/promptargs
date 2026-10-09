@@ -39,6 +39,7 @@ Flags:
   --cross             Cross-product mode: all combinations of array values
   --json              Output as JSON instead of plain text
   --status            Print status line only (for IDE integration)
+  --var value         Same as --var=value (switches above take no value)
 
 Array values:
   --file=a.go,b.go    Comma-separated → one run per value
@@ -175,16 +176,26 @@ async function main() {
   }
 }
 
+const SWITCHES = new Set(['no-interactive', 'cross', 'json', 'status']);
+
 function parseFlags(args: string[]): Record<string, string> {
   const flags: Record<string, string> = {};
-  for (const arg of args) {
-    if (arg.startsWith('--')) {
-      const eq = arg.indexOf('=');
-      if (eq > 0) {
-        flags[arg.slice(2, eq)] = arg.slice(eq + 1);
-      } else {
-        flags[arg.slice(2)] = 'true';
-      }
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) continue;
+    const eq = arg.indexOf('=');
+    if (eq > 0) {
+      flags[arg.slice(2, eq)] = arg.slice(eq + 1);
+      continue;
+    }
+    const name = arg.slice(2);
+    if (SWITCHES.has(name)) {
+      flags[name] = 'true';
+    } else if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
+      flags[name] = args[++i];
+    } else {
+      console.error(`Invalid --${name}: --${name} requires a value: --${name}=<value>`);
+      process.exit(1);
     }
   }
   return flags;
