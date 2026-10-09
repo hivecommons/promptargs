@@ -12,6 +12,9 @@ function runCli(args, cwd, home) {
         cwd,
         encoding: 'utf-8',
         env: { ...process.env, HOME: home, USERPROFILE: home },
+        // A CLI that unexpectedly starts the UI server would otherwise block the
+        // suite until the CI job timeout; fail the test instead.
+        timeout: 30_000,
     });
     return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }

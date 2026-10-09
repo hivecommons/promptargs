@@ -77,8 +77,9 @@ async function main() {
         const flags = parseFlags(args.slice(1));
         let port;
         if ('port' in flags) {
+            // Number('') is 0, so an empty --port= must be rejected before the range check.
             port = Number(flags['port']);
-            if (!Number.isInteger(port) || port < 0 || port > 65535) {
+            if (flags['port'] === '' || !Number.isInteger(port) || port < 0 || port > 65535) {
                 console.error('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
                 process.exit(1);
             }
