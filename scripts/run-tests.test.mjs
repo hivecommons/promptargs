@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
@@ -13,8 +13,10 @@ import {
   collectTestFiles,
   coverageEnabled,
   findTestFiles,
+  hermeticEnv,
   runTests,
   supportsCoverageThresholds,
+  writeGhShim,
 } from './run-tests.mjs';
 
 const scratchRoots = [];
@@ -140,18 +142,42 @@ test('runTests spawns node --test on the discovered files and returns its status
     root,
     log: () => assert.fail('nothing to log'),
     spawn: (cmd, args, options) => {
-      calls.push({ cmd, args, options });
+      // Capture while the shim still exists: runTests removes it afterwards.
+      const shimDir = options.env.PATH.split(delimiter)[0];
+      calls.push({ cmd, args, stdio: options.stdio, shimDir, shimPresent: existsSync(join(shimDir, 'gh')) });
       return { status: 3 };
     },
   });
   assert.equal(result, 3);
-  assert.deepEqual(calls, [
-    {
-      cmd: process.execPath,
-      args: ['--test', ...TEST_TIMEOUT_ARGS, join(root, 'dist', 'a.test.js'), join(root, 'scripts', 'b.test.mjs')],
-      options: { stdio: 'inherit' },
-    },
-  ]);
+  assert.equal(calls.length, 1);
+  const [call] = calls;
+  assert.equal(call.cmd, process.execPath);
+  assert.deepEqual(call.args, ['--test', ...TEST_TIMEOUT_ARGS, join(root, 'dist', 'a.test.js'), join(root, 'scripts', 'b.test.mjs')]);
+  assert.equal(call.stdio, 'inherit');
+  assert.ok(call.shimPresent, `gh shim missing from ${call.shimDir}`);
+  assert.ok(!existsSync(call.shimDir), 'shim directory must be removed after the run');
+});
+
+test('hermeticEnv prepends the shim directory to PATH and leaves the rest of the env alone', () => {
+  const env = hermeticEnv({ PATH: '/usr/bin', HOME: '/h' }, '/shim');
+  assert.deepEqual(env, { PATH: `/shim${delimiter}/usr/bin`, HOME: '/h' });
+  // Windows spells it `Path`: the existing key is extended, not shadowed.
+  assert.deepEqual(hermeticEnv({ Path: 'C:\\bin' }, 'S'), { Path: `S${delimiter}C:\\bin` });
+  assert.deepEqual(hermeticEnv({}, '/shim'), { PATH: `/shim${delimiter}` });
+});
+
+test('writeGhShim installs a gh that exits 1 immediately', { skip: process.platform === 'win32' && 'POSIX shim script' }, () => {
+  const dir = writeGhShim(scratchRepo());
+  const started = Date.now();
+  const result = spawnSync('gh', ['pr', 'view', '--json', 'number'], {
+    encoding: 'utf8',
+    env: hermeticEnv(process.env, dir),
+    timeout: 10000,
+  });
+  assert.equal(result.status, 1, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.ok(Date.now() - started < 5000, 'shim must not wait on anything');
+  assert.ok(existsSync(join(dir, 'gh.cmd')));
 });
 
 test('runTests forwards coverage flags and maps a signal-killed run (null status) to 1', () => {
@@ -202,6 +228,38 @@ test('CLI runs discovered tests and propagates a passing exit code', () => {
     "import { after, test } from 'node:test';\ntest('passes', () => {});\n",
   );
   const result = runScript(['--no-coverage'], root);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /\bpass 1\b/);
+});
+
+test('CLI runs the discovered tests with a no-op gh first on PATH', { skip: process.platform === 'win32' && 'POSIX shim script' }, () => {
+  // Pin the hermetic boundary end to end: a test that shells out to `gh`
+  // (as startUI and autodetect('pr') do) must get the shim, never the host
+  // binary — even when a slow `gh` sits earlier on the inherited PATH.
+  const root = scratchRepo();
+  writeFileSync(join(root, 'package.json'), '{"type":"module"}');
+  const slow = join(root, 'slow-gh');
+  mkdirSync(slow);
+  writeFileSync(join(slow, 'gh'), '#!/bin/sh\nsleep 20\nexit 0\n', { mode: 0o755 });
+  writeFileSync(
+    join(root, 'dist', 'gh.test.js'),
+    [
+      "import { test } from 'node:test';",
+      "import assert from 'node:assert/strict';",
+      "import { spawnSync } from 'node:child_process';",
+      "test('gh is the shim', () => {",
+      "  const r = spawnSync('gh', ['pr', 'view'], { encoding: 'utf8', timeout: 5000 });",
+      "  assert.equal(r.status, 1, String(r.error ?? r.stderr));",
+      '});',
+      '',
+    ].join('\n'),
+  );
+  const result = spawnSync(process.execPath, [SCRIPT, '--no-coverage'], {
+    cwd: root,
+    env: { ...env, PATH: `${slow}${delimiter}${env.PATH ?? ''}` },
+    encoding: 'utf8',
+    timeout: 30000,
+  });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /\bpass 1\b/);
 });

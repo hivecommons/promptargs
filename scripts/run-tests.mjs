@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
-import { readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { delimiter, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export function findTestFiles(dir, suffix) {
@@ -70,6 +71,26 @@ export function buildNodeArgs(testFiles, argv, version = process.versions.node) 
   return ['--test', ...TEST_TIMEOUT_ARGS, ...coverageArgs, ...testFiles];
 }
 
+// startUI (through collectEnvVars) and autodetect('pr') run the real `gh pr
+// view` with no timeout of their own. A slow or hung `gh` — a stalled proxy,
+// an auth prompt, no network — then stalls every test that reaches them for
+// as long as `gh` takes, and once that passes the 15 s / 30 s spawn guards in
+// ui.test.ts and cli.test.ts the suite goes red for reasons unrelated to the
+// change under test. No test wants a real PR number, so the whole run gets a
+// `gh` that fails instantly, first on PATH; a test that needs a specific `gh`
+// behaviour prepends its own shim on top of it (see autodetect.test.ts).
+export function writeGhShim(dir) {
+  writeFileSync(join(dir, 'gh'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+  writeFileSync(join(dir, 'gh.cmd'), '@exit /b 1\r\n');
+  return dir;
+}
+
+export function hermeticEnv(env, shimDir) {
+  // Windows spells the variable `Path`; keep whichever key the caller has.
+  const pathKey = Object.keys(env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
+  return { ...env, [pathKey]: `${shimDir}${delimiter}${env[pathKey] ?? ''}` };
+}
+
 export function runTests(argv, { root = '.', spawn = spawnSync, log = console.error } = {}) {
   const testFiles = collectTestFiles(root);
 
@@ -78,8 +99,16 @@ export function runTests(argv, { root = '.', spawn = spawnSync, log = console.er
     return 1;
   }
 
-  const result = spawn(process.execPath, buildNodeArgs(testFiles, argv), { stdio: 'inherit' });
-  return result.status ?? 1;
+  const shimDir = writeGhShim(mkdtempSync(join(tmpdir(), 'promptargs-gh-shim-')));
+  try {
+    const result = spawn(process.execPath, buildNodeArgs(testFiles, argv), {
+      stdio: 'inherit',
+      env: hermeticEnv(process.env, shimDir),
+    });
+    return result.status ?? 1;
+  } finally {
+    rmSync(shimDir, { recursive: true, force: true });
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
