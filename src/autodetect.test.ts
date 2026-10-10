@@ -221,4 +221,21 @@ describe('pr detector', () => {
       rmSync(shim, { recursive: true, force: true });
     }
   });
+
+  it('returns undefined within the timeout when gh stalls', t => {
+    if (process.platform === 'win32') return t.skip('POSIX shim script');
+    const shim = mkdtempSync(join(tmpdir(), 'pa-gh-shim-'));
+    // exec so the timeout kill hits sleep itself and closes the pipes.
+    writeFileSync(join(shim, 'gh'), '#!/bin/sh\nexec sleep 8\n', { mode: 0o755 });
+    const prevPath = process.env.PATH;
+    process.env.PATH = `${shim}${delimiter}${prevPath ?? ''}`;
+    try {
+      const start = Date.now();
+      assert.strictEqual(autodetect('pr'), undefined);
+      assert.ok(Date.now() - start < 7500, 'pr detector must give up before the shim finishes');
+    } finally {
+      process.env.PATH = prevPath;
+      rmSync(shim, { recursive: true, force: true });
+    }
+  });
 });

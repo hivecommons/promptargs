@@ -2,6 +2,9 @@
  * Auto-detect variable values from the current environment.
  */
 import { execSync } from 'node:child_process';
+// gh is the only network call on the UI startup path; bound it so a stalled gh
+// (hung proxy, expired auth) cannot hang startup.
+const GH_TIMEOUT_MS = 5000;
 function git(cmd) {
     try {
         const out = execSync(`git ${cmd}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
@@ -36,6 +39,7 @@ const DETECTORS = {
             const out = execSync('gh pr view --json number --jq .number', {
                 encoding: 'utf8',
                 stdio: ['pipe', 'pipe', 'pipe'],
+                timeout: GH_TIMEOUT_MS,
             }).trim();
             return out || undefined;
         }
