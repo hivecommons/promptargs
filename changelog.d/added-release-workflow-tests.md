@@ -1,0 +1,1 @@
+Regression tests for the inline release-pipeline scripts in `auto-release.yml`, `release.yml`, and the shared dist/ sync guard — version detection, release-note rendering and fallback, publication dispatch, the tag/version check — run against mocked `gh`/`git` so a broken step fails `npm test` instead of the next release (#210).
