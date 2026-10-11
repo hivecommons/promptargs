@@ -32,6 +32,8 @@ For a user-visible change, add one Markdown file to `changelog.d/` named `<categ
 
 Releases ship from a version bump in `package.json`. See [runbooks/release-rollback.md](runbooks/release-rollback.md) for how a release is published and how to roll one back.
 
+If a published version is broken for users, follow [runbooks/incident-response.md](runbooks/incident-response.md) for triage, communication, and the postmortem template.
+
 ## Pull requests
 
 - Work on a feature branch; do not push directly to `main`.
