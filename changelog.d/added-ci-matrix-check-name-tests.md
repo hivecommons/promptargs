@@ -1,0 +1,1 @@
+Regression tests for the `build-and-test` matrix in `ci.yml`: the job's `name:` expression is evaluated for every matrix leg and the `ubuntu-latest` names are pinned to the checks branch protection requires, so a matrix or naming change that would stop the required checks from reporting fails `npm test` instead of blocking every later PR.
