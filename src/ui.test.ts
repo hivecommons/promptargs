@@ -249,13 +249,13 @@ test('startUI with port 0 accepts every loopback Host carrying the actual bound 
 });
 
 test('startUI answers 404 for a static route whose backing file is missing', () => {
-  // Copy the compiled ui.js (plus its one local dep) into a directory
+  // Copy the compiled ui.js (plus its local deps) into a directory
   // without parser.js/iterate.js/mustache.mjs, so requesting a known static
   // route hits the readFileSync catch branch.
   const __dirnameUi = dirname(fileURLToPath(import.meta.url));
   const dir = mkdtempSync(join(tmpdir(), 'promptargs-ui-static-'));
   try {
-    for (const f of ['ui.js', 'ui.html', 'autodetect.js']) {
+    for (const f of ['ui.js', 'ui.html', 'autodetect.js', 'log.js']) {
       copyFileSync(join(__dirnameUi, f), join(dir, f));
     }
     writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
