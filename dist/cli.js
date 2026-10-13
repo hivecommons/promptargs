@@ -15,6 +15,7 @@ import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
 import { startUI } from './ui.js';
 import { UsageError, parseFlags, parsePort } from './flags.js';
+import { diag, classifyError } from './log.js';
 import { doInit, doList, doShow, printEnv } from './commands.js';
 const HELP = `
 promptargs — Template arguments for AI prompts 🏴‍☠️
@@ -119,7 +120,7 @@ async function main() {
                 current: i + 1,
                 total: iterations.length,
             });
-            console.error(status);
+            diag('cli_iteration', { current: i + 1, total: iterations.length }, () => console.error(status));
         }
         results.push(expanded);
     }
@@ -131,7 +132,7 @@ async function main() {
     }
 }
 main().catch(err => {
-    console.error(err.message);
+    diag('cli_error', { error_class: classifyError(err) }, () => console.error(err.message));
     process.exit(1);
 });
 //# sourceMappingURL=cli.js.map

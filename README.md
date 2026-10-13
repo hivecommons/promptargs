@@ -371,6 +371,8 @@ promptargs does not collect or export telemetry. There is no telemetry SDK, metr
 
 All runtime diagnostics are human-readable console output (CLI status/errors, UI startup/port messages). The **Builder UI** (`promptargs ui`) binds to loopback only (`127.0.0.1`) and rejects requests with a non-local `Host` header, so the page — including the auto-detected Git and terminal environment values it embeds (see [Auto-Magic Variables](#auto-magic-variables-)) — is never reachable from other machines on your network.
 
+**Opt-in structured diagnostics:** set `PROMPTARGS_LOG=json` to make diagnostics (CLI errors and iteration progress, UI Host rejections, asset failures, and one line per UI request) print as JSON lines on stderr with a fixed field set: `event`, plus `status`, `duration_ms`, `error_class` (`usage`, `not_found`, `io`, `port_in_use`, `unknown`), `count`, `current`, `total` where relevant. Template contents, argument values, paths and error messages are never logged. When unset, output is unchanged. Nothing is sent over the network.
+
 If observability is ever added in the future, it will be explicit opt-in, bounded to local diagnostics, and will exclude environment values, template/prompt content, file paths, diffs, and user identifiers. No network exporter will be added unless you explicitly configure a backend yourself.
 
 ---

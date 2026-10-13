@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { autodetect, isSensitiveEnvName, isSensitiveEnvValue, AUTODETECT_VARS } from './autodetect.js';
+import { diag, classifyError, jsonLogEnabled, logRequest } from './log.js';
 
 const DEFAULT_PORT = 3700;
 const OPEN_DELAY_MS = 500;
@@ -89,7 +90,9 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
   try {
     rawHtml = readFileSync(htmlPath, 'utf-8');
   } catch {
-    console.error('UI file not found. Reinstall @hivecommons/promptargs.');
+    diag('ui_start_error', { error_class: 'not_found' }, () => {
+      console.error('UI file not found. Reinstall @hivecommons/promptargs.');
+    });
     process.exit(1);
   }
 
@@ -101,11 +104,18 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
   let rejectedHosts = 0;
 
   const server = createServer((req, res) => {
+    if (jsonLogEnabled()) {
+      const startedAt = process.hrtime.bigint();
+      res.on('finish', () => logRequest(res.statusCode, startedAt));
+    }
+
     // Reject non-local Host headers to block DNS-rebinding reads of env data.
     if (!req.headers.host || !ALLOWED_HOSTS.has(req.headers.host)) {
       // Never log the Host header or URL: both are attacker-controlled.
       if (rejectedHosts++ === 0) {
-        console.error('promptargs: rejected request with unexpected Host header (further rejections suppressed)');
+        diag('ui_host_rejected', { status: 403 }, () => {
+          console.error('promptargs: rejected request with unexpected Host header (further rejections suppressed)');
+        });
       }
       res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Forbidden');
@@ -119,7 +129,9 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
         res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
         res.end(js);
       } catch (err) {
-        console.error(`promptargs: failed to load static asset ${req.url} (${(err as NodeJS.ErrnoException).code ?? 'unknown'})`);
+        diag('ui_asset_error', { status: 404, error_class: classifyError(err) }, () => {
+          console.error(`promptargs: failed to load static asset ${req.url} (${(err as NodeJS.ErrnoException).code ?? 'unknown'})`);
+        });
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('Not found');
       }
@@ -154,13 +166,17 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
 
   server.on('close', () => {
     if (rejectedHosts > 1) {
-      console.error(`promptargs: rejected ${rejectedHosts} requests with unexpected Host headers in total`);
+      diag('ui_host_rejected_total', { count: rejectedHosts }, () => {
+        console.error(`promptargs: rejected ${rejectedHosts} requests with unexpected Host headers in total`);
+      });
     }
   });
 
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`Port ${port} is in use. Try: promptargs ui --port=${port + 1}`);
+      diag('ui_start_error', { error_class: 'port_in_use' }, () => {
+        console.error(`Port ${port} is in use. Try: promptargs ui --port=${port + 1}`);
+      });
       process.exit(1);
     }
     throw err;

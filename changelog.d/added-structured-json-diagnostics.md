@@ -1,0 +1,1 @@
+- Set `PROMPTARGS_LOG=json` to emit opt-in structured JSON diagnostics (`event`, `status`, `duration_ms`, error class) on stderr, including a per-request line with timing in `promptargs ui`; output is unchanged when unset. (#220)
