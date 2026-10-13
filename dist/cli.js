@@ -120,7 +120,7 @@ async function main() {
                 current: i + 1,
                 total: iterations.length,
             });
-            diag('cli_iteration', { current: i + 1, total: iterations.length }, () => console.error(status));
+            diag('cli_iteration', { current: i + 1, total: iterations.length }, status);
         }
         results.push(expanded);
     }
@@ -132,7 +132,7 @@ async function main() {
     }
 }
 main().catch(err => {
-    diag('cli_error', { error_class: classifyError(err) }, () => console.error(err.message));
+    diag('cli_error', { error_class: classifyError(err) }, err.message);
     process.exit(1);
 });
 //# sourceMappingURL=cli.js.map

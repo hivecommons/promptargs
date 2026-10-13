@@ -18,11 +18,12 @@ export function classifyError(err) {
         return 'usage';
     return 'unknown';
 }
-// Writes a JSON line when enabled; otherwise runs the legacy text fallback so
-// default output stays byte-for-byte unchanged.
+// Writes a JSON line when enabled; otherwise prints the legacy text fallback
+// (when given) so default output stays byte-for-byte unchanged.
 export function diag(event, fields, legacy) {
     if (!jsonLogEnabled()) {
-        legacy();
+        if (legacy !== undefined)
+            console.error(legacy);
         return;
     }
     const line = { event };
@@ -34,9 +35,7 @@ export function diag(event, fields, legacy) {
 }
 // Request logging has no legacy output, so it is silent unless enabled.
 export function logRequest(status, startedAt) {
-    if (!jsonLogEnabled())
-        return;
     const duration_ms = Number((process.hrtime.bigint() - startedAt) / 1000n) / 1000;
-    diag('ui_request', { status, duration_ms }, () => { });
+    diag('ui_request', { status, duration_ms });
 }
 //# sourceMappingURL=log.js.map

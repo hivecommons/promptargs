@@ -15,5 +15,5 @@ export interface LogFields {
 }
 export declare function jsonLogEnabled(env?: NodeJS.ProcessEnv): boolean;
 export declare function classifyError(err: unknown): ErrorClass;
-export declare function diag(event: LogEvent, fields: LogFields, legacy: () => void): void;
+export declare function diag(event: LogEvent, fields: LogFields, legacy?: string): void;
 export declare function logRequest(status: number, startedAt: bigint): void;

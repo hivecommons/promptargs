@@ -37,11 +37,11 @@ export function classifyError(err: unknown): ErrorClass {
   return 'unknown';
 }
 
-// Writes a JSON line when enabled; otherwise runs the legacy text fallback so
-// default output stays byte-for-byte unchanged.
-export function diag(event: LogEvent, fields: LogFields, legacy: () => void): void {
+// Writes a JSON line when enabled; otherwise prints the legacy text fallback
+// (when given) so default output stays byte-for-byte unchanged.
+export function diag(event: LogEvent, fields: LogFields, legacy?: string): void {
   if (!jsonLogEnabled()) {
-    legacy();
+    if (legacy !== undefined) console.error(legacy);
     return;
   }
   const line: Record<string, unknown> = { event };
@@ -53,7 +53,6 @@ export function diag(event: LogEvent, fields: LogFields, legacy: () => void): vo
 
 // Request logging has no legacy output, so it is silent unless enabled.
 export function logRequest(status: number, startedAt: bigint): void {
-  if (!jsonLogEnabled()) return;
   const duration_ms = Number((process.hrtime.bigint() - startedAt) / 1000n) / 1000;
-  diag('ui_request', { status, duration_ms }, () => {});
+  diag('ui_request', { status, duration_ms });
 }

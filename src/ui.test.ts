@@ -172,6 +172,37 @@ test('startUI logs a rejected Host once on stderr without echoing it, and totals
   }
 });
 
+test('startUI emits one ui_request JSON line per request when PROMPTARGS_LOG=json', async () => {
+  const lines: string[] = [];
+  const origError = console.error;
+  const origLog = process.env.PROMPTARGS_LOG;
+  console.error = (...args: unknown[]) => { lines.push(args.join(' ')); };
+  process.env.PROMPTARGS_LOG = 'json';
+  const server = startUI(0, { openBrowser: false });
+  try {
+    await onceListening(server);
+    const { port } = server.address() as AddressInfo;
+    assert.equal((await request(port, `127.0.0.1:${port}`)).statusCode, 200);
+    assert.equal((await request(port, 'evil.example')).statusCode, 403);
+    await closeServer(server);
+    const events = lines.map(l => JSON.parse(l) as Record<string, unknown>);
+    const requests = events.filter(e => e.event === 'ui_request');
+    assert.deepStrictEqual(requests.map(e => e.status), [200, 403]);
+    for (const e of requests) {
+      assert.deepStrictEqual(Object.keys(e), ['event', 'status', 'duration_ms']);
+      assert.ok((e.duration_ms as number) >= 0);
+    }
+    assert.ok(events.some(e => e.event === 'ui_host_rejected' && e.status === 403));
+    // Never echo the attacker-controlled Host header, even in JSON mode.
+    assert.ok(!lines.some(l => l.includes('evil.example')));
+  } finally {
+    console.error = origError;
+    if (origLog === undefined) delete process.env.PROMPTARGS_LOG;
+    else process.env.PROMPTARGS_LOG = origLog;
+    if (server.listening) await closeServer(server);
+  }
+});
+
 test('startUI serves the parser/iterate/mustache modules the browser imports', async () => {
   const server = startUI(0, { openBrowser: false });
   await onceListening(server);
@@ -328,6 +359,7 @@ test('startUI exits 1 with a reinstall hint when ui.html is missing', () => {
   try {
     copyFileSync(join(__dirname, 'ui.js'), join(dir, 'ui.js'));
     copyFileSync(join(__dirname, 'autodetect.js'), join(dir, 'autodetect.js'));
+    copyFileSync(join(__dirname, 'log.js'), join(dir, 'log.js'));
     // Node 18 has no ESM syntax detection; mark the temp dir as ESM.
     writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
     const res = runStartUI(join(dir, 'ui.js'), 0);

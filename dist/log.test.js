@@ -37,13 +37,19 @@ describe('diag', () => {
     it('runs the legacy output unchanged when PROMPTARGS_LOG is unset', () => {
         delete process.env.PROMPTARGS_LOG;
         const lines = capture();
-        diag('cli_error', { error_class: 'unknown' }, () => console.error('plain message'));
+        diag('cli_error', { error_class: 'unknown' }, 'plain message');
         assert.deepStrictEqual(lines, ['plain message']);
+    });
+    it('prints nothing when disabled and no legacy text is given', () => {
+        delete process.env.PROMPTARGS_LOG;
+        const lines = capture();
+        diag('ui_request', { status: 200 });
+        assert.deepStrictEqual(lines, []);
     });
     it('emits one JSON line with only the fixed fields when enabled', () => {
         process.env.PROMPTARGS_LOG = 'json';
         const lines = capture();
-        diag('ui_asset_error', { status: 404, error_class: 'not_found' }, () => console.error('legacy'));
+        diag('ui_asset_error', { status: 404, error_class: 'not_found' }, 'legacy');
         assert.strictEqual(lines.length, 1);
         assert.deepStrictEqual(JSON.parse(lines[0]), { event: 'ui_asset_error', status: 404, error_class: 'not_found' });
     });
