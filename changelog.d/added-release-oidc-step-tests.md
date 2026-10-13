@@ -1,0 +1,1 @@
+Regression tests for the Trusted Publishing steps in `release.yml` — the npm `>= 11.5.1` version gate (including `11.10.x` ordering), the `id-token` guard, and the publish job's wiring (no `NPM_TOKEN`, `npm publish --provenance`, guard before publish) — run under `npm test` against a mocked `npm` (#225).

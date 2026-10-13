@@ -288,3 +288,86 @@ test('dist sync guard: ignores changes outside dist/', () => {
     assert.equal(result.status, 0, result.stderr);
   });
 });
+
+// --- release.yml: npm Trusted Publishing (OIDC) ------------------------------
+
+// A `npm` that reports MOCK_NPM_VERSION for `--version` and records every
+// other invocation, so the test can see whether the step chose to upgrade.
+function installNpmMock(dir, version) {
+  writeFileSync(join(dir, 'bin', 'npm'), `#!/bin/bash
+if [ "$1" = "--version" ]; then
+  echo "${version}"
+  exit 0
+fi
+printf '%s\\n' "$*" >> "$MOCK_DIR/calls"
+`, { mode: 0o755 });
+}
+
+const npmGateScript = stepScript('release.yml', 'Ensure npm supports Trusted Publishing');
+
+for (const [version, upgrades] of [
+  ['11.5.1', false],
+  ['11.6.0', false],
+  // Lexically "11.10.2" < "11.5.1"; the gate must compare as versions.
+  ['11.10.2', false],
+  ['12.0.0', false],
+  ['11.4.9', true],
+  ['10.9.4', true],
+]) {
+  test(`release: npm ${version} ${upgrades ? 'is upgraded for' : 'already supports'} Trusted Publishing`, () => {
+    withSandbox((dir) => {
+      installNpmMock(dir, version);
+      const result = runStep(npmGateScript, { cwd: dir, env: sandboxEnv(dir) });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(calls(dir), upgrades ? ['install -g npm@latest'] : []);
+      if (upgrades) {
+        assert.match(result.stdout, new RegExp(`npm ${version.replaceAll('.', '\\.')} is too old for Trusted Publishing`));
+      } else {
+        assert.doesNotMatch(result.stdout, /too old/);
+      }
+    });
+  });
+}
+
+const oidcGuardScript = stepScript('release.yml', 'Require OIDC token for npm Trusted Publishing');
+
+test('release: OIDC guard passes when the runner exposes an id-token request URL', () => {
+  withSandbox((dir) => {
+    const result = runStep(oidcGuardScript, {
+      cwd: dir,
+      env: sandboxEnv(dir, { ACTIONS_ID_TOKEN_REQUEST_URL: 'https://pipelines.actions.githubusercontent.com/token' }),
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /::error::/);
+  });
+});
+
+test('release: OIDC guard fails before publishing when the job has no id-token permission', () => {
+  withSandbox((dir) => {
+    const result = runStep(oidcGuardScript, { cwd: dir, env: sandboxEnv(dir, { ACTIONS_ID_TOKEN_REQUEST_URL: '' }) });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /::error::ACTIONS_ID_TOKEN_REQUEST_URL is not set; the job needs 'id-token: write'/);
+    assert.match(result.stdout, /runbooks\/release-rollback\.md/);
+  });
+});
+
+test('release: publish job is wired for Trusted Publishing, not an npm token', () => {
+  const workflow = readWorkflow('release.yml');
+  const job = workflow.split('\n  publish:\n')[1];
+  assert.ok(job, 'release.yml has no publish job');
+  assert.match(job, /^    permissions:\n(?:      .*\n)*?      id-token: write/m, 'publish job does not grant id-token: write');
+  // The header comment may mention NPM_TOKEN to say it is gone; only an actual
+  // secret reference or NODE_AUTH_TOKEN env entry is a regression.
+  assert.doesNotMatch(workflow, /secrets\.NPM_TOKEN|NODE_AUTH_TOKEN\s*:/, 'release.yml still wires an npm token secret');
+
+  const publishStep = '      - name: Publish to npm (Trusted Publishing)\n';
+  assert.ok(workflow.includes(publishStep), 'release.yml has no Trusted Publishing publish step');
+  const publishBlock = workflow.split(publishStep)[1].split('\n      - ')[0];
+  assert.match(publishBlock, /^        run: npm publish --provenance --access public$/m);
+
+  const guardAt = workflow.indexOf('      - name: Require OIDC token for npm Trusted Publishing\n');
+  const gateAt = workflow.indexOf('      - name: Ensure npm supports Trusted Publishing\n');
+  const publishAt = workflow.indexOf(publishStep);
+  assert.ok(gateAt !== -1 && gateAt < publishAt, 'npm version gate must run before publishing');
+  assert.ok(guardAt !== -1 && guardAt < publishAt, 'OIDC guard must run before publishing');
+});
