@@ -51,12 +51,12 @@ GH_TOKEN="$GH_TOKEN" gh workflow run release.yml --repo hivecommons/promptargs -
 
 Replace `v0.7.0` with the missing release tag. Run the workflow from `main` so it uses the updated workflow even for older tags; it checks out `refs/tags/<tag>` and validates that tag against the checked-out package version before publishing. Do not move or recreate the existing tag. The auto-release workflow skips existing releases, so it will not retry this publication automatically.
 
-1. Open the failed `Release` run and read the failing step (dist drift, tests, tag/version mismatch, npm auth, or missing `NPM_TOKEN` secret).
+1. Open the failed `Release` run and read the failing step (dist drift, tests, tag/version mismatch, npm auth, or a misconfigured npm Trusted Publisher).
 2. If the cause was in the repository, fix it on `main` and bump the patch version. The tag already points at the broken commit.
-3. If the cause was transient (npm outage, expired `NPM_TOKEN`) or the secret is missing, ensure the `NPM_TOKEN` secret is set on the repo and has publish rights, then re-run the failed `Release` run. The tag matches `package.json` at that commit, so the version check passes.
+3. If the cause was transient (npm outage) or npm rejected the OIDC token, check the Trusted Publisher on npmjs.com for `@hivecommons/promptargs` (Settings → Trusted Publisher → GitHub Actions: owner `hivecommons`, repository `promptargs`, workflow filename `release.yml`, environment blank), then re-run the failed `Release` run. No `NPM_TOKEN` secret is used. The tag matches `package.json` at that commit, so the version check passes.
 
 ## Checks before cutting a release
 
 - `npm run lint && npm run build && npm test` pass, and `git status --porcelain -- dist/` is empty.
 - `package.json` version is greater than the latest published version.
-- `NPM_TOKEN` is valid and the `release.yml` run can reach the npm registry.
+- The npm Trusted Publisher for `release.yml` is configured and the run can reach the npm registry.
