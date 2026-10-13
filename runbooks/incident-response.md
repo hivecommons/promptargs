@@ -5,8 +5,9 @@ Use this when a published `@hivecommons/promptargs` version is broken for users 
 ## Triage
 
 1. Confirm the report: reproduce against the published version (`npx @hivecommons/promptargs@<version> --help`).
-2. Record the affected versions and the user impact (who is blocked, and whether a workaround exists).
-3. Decide: roll back (see `release-rollback.md`) or ship a fixed patch version. Prefer a patch when the fix is small and tested.
+2. Ask the reporter to re-run with `PROMPTARGS_LOG=json` set and attach the stderr output. It carries `event`, `status`, `duration_ms` and `error_class` (`usage`, `not_found`, `io`, `port_in_use`, `unknown`) but never template contents, argument values or paths, so it is safe to paste into the issue.
+3. Record the affected versions and the user impact (who is blocked, and whether a workaround exists).
+4. Decide: roll back (see `release-rollback.md`) or ship a fixed patch version. Prefer a patch when the fix is small and tested.
 
 ## Communicate
 
