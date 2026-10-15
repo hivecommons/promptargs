@@ -56,9 +56,29 @@ Or just run it without installing:
 npx @hivecommons/promptargs help
 ```
 
-### As a Slash Command / Skill
+### As an Agent Skill
 
-This repo ships skill files for multiple AI coding tools. Install the one(s) you use:
+promptargs ships an [Agent Skill](https://agentskills.io/specification) at [`skills/promptargs/SKILL.md`](skills/promptargs/SKILL.md), loaded by GitHub Copilot (CLI, cloud agent, VS Code agent mode) and Claude Code.
+
+**With the GitHub CLI** (2.90.0 or later):
+```bash
+gh skill install hivecommons/promptargs promptargs
+```
+
+**Manually** (copy the `skills/promptargs/` directory):
+```bash
+# Copilot
+mkdir -p ~/.copilot/skills
+cp -r skills/promptargs ~/.copilot/skills/
+
+# Claude Code
+mkdir -p ~/.claude/skills
+cp -r skills/promptargs ~/.claude/skills/
+```
+
+Use `.github/skills/` or `.claude/skills/` inside a project instead to share it with your team.
+
+### As a Slash Command (other tools)
 
 **Claude Code:**
 ```bash
@@ -80,8 +100,6 @@ mkdir -p ~/.bob/skills
 curl -o ~/.bob/skills/promptargs.md \
   https://raw.githubusercontent.com/hivecommons/promptargs/main/.bob/skills/promptargs.md
 ```
-
-**Copilot:** Automatically detected from `.github/copilot-instructions.md` when you clone this repo.
 
 ---
 
@@ -456,7 +474,7 @@ copilot -p "$(promptargs review --file=src/main.ts --no-interactive)"
 
 ### As a skill inside your AI tool
 
-If you installed the skill (see [Install](#as-a-slash-command--skill)), use it directly inside your session:
+If you installed the skill (see [Install](#as-an-agent-skill)), use it directly inside your session:
 
 **Claude Code:**
 ```
@@ -465,7 +483,7 @@ If you installed the skill (see [Install](#as-a-slash-command--skill)), use it d
 
 **Goose / Bob:** The skill is automatically available after install — ask your agent to "use promptargs" or run a template.
 
-**Copilot:** The instructions in `.github/copilot-instructions.md` teach Copilot about promptargs when you're in a repo that has it.
+**Copilot:** Installed skills load automatically; ask Copilot to use promptargs.
 
 ---
 
