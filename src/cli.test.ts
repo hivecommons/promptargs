@@ -183,6 +183,34 @@ test('padded tags are filled from flags and reported in --status', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('--status labels (default) by provenance, not by equality with the default', () => {
+  const { cwd, home } = makeDirs();
+  const tpl = 'Review {{ file }} for {{ focus=bugs }}';
+  // Explicitly passing the same value as the default is a user choice, not a
+  // fallback; before provenance tracking it was mislabelled (default).
+  const explicit = runCli([tpl, '--file=a.ts', '--focus=bugs', '--no-interactive', '--status'], cwd, home);
+  assert.strictEqual(explicit.status, 0);
+  assert.strictEqual(explicit.stdout.trim(), '✅ inline: file=a.ts  focus=bugs');
+  const fallback = runCli([tpl, '--file=a.ts', '--no-interactive', '--status'], cwd, home);
+  assert.strictEqual(fallback.status, 0);
+  assert.strictEqual(fallback.stdout.trim(), '✅ inline: file=a.ts  focus=bugs(default)');
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('per-iteration status lines carry default provenance', () => {
+  const { cwd, home } = makeDirs();
+  const tpl = 'Review {{ file }} for {{ focus=bugs }}';
+  const explicit = runCli([tpl, '--file=a.ts,b.ts', '--focus=bugs', '--no-interactive'], cwd, home);
+  assert.strictEqual(explicit.status, 0);
+  assert.match(explicit.stderr, /^✅ inline \[1\/2\]: file=a\.ts  focus=bugs$/m);
+  assert.doesNotMatch(explicit.stderr, /\(default\)/);
+  const fallback = runCli([tpl, '--file=a.ts,b.ts', '--no-interactive'], cwd, home);
+  assert.strictEqual(fallback.status, 0);
+  assert.match(fallback.stderr, /^✅ inline \[1\/2\]: file=a\.ts  focus=bugs\(default\)$/m);
+  assert.match(fallback.stderr, /^✅ inline \[2\/2\]: file=b\.ts  focus=bugs\(default\)$/m);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('ui subcommand rejects a non-numeric, bare or out-of-range --port', () => {
   const { cwd, home } = makeDirs();
   for (const arg of ['--port=abc', '--port', '--port=1.5', '--port=70000', '--port=-1', '--port=']) {

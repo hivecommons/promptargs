@@ -1,0 +1,1 @@
+Tests pinning `(default)` status-label provenance end to end: `resolve()` records only variables filled from the template default (not explicit flags or autodetected values that happen to equal it), and the CLI `--status` and per-iteration status lines no longer mislabel an explicit value that matches the default.

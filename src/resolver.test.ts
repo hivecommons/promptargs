@@ -308,3 +308,48 @@ describe('resolve prototype-named variables', () => {
     assert.strictEqual(Object.hasOwn(r.values, 'constructor'), false);
   });
 });
+
+// Regression for the (default) status label: it must follow provenance
+// (the value was filled from the template default), not value equality.
+describe('resolve default provenance', () => {
+  it('records a variable filled from its template default', async () => {
+    const r = await resolve([v('pa_x', 'dflt')], {}, false);
+    assert.deepStrictEqual([...r.defaulted], ['pa_x']);
+  });
+
+  it('does not record an explicit flag that equals the default', async () => {
+    const r = await resolve([v('pa_x', 'same')], { pa_x: 'same' }, false);
+    assert.strictEqual(r.values.pa_x, 'same');
+    assert.strictEqual(r.defaulted.size, 0);
+  });
+
+  it('does not record an autodetected value that equals the default', async () => {
+    process.env.pa_env_same = 'same';
+    try {
+      const r = await resolve([v('pa_env_same', 'same')], {}, false);
+      assert.strictEqual(r.values.pa_env_same, 'same');
+      assert.strictEqual(r.defaulted.size, 0);
+    } finally {
+      delete process.env.pa_env_same;
+    }
+  });
+
+  it('records a default reached through an empty @file expansion', async () => {
+    const emptyFile = join(tmp, 'empty-prov.txt');
+    writeFileSync(emptyFile, '\n');
+    const r = await resolve([v('pa_f', 'dflt')], { pa_f: `@${emptyFile}` }, false);
+    assert.deepStrictEqual([...r.defaulted], ['pa_f']);
+  });
+
+  it('leaves unfilled variables out of the set', async () => {
+    const r = await resolve([v('pa_missing')], {}, false);
+    assert.ok(!('pa_missing' in r.values));
+    assert.strictEqual(r.defaulted.size, 0);
+  });
+
+  it('returns the same set alongside array iterations', async () => {
+    const r = await resolve([v('pa_f'), v('pa_d', 'dflt')], { pa_f: 'a,b' }, false);
+    assert.strictEqual(r.iterations.length, 2);
+    assert.deepStrictEqual([...r.defaulted], ['pa_d']);
+  });
+});
