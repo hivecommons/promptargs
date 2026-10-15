@@ -18,7 +18,17 @@ describe('renderStatus', () => {
     assert.strictEqual(out, '📋 review: file=a.go  focus=___');
   });
 
-  it('marks values that equal the default with (default)', () => {
+  it('marks values filled from the default with (default)', () => {
+    const out = renderStatus('t', [v('tone', 'concise')], { tone: 'concise' }, undefined, new Set(['tone']));
+    assert.strictEqual(out, '✅ t: tone=concise(default)');
+  });
+
+  it('does not mark an explicit value that equals the default', () => {
+    const out = renderStatus('t', [v('tone', 'concise')], { tone: 'concise' }, undefined, new Set());
+    assert.strictEqual(out, '✅ t: tone=concise');
+  });
+
+  it('falls back to value equality when provenance is omitted', () => {
     const out = renderStatus('t', [v('tone', 'concise')], { tone: 'concise' });
     assert.strictEqual(out, '✅ t: tone=concise(default)');
   });

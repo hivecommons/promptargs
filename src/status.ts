@@ -11,13 +11,15 @@ export function renderStatus(
   vars: TemplateVar[],
   values: Record<string, string>,
   iteration?: { current: number; total: number },
+  defaulted?: ReadonlySet<string>,
 ): string {
   const parts: string[] = [];
 
   for (const v of vars) {
     const val = Object.hasOwn(values, v.name) ? values[v.name] : undefined;
     if (val !== undefined) {
-      const source = v.defaultValue === val ? '(default)' : '';
+      const isDefault = defaulted ? defaulted.has(v.name) : v.defaultValue === val;
+      const source = isDefault ? '(default)' : '';
       parts.push(`${v.name}=${val}${source}`);
     } else {
       parts.push(`${v.name}=___`);

@@ -3,12 +3,13 @@
  * Shows current template state: filled vars, unfilled vars, progress.
  */
 import { sanitizeForTerminal } from './sanitize.js';
-export function renderStatus(templateName, vars, values, iteration) {
+export function renderStatus(templateName, vars, values, iteration, defaulted) {
     const parts = [];
     for (const v of vars) {
         const val = Object.hasOwn(values, v.name) ? values[v.name] : undefined;
         if (val !== undefined) {
-            const source = v.defaultValue === val ? '(default)' : '';
+            const isDefault = defaulted ? defaulted.has(v.name) : v.defaultValue === val;
+            const source = isDefault ? '(default)' : '';
             parts.push(`${v.name}=${val}${source}`);
         }
         else {

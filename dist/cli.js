@@ -105,9 +105,9 @@ async function main() {
         console.log(content);
         return;
     }
-    const { iterations } = await resolve(vars, flags, interactive, cross);
+    const { iterations, defaulted } = await resolve(vars, flags, interactive, cross);
     if (statusOnly) {
-        const status = renderStatus(name, vars, iterations[0]);
+        const status = renderStatus(name, vars, iterations[0], undefined, defaulted);
         console.log(status);
         return;
     }
@@ -119,7 +119,7 @@ async function main() {
             const status = renderStatus(name, vars, values, {
                 current: i + 1,
                 total: iterations.length,
-            });
+            }, defaulted);
             diag('cli_iteration', { current: i + 1, total: iterations.length }, status);
         }
         results.push(expanded);

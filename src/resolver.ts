@@ -13,6 +13,8 @@ import type { TemplateVar } from './parser.js';
 export interface ResolvedValues {
   values: Record<string, string>;
   iterations: Record<string, string>[];
+  /** Names whose value was filled from the template default. */
+  defaulted: Set<string>;
 }
 
 function expandArrayValue(raw: string): string[] {
@@ -94,6 +96,7 @@ export async function resolve(
 ): Promise<ResolvedValues> {
   const values = Object.create(null) as Record<string, string>;
   const arrayVars = Object.create(null) as Record<string, string[]>;
+  const defaulted = new Set<string>();
   let hasArrays = false;
 
   for (const v of vars) {
@@ -122,6 +125,7 @@ export async function resolve(
     // 3. Default
     if (v.defaultValue !== undefined) {
       values[v.name] = v.defaultValue;
+      defaulted.add(v.name);
       continue;
     }
 
@@ -140,7 +144,7 @@ export async function resolve(
 
   // Build iterations
   if (!hasArrays) {
-    return { values, iterations: [values] };
+    return { values, iterations: [values], defaulted };
   }
 
   const arrayNames = Object.keys(arrayVars);
@@ -156,7 +160,7 @@ export async function resolve(
     iterations.push(iter);
   }
 
-  return { values, iterations };
+  return { values, iterations, defaulted };
 }
 
 function ask(prompt: string): Promise<string> {

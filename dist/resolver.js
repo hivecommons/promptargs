@@ -80,6 +80,7 @@ function expandGlob(pattern) {
 export async function resolve(vars, flags, interactive, cross = false) {
     const values = Object.create(null);
     const arrayVars = Object.create(null);
+    const defaulted = new Set();
     let hasArrays = false;
     for (const v of vars) {
         // 1. Check flags
@@ -105,6 +106,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
         // 3. Default
         if (v.defaultValue !== undefined) {
             values[v.name] = v.defaultValue;
+            defaulted.add(v.name);
             continue;
         }
         // 4. Ask interactively
@@ -122,7 +124,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
     }
     // Build iterations
     if (!hasArrays) {
-        return { values, iterations: [values] };
+        return { values, iterations: [values], defaulted };
     }
     const arrayNames = Object.keys(arrayVars);
     const iterations = [];
@@ -135,7 +137,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
         }
         iterations.push(iter);
     }
-    return { values, iterations };
+    return { values, iterations, defaulted };
 }
 function ask(prompt) {
     const rl = createInterface({ input: process.stdin, output: process.stderr });

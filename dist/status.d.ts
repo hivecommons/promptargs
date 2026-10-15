@@ -6,4 +6,4 @@ import type { TemplateVar } from './parser.js';
 export declare function renderStatus(templateName: string, vars: TemplateVar[], values: Record<string, string>, iteration?: {
     current: number;
     total: number;
-}): string;
+}, defaulted?: ReadonlySet<string>): string;
