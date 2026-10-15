@@ -1,0 +1,1 @@
+Added `src/skill.test.ts`, a contract test for the Agent Skill: it validates `skills/promptargs/SKILL.md` frontmatter against the agentskills.io spec, runs every documented `promptargs` command against `dist/cli.js`, requires `--no-interactive` on template runs, and checks the README skill-install snippets point at files that exist. (#235)
