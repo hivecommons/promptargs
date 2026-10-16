@@ -17,32 +17,36 @@ export interface ResolvedValues {
   defaulted: Set<string>;
 }
 
+function expandPiece(piece: string): string[] {
+  // Glob pattern — expanded in-process (never via a shell) to avoid
+  // command injection through crafted values.
+  if (piece.includes('*') || piece.includes('?')) {
+    const files = expandGlob(piece);
+    if (files.length > 0) return files;
+    // Not a valid glob, treat as literal
+  }
+  return [piece];
+}
+
 function expandArrayValue(raw: string): string[] {
   // @file — read lines from file
   if (raw.startsWith('@') && existsSync(raw.slice(1))) {
     return readFileSync(raw.slice(1), 'utf8')
       .split('\n')
       .map((l: string) => l.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .flatMap(expandPiece);
   }
 
   // - (stdin) handled at CLI level before this
   if (raw === '-') return [raw];
 
-  // Glob pattern — expanded in-process (never via a shell) to avoid
-  // command injection through crafted values.
-  if (raw.includes('*') || raw.includes('?')) {
-    const files = expandGlob(raw);
-    if (files.length > 0) return files;
-    // Not a valid glob, treat as literal
-  }
-
-  // Comma-separated
+  // Comma-separated: split first so each piece can be a glob
   if (raw.includes(',')) {
-    return raw.split(',').map(s => s.trim()).filter(Boolean);
+    return raw.split(',').map(s => s.trim()).filter(Boolean).flatMap(expandPiece);
   }
 
-  return [raw];
+  return expandPiece(raw);
 }
 
 function segmentToRegExp(segment: string): RegExp {

@@ -110,6 +110,25 @@ describe('resolve glob expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: join(dir, '*.txt') }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a.txt'), join(dir, 'b.txt')]);
     });
+    it('expands globs inside a comma-separated value', async () => {
+        const dir = join(tmp, 'commaglob');
+        mkdirSync(dir);
+        writeFileSync(join(dir, 'a.ts'), '');
+        writeFileSync(join(dir, 'b.ts'), '');
+        writeFileSync(join(dir, 'c.md'), '');
+        const r = await resolve([v('pa_f')], { pa_f: `${join(dir, '*.ts')},${join(dir, '*.md')}` }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a.ts'), join(dir, 'b.ts'), join(dir, 'c.md')]);
+    });
+    it('expands glob lines inside an @file list', async () => {
+        const dir = join(tmp, 'listglob');
+        mkdirSync(dir);
+        writeFileSync(join(dir, 'a.txt'), '');
+        writeFileSync(join(dir, 'b.txt'), '');
+        const listFile = join(dir, 'list.lst');
+        writeFileSync(listFile, `${join(dir, '*.txt')}\nliteral.md\n`);
+        const r = await resolve([v('pa_f')], { pa_f: `@${listFile}` }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a.txt'), join(dir, 'b.txt'), 'literal.md']);
+    });
     it('skips hidden files unless the segment starts with a dot', async () => {
         const dir = join(tmp, 'hidden');
         mkdirSync(dir);
