@@ -26,20 +26,6 @@ Works as a **CLI** and as a **skill** in Claude Code, Copilot, Goose, and Bob.
 
 ---
 
-## Repository metadata
-
-> **Note for maintainers:** The following GitHub repository settings need to be applied:
-> 
-> - **Homepage URL:** `https://www.npmjs.com/package/@hivecommons/promptargs`
-> - **Topics:** `cli`, `prompt`, `template`, `ai`, `typescript`, `nodejs`, `arguments`, `llm`
-> 
-> To apply these, run:
-> ```bash
-> gh repo edit hivecommons/promptargs --homepage "https://www.npmjs.com/package/@hivecommons/promptargs" --add-topic cli --add-topic prompt --add-topic template --add-topic ai --add-topic typescript --add-topic nodejs --add-topic arguments --add-topic llm
-> ```
-
----
-
 ## Install
 
 Requires Node.js 22 or newer.
