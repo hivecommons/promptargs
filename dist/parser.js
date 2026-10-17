@@ -3,6 +3,7 @@
  * Uses Mustache for expansion, with a promptargs extension for defaults.
  */
 import Mustache from 'mustache';
+import { UsageError } from './flags.js';
 // Exported so any code that needs to recognize the same {{var}} / {{var=default}}
 // grammar (e.g. CLI syntax highlighting) reuses this single definition instead
 // of re-declaring the pattern and risking drift.
@@ -13,15 +14,33 @@ import Mustache from 'mustache';
 // as an empty string — the blank silently vanished instead of being asked for,
 // filled from --flags, highlighted by `show`, or preserved as {{name}}.
 // Trailing padding after a default is not part of the default.
-export const VAR_PATTERN = /\{\{\s*(\w+)(?:=([^}]*?))?\s*\}\}/g;
+export const VAR_PATTERN = /\{\{\s*([\w-]+)(?:=([^}]*?))?\s*\}\}/g;
+// Dotted names ({{repo.owner}}) are Mustache context paths, which promptargs
+// never fills; they would silently render empty, so they are rejected.
+// The lookbehind skips triple-mustache tags; sigil tags ({{#x}}, {{!c}}) do
+// not start with a name character and never match.
+const DOTTED_PATTERN = /(?<!\{)\{\{\s*([\w-]+\.[\w.-]*)\s*(?:=[^}]*)?\}\}/g;
 export function parseVars(template) {
-    const seen = new Set();
     const vars = [];
+    for (const match of template.matchAll(DOTTED_PATTERN)) {
+        const name = match[1];
+        throw new UsageError(`Unsupported variable name "${name}" in ${match[0]}: dotted names are not supported; use {{${name.replace(/\./g, '_')}}}`);
+    }
     for (const match of template.matchAll(VAR_PATTERN)) {
         const name = match[1];
-        if (seen.has(name))
+        const existing = vars.find((v) => v.name === name);
+        if (existing) {
+            const dflt = match[2];
+            if (dflt === undefined)
+                continue;
+            if (existing.defaultValue === undefined) {
+                existing.defaultValue = dflt;
+            }
+            else if (existing.defaultValue !== dflt) {
+                throw new UsageError(`Conflicting defaults for variable "${name}": "${existing.defaultValue}" and "${dflt}"`);
+            }
             continue;
-        seen.add(name);
+        }
         vars.push({
             name,
             defaultValue: match[2],

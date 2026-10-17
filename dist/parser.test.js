@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import Mustache from 'mustache';
 import { parseVars, expand } from './parser.js';
+import { UsageError } from './flags.js';
 describe('parseVars', () => {
     it('finds simple variables', () => {
         const vars = parseVars('Hello {{name}}, welcome to {{place}}');
@@ -103,5 +104,27 @@ describe('expand with prototype-named variables', () => {
             assert.strictEqual(expand(`x {{${name}=dflt}} y`, values), 'x given y');
         });
     }
+});
+describe('variable name grammar and repeated blanks', () => {
+    it('accepts hyphenated names and preserves or fills them', () => {
+        assert.deepStrictEqual(parseVars('{{file-name}}').map((v) => v.name), ['file-name']);
+        assert.strictEqual(expand('x {{file-name}}', {}), 'x {{file-name}}');
+        assert.strictEqual(expand('x {{file-name}}', { 'file-name': 'a.ts' }), 'x a.ts');
+    });
+    it('rejects dotted names with a UsageError', () => {
+        assert.throws(() => parseVars('{{repo.owner}}'), (err) => err instanceof UsageError && /repo\.owner/.test(err.message) && /repo_owner/.test(err.message));
+    });
+    it('does not flag Mustache sigil tags', () => {
+        assert.doesNotThrow(() => parseVars('{{!a.b}} {{{x}}} {{name=a.b}}'));
+    });
+    it('adopts a default from a later occurrence', () => {
+        const vars = parseVars('{{name}} and {{name=dflt}}');
+        assert.strictEqual(vars.length, 1);
+        assert.strictEqual(vars[0].defaultValue, 'dflt');
+        assert.strictEqual(expand('{{name}} and {{name=dflt}}', {}), 'dflt and dflt');
+    });
+    it('throws on conflicting defaults', () => {
+        assert.throws(() => parseVars('{{n=a}} {{n=b}}'), (err) => err instanceof UsageError && /"n"/.test(err.message) && /"a"/.test(err.message) && /"b"/.test(err.message));
+    });
 });
 //# sourceMappingURL=parser.test.js.map

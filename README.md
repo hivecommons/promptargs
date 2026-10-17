@@ -144,6 +144,10 @@ A blank with a default looks like this: `{{name=hello}}` (promptargs extension)
 
 Padding inside the braces is fine too — `{{ name }}` and `{{ name=hello }}` mean the same thing.
 
+Names may use letters, digits, `_` and `-` (`{{file-name}}`). Dotted names such as `{{repo.owner}}` are rejected with an error — use `{{repo_owner}}`.
+
+A default may appear on any occurrence of a blank (`{{name}} … {{name=hello}}`); if two occurrences give different defaults, that is an error.
+
 That's the basics. Mustache comments (`{{! ignore me}}`) work as documented and are safe to use.
 
 Mustache **sections** (`{{#flag}}...{{/flag}}`) and **partials** (`{{>name}}`) are parsed too, but aren't practically usable yet: promptargs only resolves plain `{{name}}` / `{{name=default}}` tags from `--flag=value`, auto-detected context, defaults, or interactive fill — a section's condition name is never filled this way (so its content is always dropped, or always kept for an inverted `{{^name}}` section), and partial content is never supplied, so `{{>name}}` always expands to nothing. Stick to plain blanks and comments; avoid sections and partials for now.
