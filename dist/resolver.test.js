@@ -2,7 +2,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { PassThrough } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 import { resolve } from './resolver.js';
 // Variable names are deliberately obscure so the autodetect env-var
 // fallback never picks them up from the test environment.
@@ -239,6 +239,17 @@ describe('resolve interactive prompting', () => {
     it('expands a comma-separated interactive answer into iterations', async () => {
         const r = await withStdin('one,two,three\n', () => resolve([v('pa_ask')], {}, true));
         assert.deepStrictEqual(r.iterations.map(i => i.pa_ask), ['one', 'two', 'three']);
+    });
+    it('rejects with a UsageError when stdin ends before an answer', async () => {
+        const fake = new Readable({ read() { this.push(null); } });
+        const desc = Object.getOwnPropertyDescriptor(process, 'stdin');
+        Object.defineProperty(process, 'stdin', { value: fake, configurable: true });
+        try {
+            await assert.rejects(resolve([v('pa_eof')], {}, true), (err) => err.name === 'UsageError' && /Variable "pa_eof" has no value and stdin is closed/.test(err.message));
+        }
+        finally {
+            Object.defineProperty(process, 'stdin', desc);
+        }
     });
     it('prefers flags and defaults over prompting', async () => {
         // A sentinel answer is queued: if resolve prompted for either var it

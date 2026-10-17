@@ -1,0 +1,1 @@
+Fixed `promptargs <template>` exiting 0 with empty output when a variable was unfilled and stdin was closed or not a TTY: non-TTY stdin is now non-interactive, and an interactive prompt that hits stdin EOF fails with a usage error. (#246)

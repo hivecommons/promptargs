@@ -90,7 +90,7 @@ async function main() {
   // Run a template
   const templateName = args[0];
   const flags = parseFlags(args.slice(1));
-  const interactive = !flags['no-interactive'];
+  const interactive = !flags['no-interactive'] && process.stdin.isTTY === true;
   const cross = 'cross' in flags;
   const asJson = 'json' in flags;
   const statusOnly = 'status' in flags;

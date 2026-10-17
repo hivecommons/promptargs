@@ -6,6 +6,7 @@ import { createInterface } from 'node:readline';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { autodetect } from './autodetect.js';
+import { UsageError } from './flags.js';
 import { cartesian, zip } from './iterate.js';
 function expandPiece(piece) {
     // Glob pattern — expanded in-process (never via a shell) to avoid
@@ -115,7 +116,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
         }
         // 4. Ask interactively
         if (interactive) {
-            const answer = await ask(`  ${v.name}: `);
+            const answer = await ask(`  ${v.name}: `, v.name);
             const expanded = expandArrayValue(answer);
             if (expanded.length > 1) {
                 arrayVars[v.name] = expanded;
@@ -143,10 +144,21 @@ export async function resolve(vars, flags, interactive, cross = false) {
     }
     return { values, iterations, defaulted };
 }
-function ask(prompt) {
+function ask(prompt, name) {
     const rl = createInterface({ input: process.stdin, output: process.stderr });
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        // Fires on stdin EOF before an answer; without it the Promise never settles.
+        rl.on('close', () => {
+            if (settled)
+                return;
+            settled = true;
+            reject(new UsageError(`Variable "${name}" has no value and stdin is closed; pass --${name}=<value> or --no-interactive`));
+        });
         rl.question(prompt, (answer) => {
+            if (settled)
+                return;
+            settled = true;
             rl.close();
             resolve(answer.trim());
         });

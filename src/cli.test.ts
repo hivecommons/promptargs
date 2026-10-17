@@ -510,3 +510,16 @@ test('ui subcommand accepts the space-separated --port value form', async () => 
     rmSync(dirname(cwd), { recursive: true, force: true });
   }
 });
+
+test('cli treats non-TTY stdin as non-interactive instead of printing nothing', () => {
+  const { cwd, home } = makeDirs();
+  const res = spawnSync(process.execPath, [CLI, 'Hi {{pa_unfilled}}'], {
+    cwd,
+    encoding: 'utf-8',
+    env: { ...process.env, HOME: home, USERPROFILE: home },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 30_000,
+  });
+  assert.strictEqual(res.status, 0);
+  assert.strictEqual(res.stdout, 'Hi {{pa_unfilled}}\n');
+});
