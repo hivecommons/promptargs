@@ -1,0 +1,1 @@
+The `promptargs ui` command now prints a "could not open a browser ... open <url> manually" hint (and emits a `ui_browser_open_failed` event with `PROMPTARGS_LOG=json`) when the platform opener is missing or fails, instead of failing silently. (#251)

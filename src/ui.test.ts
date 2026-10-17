@@ -439,6 +439,25 @@ test('browser open picks the right command for each platform', { skip: process.p
   }
 });
 
+test('missing opener logs a hint', { skip: process.platform === 'win32' && 'POSIX shell lookup semantics' }, () => {
+  const script = `
+    import(${JSON.stringify(pathToFileURL(join(__dirname, 'ui.js')).href)})
+      .then(m => {
+        const server = m.startUI(0);
+        setTimeout(() => server.close(() => process.exit(0)), 900);
+      });
+  `;
+  const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    encoding: 'utf-8',
+    timeout: 15000,
+    env: { ...process.env, PATH: '/nonexistent' },
+  });
+  assert.strictEqual(res.status, 0, res.stderr);
+  const port = res.stdout.match(/promptargs builder running at http:\/\/localhost:(\d+)/)?.[1];
+  assert.ok(port, `no bound port in stdout: ${res.stdout}`);
+  assert.match(res.stderr, new RegExp(`promptargs: could not open a browser \\(.+\\); open http://localhost:${port} manually`));
+});
+
 test('startUI rethrows non-EADDRINUSE server errors', async t => {
   // Only run where binding port 1 really fails with EACCES; containers with
   // ip_unprivileged_port_start=0 (or root) can bind it and would hang instead.

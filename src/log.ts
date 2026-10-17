@@ -10,6 +10,7 @@ export type LogEvent =
   | 'ui_asset_error'
   | 'ui_request'
   | 'ui_start_error'
+  | 'ui_browser_open_failed'
   | 'cli_iteration'
   | 'cli_error';
 

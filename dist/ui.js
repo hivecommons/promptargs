@@ -125,7 +125,13 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
                 import('node:child_process').then(({ exec }) => {
                     const cmd = process.platform === 'darwin' ? 'open' :
                         process.platform === 'win32' ? 'start' : 'xdg-open';
-                    exec(`${cmd} ${url}`);
+                    exec(`${cmd} ${url}`, err => {
+                        if (!err)
+                            return;
+                        // Through a shell, a missing opener surfaces as exit status 127 rather than ENOENT.
+                        const why = err.code === 127 ? 'not found' : String(err.code ?? err.message);
+                        diag('ui_browser_open_failed', { error_class: classifyError(err) }, `promptargs: could not open a browser (${cmd}: ${why}); open ${url} manually`);
+                    });
                 });
             }, OPEN_DELAY_MS);
         }
