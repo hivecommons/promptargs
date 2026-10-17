@@ -66,12 +66,18 @@ export function doShow(templateName) {
     if (!tpl) {
         throw new UsageError(`Template "${templateName}" not found.`);
     }
+    // Defaults are merged across repeated blanks, so {{name}} … {{name=dflt}}
+    // must colour every occurrence as "has default", not just the one that
+    // carries it.
+    const hasDefault = new Set(parseVars(tpl.content)
+        .filter((v) => v.defaultValue !== undefined)
+        .map((v) => v.name));
     // Sanitize first: templates are repo-controlled and must not be able to
     // inject their own terminal escapes; only our highlighting below may.
-    const highlighted = sanitizeForTerminal(tpl.content).replace(VAR_PATTERN, (raw, _varName, defaultVal) => {
+    const highlighted = sanitizeForTerminal(tpl.content).replace(VAR_PATTERN, (raw, varName) => {
         // Colour the tag exactly as written so padded tags ({{ name }}) are
         // shown as the author typed them.
-        if (defaultVal !== undefined) {
+        if (hasDefault.has(varName)) {
             return `\x1b[33m${raw}\x1b[0m`;
         }
         return `\x1b[31m${raw}\x1b[0m`;
