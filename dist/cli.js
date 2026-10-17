@@ -43,7 +43,7 @@ Array values:
   --file=@list.txt    File → one value per line
 
 Iteration modes:
-  Default (zip):      --file=a,b --focus=x,y  → 2 runs (a+x, b+y)
+  Default (zip):      --file=a,b --focus=x,y  → 2 runs (a+x, b+y); shorter arrays repeat
   Cross-product:      --file=a,b --focus=x,y --cross  → 4 runs (a+x, a+y, b+x, b+y)
 
 Templates live in:

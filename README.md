@@ -242,6 +242,34 @@ promptargs "Review {{file}} for {{focus}}" \
 ✅ [3/3]: file=db.go    focus=correctness
 ```
 
+When arrays have different lengths, the number of runs is the length of the longest array, and shorter arrays repeat (cycle around):
+
+```bash
+promptargs "Review {{file}} for {{focus}}" \
+  --file=api.go,auth.go,db.go \
+  --focus=security
+```
+
+```
+✅ [1/3]: file=api.go   focus=security
+✅ [2/3]: file=auth.go  focus=security
+✅ [3/3]: file=db.go    focus=security
+```
+
+Or with two unequal arrays:
+
+```bash
+promptargs "Review {{file}} for {{focus}}" \
+  --file=a.go,b.go,c.go \
+  --focus=x,y
+```
+
+```
+✅ [1/3]: file=a.go  focus=x
+✅ [2/3]: file=b.go  focus=y
+✅ [3/3]: file=c.go  focus=x
+```
+
 **Cross-product mode (`--cross`):** every combination of every value:
 
 ```bash
