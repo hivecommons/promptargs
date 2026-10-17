@@ -156,10 +156,10 @@ describe('variable name grammar and repeated blanks', () => {
     assert.strictEqual(expand('{{name}} and {{name=dflt}}', {}), 'dflt and dflt');
   });
 
-  it('throws on conflicting defaults', () => {
-    assert.throws(
-      () => parseVars('{{n=a}} {{n=b}}'),
-      (err: Error) => err.name === 'UsageError' && /"n"/.test(err.message) && /"a"/.test(err.message) && /"b"/.test(err.message),
-    );
+  it('keeps the first default when later occurrences differ', () => {
+    const vars = parseVars('{{n=a}} {{n=b}}');
+    assert.equal(vars.length, 1);
+    assert.equal(vars[0].defaultValue, 'a');
+    assert.equal(expand('{{n=a}} {{n=b}}', {}), 'a a');
   });
 });

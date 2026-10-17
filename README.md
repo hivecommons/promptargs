@@ -146,7 +146,7 @@ Padding inside the braces is fine too — `{{ name }}` and `{{ name=hello }}` me
 
 Names may use letters, digits, `_` and `-` (`{{file-name}}`). Dotted names such as `{{repo.owner}}` are rejected with an error — use `{{repo_owner}}`.
 
-A default may appear on any occurrence of a blank (`{{name}} … {{name=hello}}`); if two occurrences give different defaults, that is an error.
+A default may appear on any occurrence of a blank (`{{name}} … {{name=hello}}`); if two occurrences give different defaults, the first one wins.
 
 That's the basics. Mustache comments (`{{! ignore me}}`) work as documented and are safe to use.
 

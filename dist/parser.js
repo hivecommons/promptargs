@@ -39,12 +39,10 @@ export function parseVars(template) {
             const dflt = match[2];
             if (dflt === undefined)
                 continue;
-            if (existing.defaultValue === undefined) {
+            // First default wins; later occurrences may restate it (e.g. a code
+            // fence using a different casing) without being an error.
+            if (existing.defaultValue === undefined)
                 existing.defaultValue = dflt;
-            }
-            else if (existing.defaultValue !== dflt) {
-                throw usageError(`Conflicting defaults for variable "${name}": "${existing.defaultValue}" and "${dflt}"`);
-            }
             continue;
         }
         vars.push({
