@@ -3,7 +3,13 @@
  * Uses Mustache for expansion, with a promptargs extension for defaults.
  */
 import Mustache from 'mustache';
-import { UsageError } from './flags.js';
+// Kept local (not imported from flags.ts) because ui.html loads parser.js in the browser,
+// where only parser.js/iterate.js/mustache.mjs are served (see STATIC_JS_ROUTES in ui.ts).
+function usageError(message) {
+    const e = new Error(message);
+    e.name = 'UsageError';
+    return e;
+}
 // Exported so any code that needs to recognize the same {{var}} / {{var=default}}
 // grammar (e.g. CLI syntax highlighting) reuses this single definition instead
 // of re-declaring the pattern and risking drift.
@@ -24,7 +30,7 @@ export function parseVars(template) {
     const vars = [];
     for (const match of template.matchAll(DOTTED_PATTERN)) {
         const name = match[1];
-        throw new UsageError(`Unsupported variable name "${name}" in ${match[0]}: dotted names are not supported; use {{${name.replace(/\./g, '_')}}}`);
+        throw usageError(`Unsupported variable name "${name}" in ${match[0]}: dotted names are not supported; use {{${name.replace(/\./g, '_')}}}`);
     }
     for (const match of template.matchAll(VAR_PATTERN)) {
         const name = match[1];
@@ -37,7 +43,7 @@ export function parseVars(template) {
                 existing.defaultValue = dflt;
             }
             else if (existing.defaultValue !== dflt) {
-                throw new UsageError(`Conflicting defaults for variable "${name}": "${existing.defaultValue}" and "${dflt}"`);
+                throw usageError(`Conflicting defaults for variable "${name}": "${existing.defaultValue}" and "${dflt}"`);
             }
             continue;
         }

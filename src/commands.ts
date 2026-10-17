@@ -47,14 +47,17 @@ export function doList() {
   }
   console.log('Available templates:\n');
   for (const t of templates) {
-    const vars = parseVars(t.content);
-    const varNames = vars.map(v => {
-      if (v.defaultValue !== undefined) return `${v.name}=${v.defaultValue}`;
-      return v.name;
-    });
     const source = t.source === 'user' ? ' (user)' : '';
     console.log(sanitizeForTerminal(`  ${t.name}${source}`));
-    console.log(sanitizeForTerminal(`    vars: {{${varNames.join('}}  {{')}}}`));
+    try {
+      const varNames = parseVars(t.content).map(v => {
+        if (v.defaultValue !== undefined) return `${v.name}=${v.defaultValue}`;
+        return v.name;
+      });
+      console.log(sanitizeForTerminal(`    vars: {{${varNames.join('}}  {{')}}}`));
+    } catch (err) {
+      console.log(sanitizeForTerminal(`    vars: (error: ${err instanceof Error ? err.message : String(err)})`));
+    }
     console.log('');
   }
 }

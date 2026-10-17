@@ -2,7 +2,6 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import Mustache from 'mustache';
 import { parseVars, expand } from './parser.js';
-import { UsageError } from './flags.js';
 
 describe('parseVars', () => {
   it('finds simple variables', () => {
@@ -142,7 +141,7 @@ describe('variable name grammar and repeated blanks', () => {
   it('rejects dotted names with a UsageError', () => {
     assert.throws(
       () => parseVars('{{repo.owner}}'),
-      (err: Error) => err instanceof UsageError && /repo\.owner/.test(err.message) && /repo_owner/.test(err.message),
+      (err: Error) => err.name === 'UsageError' && /repo\.owner/.test(err.message) && /repo_owner/.test(err.message),
     );
   });
 
@@ -160,7 +159,7 @@ describe('variable name grammar and repeated blanks', () => {
   it('throws on conflicting defaults', () => {
     assert.throws(
       () => parseVars('{{n=a}} {{n=b}}'),
-      (err: Error) => err instanceof UsageError && /"n"/.test(err.message) && /"a"/.test(err.message) && /"b"/.test(err.message),
+      (err: Error) => err.name === 'UsageError' && /"n"/.test(err.message) && /"a"/.test(err.message) && /"b"/.test(err.message),
     );
   });
 });

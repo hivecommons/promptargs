@@ -749,7 +749,12 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
 
   function syncVarsFromTemplate() {
     const text = tmpl.value;
-    const parsed = parseVars(text);
+    let parsed;
+    try {
+      parsed = parseVars(text);
+    } catch {
+      return; // update() reports the parse error in the preview
+    }
     const existing = getRowData();
     const existingNames = new Set(existing.map(r => r.name));
 
@@ -849,10 +854,18 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
     }
 
     const results = [];
-    for (const combo of combos) {
-      const vals = { ...scalarValues };
-      arrayVars.forEach((v, i) => { vals[v.name] = combo[i]; });
-      results.push({ values: { ...vals }, expanded: sharedExpand(text, vals) });
+    try {
+      for (const combo of combos) {
+        const vals = { ...scalarValues };
+        arrayVars.forEach((v, i) => { vals[v.name] = combo[i]; });
+        results.push({ values: { ...vals }, expanded: sharedExpand(text, vals) });
+      }
+    } catch (err) {
+      previewBody.innerHTML = `<span class="preview-empty">${escHtml(err instanceof Error ? err.message : String(err))}</span>`;
+      previewCount.textContent = 'error';
+      previewCount.className = 'preview-count empty';
+      cliText.innerHTML = '<span class="dollar">$</span>promptargs';
+      return;
     }
 
     const count = results.length;
