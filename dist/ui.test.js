@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { get } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { execSync, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -366,25 +366,53 @@ test('startUI schedules a browser open by default', () => {
     assert.strictEqual(res.status, 0);
     assert.match(res.stdout, /promptargs builder running at http:\/\/localhost:\d+/);
 });
-test('browser open picks the right command for each platform', () => {
+test('browser open picks the right command for each platform', { skip: process.platform === 'win32' && 'shell-script shims do not run on Windows' }, () => {
     // The darwin/win32 arms of the open-command ternary never run on Linux CI;
-    // force each platform value in a child and let the command fail on PATH=''.
-    for (const platform of ['darwin', 'win32', 'linux']) {
-        const script = `
-      Object.defineProperty(process, 'platform', { value: ${JSON.stringify(platform)} });
-      import(${JSON.stringify(pathToFileURL(join(__dirname, 'ui.js')).href)})
-        .then(m => {
-          const server = m.startUI(0);
-          setTimeout(() => server.close(() => process.exit(0)), 900);
-        });
-    `;
-        const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
-            encoding: 'utf-8',
-            timeout: 15000,
-            env: { ...process.env, PATH: '' },
-        });
-        assert.strictEqual(res.status, 0, `platform ${platform}: ${res.stderr}`);
-        assert.match(res.stdout, /promptargs builder running at http:\/\/localhost:\d+/);
+    // force each platform value in a child and put recording shims for every
+    // candidate opener first on PATH so the test can assert which one ran and
+    // with what URL, rather than only that startUI survived a missing opener.
+    const expected = { darwin: 'open', win32: 'start', linux: 'xdg-open' };
+    const shimDir = mkdtempSync(join(tmpdir(), 'promptargs-open-shim-'));
+    const logFile = join(shimDir, 'invocations.log');
+    try {
+        for (const cmd of Object.values(expected)) {
+            const shim = join(shimDir, cmd);
+            writeFileSync(shim, `#!/bin/sh\nprintf '%s %s\\n' ${JSON.stringify(cmd)} "$1" >> ${JSON.stringify(logFile)}\n`);
+            chmodSync(shim, 0o755);
+        }
+        // With platform forced to win32, exec() runs `cmd.exe /d /s /c "<command>"`
+        // instead of /bin/sh -c, so the `start` shim is never reached directly; a
+        // cmd.exe shim logs the quoted command it was handed instead.
+        const cmdExe = join(shimDir, 'cmd.exe');
+        writeFileSync(cmdExe, `#!/bin/sh\nc=$4; c=\${c#\\"}; c=\${c%\\"}; printf '%s\\n' "$c" >> ${JSON.stringify(logFile)}\n`);
+        chmodSync(cmdExe, 0o755);
+        for (const [platform, cmd] of Object.entries(expected)) {
+            writeFileSync(logFile, '');
+            const script = `
+        Object.defineProperty(process, 'platform', { value: ${JSON.stringify(platform)} });
+        import(${JSON.stringify(pathToFileURL(join(__dirname, 'ui.js')).href)})
+          .then(m => {
+            const server = m.startUI(0);
+            setTimeout(() => server.close(() => process.exit(0)), 900);
+          });
+      `;
+            const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+                encoding: 'utf-8',
+                timeout: 15000,
+                env: { ...process.env, PATH: shimDir },
+            });
+            assert.strictEqual(res.status, 0, `platform ${platform}: ${res.stderr}`);
+            const port = res.stdout.match(/promptargs builder running at http:\/\/localhost:(\d+)/)?.[1];
+            assert.ok(port, `platform ${platform}: no bound port in stdout: ${res.stdout}`);
+            // collectEnvVars' git/gh probes go through the same shell; keep only opener calls.
+            const openers = new Set(Object.values(expected));
+            const invocations = readFileSync(logFile, 'utf-8').trim().split('\n')
+                .filter(line => openers.has(line.split(' ')[0]));
+            assert.deepStrictEqual(invocations, [`${cmd} http://localhost:${port}`], `platform ${platform} should open the browser with ${cmd} exactly once`);
+        }
+    }
+    finally {
+        rmSync(shimDir, { recursive: true, force: true });
     }
 });
 test('startUI rethrows non-EADDRINUSE server errors', async (t) => {

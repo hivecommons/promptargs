@@ -1,0 +1,1 @@
+The `promptargs ui` browser-open test now asserts which opener (`open`, `xdg-open`, or `start` via `cmd.exe`) ran and with which URL for each platform, instead of only checking that the server survived a missing opener.
