@@ -110,24 +110,56 @@ describe('resolve glob expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: join(dir, '*.txt') }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a.txt'), join(dir, 'b.txt')]);
     });
-    it('expands globs inside a comma-separated value', async () => {
+    it('expands globs inside a comma-separated value, keeping piece order', async () => {
+        // The .md piece is listed first but sorts after the .ts files, so a
+        // global re-sort of the whole expansion would fail this assertion:
+        // pieces must keep their written order, with each glob sorted internally.
         const dir = join(tmp, 'commaglob');
         mkdirSync(dir);
         writeFileSync(join(dir, 'a.ts'), '');
         writeFileSync(join(dir, 'b.ts'), '');
         writeFileSync(join(dir, 'c.md'), '');
-        const r = await resolve([v('pa_f')], { pa_f: `${join(dir, '*.ts')},${join(dir, '*.md')}` }, false);
-        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a.ts'), join(dir, 'b.ts'), join(dir, 'c.md')]);
+        const r = await resolve([v('pa_f')], { pa_f: `${join(dir, '*.md')},${join(dir, '*.ts')}` }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'c.md'), join(dir, 'a.ts'), join(dir, 'b.ts')]);
     });
-    it('expands glob lines inside an @file list', async () => {
+    it('keeps a non-matching glob piece literal, in place, inside a comma-separated value', async () => {
+        const dir = join(tmp, 'commaglob-miss');
+        mkdirSync(dir);
+        writeFileSync(join(dir, 'z.ts'), '');
+        const miss = join(dir, 'nope', '*.zzz');
+        const r = await resolve([v('pa_f')], { pa_f: `${miss},${join(dir, '*.ts')},plain.md` }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [miss, join(dir, 'z.ts'), 'plain.md']);
+    });
+    it('expands glob lines inside an @file list, keeping line order', async () => {
+        // 'literal.md' sorts before the matched .txt files; keeping it last
+        // proves lines are expanded individually rather than re-sorted as a whole.
         const dir = join(tmp, 'listglob');
         mkdirSync(dir);
-        writeFileSync(join(dir, 'a.txt'), '');
-        writeFileSync(join(dir, 'b.txt'), '');
+        writeFileSync(join(dir, 'x.txt'), '');
+        writeFileSync(join(dir, 'y.txt'), '');
         const listFile = join(dir, 'list.lst');
         writeFileSync(listFile, `${join(dir, '*.txt')}\nliteral.md\n`);
         const r = await resolve([v('pa_f')], { pa_f: `@${listFile}` }, false);
-        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a.txt'), join(dir, 'b.txt'), 'literal.md']);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'x.txt'), join(dir, 'y.txt'), 'literal.md']);
+    });
+    it('keeps a non-matching glob line literal inside an @file list', async () => {
+        const dir = join(tmp, 'listglob-miss');
+        mkdirSync(dir);
+        writeFileSync(join(dir, 'only.txt'), '');
+        const miss = join(dir, 'nope', '*.zzz');
+        const listFile = join(dir, 'list.lst');
+        writeFileSync(listFile, `${miss}\n${join(dir, '*.txt')}\n`);
+        const r = await resolve([v('pa_f')], { pa_f: `@${listFile}` }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [miss, join(dir, 'only.txt')]);
+    });
+    it('collapses a comma-separated value whose single matching piece expands to one file into a scalar', async () => {
+        const dir = join(tmp, 'commaglob-one');
+        mkdirSync(dir);
+        writeFileSync(join(dir, 'solo.ts'), '');
+        // Trailing comma leaves one piece; a one-file glob is not an array.
+        const r = await resolve([v('pa_f')], { pa_f: `${join(dir, '*.ts')},` }, false);
+        assert.strictEqual(r.values.pa_f, join(dir, 'solo.ts'));
+        assert.deepStrictEqual(r.iterations, [bare({ pa_f: join(dir, 'solo.ts') })]);
     });
     it('skips hidden files unless the segment starts with a dot', async () => {
         const dir = join(tmp, 'hidden');
