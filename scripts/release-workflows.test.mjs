@@ -292,7 +292,7 @@ test('dist sync guard: ignores changes outside dist/', () => {
 // --- release.yml: npm Trusted Publishing (OIDC) ------------------------------
 
 // A `npm` that reports MOCK_NPM_VERSION for `--version` and records every
-// other invocation, so the test can see whether the step chose to upgrade.
+// other invocation, so the test can see whether the step tried to install anything.
 function installNpmMock(dir, version) {
   writeFileSync(join(dir, 'bin', 'npm'), `#!/bin/bash
 if [ "$1" = "--version" ]; then
@@ -314,15 +314,17 @@ for (const [version, upgrades] of [
   ['11.4.9', true],
   ['10.9.4', true],
 ]) {
-  test(`release: npm ${version} ${upgrades ? 'is upgraded for' : 'already supports'} Trusted Publishing`, () => {
+  test(`release: npm ${version} ${upgrades ? 'is rejected for' : 'already supports'} Trusted Publishing`, () => {
     withSandbox((dir) => {
       installNpmMock(dir, version);
       const result = runStep(npmGateScript, { cwd: dir, env: sandboxEnv(dir) });
-      assert.equal(result.status, 0, result.stderr);
-      assert.deepEqual(calls(dir), upgrades ? ['install -g npm@latest'] : []);
+      // The gate must never install npm, whatever the outcome.
+      assert.deepEqual(calls(dir), []);
       if (upgrades) {
-        assert.match(result.stdout, new RegExp(`npm ${version.replaceAll('.', '\\.')} is too old for Trusted Publishing`));
+        assert.equal(result.status, 1);
+        assert.match(result.stdout, new RegExp(`::error::npm ${version.replaceAll('.', '\\.')} is too old for Trusted Publishing`));
       } else {
+        assert.equal(result.status, 0, result.stderr);
         assert.doesNotMatch(result.stdout, /too old/);
       }
     });

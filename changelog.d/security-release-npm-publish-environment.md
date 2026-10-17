@@ -1,0 +1,1 @@
+The `release.yml` publish job now runs in the main-only `npm-publish` GitHub Environment (the npm Trusted Publisher must name it), and the npm `>= 11.5.1` step fails instead of self-upgrading from `npm@latest` (#227).
