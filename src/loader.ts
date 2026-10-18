@@ -2,9 +2,10 @@
  * Find and load prompt templates from .prompts/ directories.
  */
 
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, basename, extname } from 'node:path';
 import { homedir } from 'node:os';
+import { UsageError } from './flags.js';
 
 const PROJECT_DIR = '.prompts';
 const USER_DIR = join(homedir(), '.prompts');
@@ -14,19 +15,40 @@ export interface PromptTemplate {
   content: string;
   path: string;
   source: 'project' | 'user';
+  /** Set when the file could not be read; content is then empty. */
+  error?: string;
 }
 
 function loadFromDir(dir: string, source: 'project' | 'user'): PromptTemplate[] {
   if (!existsSync(dir)) return [];
 
-  return readdirSync(dir)
-    .filter((f: string) => f.endsWith('.md'))
-    .map((f: string) => ({
-      name: basename(f, extname(f)),
-      content: readFileSync(join(dir, f), 'utf8'),
-      path: join(dir, f),
-      source,
-    }));
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const templates: PromptTemplate[] = [];
+  for (const entry of entries) {
+    const f = entry.name;
+    if (!f.endsWith('.md')) continue;
+    const path = join(dir, f);
+    try {
+      const isFile = entry.isSymbolicLink() ? statSync(path).isFile() : entry.isFile();
+      if (!isFile) continue;
+    } catch {
+      continue; // dangling symlink
+    }
+    const template: PromptTemplate = { name: basename(f, extname(f)), content: '', path, source };
+    try {
+      template.content = readFileSync(path, 'utf8');
+    } catch (err) {
+      template.error = err instanceof Error ? err.message : String(err);
+    }
+    templates.push(template);
+  }
+  return templates;
 }
 
 export function loadTemplates(cwd?: string): PromptTemplate[] {
@@ -43,5 +65,9 @@ export function loadTemplates(cwd?: string): PromptTemplate[] {
 }
 
 export function findTemplate(name: string, cwd?: string): PromptTemplate | undefined {
-  return loadTemplates(cwd).find(t => t.name === name);
+  const tpl = loadTemplates(cwd).find(t => t.name === name);
+  if (tpl?.error) {
+    throw new UsageError(`Template "${tpl.name}" at ${tpl.path} could not be read: ${tpl.error}`);
+  }
+  return tpl;
 }

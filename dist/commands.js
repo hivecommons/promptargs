@@ -44,6 +44,11 @@ export function doList() {
     for (const t of templates) {
         const source = t.source === 'user' ? ' (user)' : '';
         console.log(sanitizeForTerminal(`  ${t.name}${source}`));
+        if (t.error) {
+            console.log(sanitizeForTerminal(`    vars: (error: could not be read: ${t.error})`));
+            console.log('');
+            continue;
+        }
         try {
             const varNames = parseVars(t.content).map(v => {
                 if (v.defaultValue !== undefined)

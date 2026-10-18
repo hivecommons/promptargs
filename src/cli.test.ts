@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, existsSync, readFileSync, rmSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -426,15 +426,44 @@ test('env truncates a long staged diff to a preview with ellipsis', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
-test('template read errors reach the top-level handler and exit 1', () => {
+test('a directory named like a template is skipped and does not break other commands', () => {
   const { cwd, home } = makeDirs();
-  // A directory named like a template makes readFileSync throw EISDIR,
-  // which propagates through main() to the final .catch handler.
   mkdirSync(join(cwd, '.prompts', 'broken.md'), { recursive: true });
-  const res = runCli(['show', 'broken'], cwd, home);
-  assert.strictEqual(res.status, 1);
-  assert.match(res.stderr, /EISDIR/);
+  writeFileSync(join(cwd, '.prompts', 'review.md'), 'Review {{file}}');
+  const list = runCli(['list'], cwd, home);
+  assert.strictEqual(list.status, 0);
+  assert.match(list.stdout, /review/);
+  const run = runCli(['review', '--file=a.go', '--no-interactive'], cwd, home);
+  assert.strictEqual(run.status, 0);
+  assert.match(run.stdout, /Review a\.go/);
+  const show = runCli(['show', 'broken'], cwd, home);
+  assert.strictEqual(show.status, 1);
+  assert.doesNotMatch(show.stderr, /EISDIR/);
   rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('an unreadable template is reported inline by list and as a usage error by show', (t) => {
+  if (process.getuid?.() === 0) return t.skip('root bypasses file permissions');
+  const { cwd, home } = makeDirs();
+  const bad = join(cwd, '.prompts', 'private.md');
+  mkdirSync(join(cwd, '.prompts'), { recursive: true });
+  writeFileSync(bad, 'secret');
+  writeFileSync(join(cwd, '.prompts', 'review.md'), 'Review {{file}}');
+  chmodSync(bad, 0o000);
+  try {
+    const list = runCli(['list'], cwd, home);
+    assert.strictEqual(list.status, 0);
+    assert.match(list.stdout, /private[\s\S]*vars: \(error: .*EACCES/);
+    assert.match(list.stdout, /review/);
+    assert.strictEqual(runCli(['review', '--file=a.go', '--no-interactive'], cwd, home).status, 0);
+    const show = runCli(['show', 'private'], cwd, home);
+    assert.strictEqual(show.status, 1);
+    assert.ok(show.stderr.includes(bad));
+    assert.match(show.stderr, /EACCES/);
+  } finally {
+    chmodSync(bad, 0o644);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+  }
 });
 
 test('--parallel is not advertised in help or the README', () => {

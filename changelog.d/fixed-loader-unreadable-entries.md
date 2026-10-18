@@ -1,0 +1,1 @@
+A directory named like a template (`notes.md/`) or an unreadable file in `.prompts/` or `~/.prompts/` no longer crashes `promptargs list`, `show` and every template run with a raw EISDIR/EACCES; non-files are skipped and a read failure is reported only for the template that was asked for. (#263)

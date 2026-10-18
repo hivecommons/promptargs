@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 
 // loader.ts resolves the user template dir from homedir() at import time,
@@ -72,5 +72,39 @@ describe('findTemplate', () => {
 
   it('returns undefined for unknown names', () => {
     assert.strictEqual(findTemplate('nope', projectRoot), undefined);
+  });
+
+  it('skips directories named like templates', () => {
+    const root = mkdtempSync(join(process.cwd(), '.pa-dir-'));
+    mkdirSync(join(root, '.prompts', 'foo.md'), { recursive: true });
+    writeFileSync(join(root, '.prompts', 'ok.md'), 'ok');
+    try {
+      const names = loadTemplates(root).map(t => t.name);
+      assert.ok(!names.includes('foo'));
+      assert.ok(names.includes('ok'));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('does not let an unreadable file break its siblings', (t) => {
+    if (process.getuid?.() === 0) return t.skip('root bypasses file permissions');
+    const root = mkdtempSync(join(process.cwd(), '.pa-perm-'));
+    mkdirSync(join(root, '.prompts'));
+    const bad = join(root, '.prompts', 'private.md');
+    writeFileSync(bad, 'x');
+    writeFileSync(join(root, '.prompts', 'ok.md'), 'ok');
+    chmodSync(bad, 0o000);
+    try {
+      const all = loadTemplates(root);
+      assert.ok(all.find(x => x.name === 'ok' && !x.error));
+      assert.match(all.find(x => x.name === 'private')?.error ?? '', /EACCES/);
+      assert.ok(findTemplate('ok', root));
+      assert.throws(() => findTemplate('private', root), (e: Error) =>
+        e.name === 'UsageError' && e.message.includes(bad) && /EACCES/.test(e.message));
+    } finally {
+      chmodSync(bad, 0o644);
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
