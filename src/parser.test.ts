@@ -145,6 +145,13 @@ describe('variable name grammar and repeated blanks', () => {
     );
   });
 
+  it('does not echo the default text of a dotted tag in the error', () => {
+    assert.throws(
+      () => parseVars('x {{a.b=\x1b]0;hi\x07\x1b[31mRED}} y'),
+      (err: Error) => err.name === 'UsageError' && !err.message.includes('\x1b') && /a\.b/.test(err.message),
+    );
+  });
+
   it('does not flag Mustache sigil tags', () => {
     assert.doesNotThrow(() => parseVars('{{!a.b}} {{{x}}} {{name=a.b}}'));
   });

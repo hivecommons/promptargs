@@ -30,7 +30,7 @@ export function parseVars(template) {
     const vars = [];
     for (const match of template.matchAll(DOTTED_PATTERN)) {
         const name = match[1];
-        throw usageError(`Unsupported variable name "${name}" in ${match[0]}: dotted names are not supported; use {{${name.replace(/\./g, '_')}}}`);
+        throw usageError(`Unsupported variable name "${name}": dotted names are not supported; use {{${name.replace(/\./g, '_')}}}`);
     }
     for (const match of template.matchAll(VAR_PATTERN)) {
         const name = match[1];
