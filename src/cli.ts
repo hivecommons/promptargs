@@ -20,6 +20,7 @@ import { startUI } from './ui.js';
 import { UsageError, parseFlags, parsePort } from './flags.js';
 import { diag, classifyError } from './log.js';
 import { doInit, doList, doShow, printEnv } from './commands.js';
+import { sanitizeForTerminal } from './sanitize.js';
 
 const HELP = `
 promptargs — Template arguments for AI prompts 🏴‍☠️
@@ -155,6 +156,6 @@ async function main() {
 }
 
 main().catch(err => {
-  diag('cli_error', { error_class: classifyError(err) }, err.message);
+  diag('cli_error', { error_class: classifyError(err) }, sanitizeForTerminal(String(err.message)));
   process.exit(1);
 });

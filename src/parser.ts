@@ -35,13 +35,16 @@ export const VAR_PATTERN = /\{\{\s*([\w-]+)(?:=([^}]*?))?\s*\}\}/g;
 // never fills; they would silently render empty, so they are rejected.
 // The lookbehind skips triple-mustache tags; sigil tags ({{#x}}, {{!c}}) do
 // not start with a name character and never match.
-const DOTTED_PATTERN = /(?<!\{)\{\{\s*([\w-]+\.[\w.-]*)\s*(?:=[^}]*)?\}\}/g;
+const DOTTED_PATTERN = /(?<!\{)\{\{\s*([\w-]+\.[\w.-]*)\s*(?:=[^}]*)?\}\}/;
 
 export function parseVars(template: string): TemplateVar[] {
   const vars: TemplateVar[] = [];
 
-  for (const match of template.matchAll(DOTTED_PATTERN)) {
-    const name = match[1];
+  // The first offending tag aborts; the message is built from the name only
+  // (restricted to [\w.-]) so raw template bytes never reach the terminal.
+  const dotted = DOTTED_PATTERN.exec(template);
+  if (dotted) {
+    const name = dotted[1];
     throw usageError(
       `Unsupported variable name "${name}": dotted names are not supported; use {{${name.replace(/\./g, '_')}}}`,
     );
