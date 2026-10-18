@@ -52,7 +52,8 @@ export function doList() {
             });
             if (varNames.length === 0) {
                 console.log(sanitizeForTerminal(`    vars: (none)`));
-            } else {
+            }
+            else {
                 console.log(sanitizeForTerminal(`    vars: {{${varNames.join('}}  {{')}}}`));
             }
         }
