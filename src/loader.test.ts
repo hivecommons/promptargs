@@ -63,6 +63,33 @@ describe('loadTemplates', () => {
     const review = findTemplate('review', projectRoot);
     assert.strictEqual(review?.path, join(projectRoot, '.prompts', 'review.md'));
   });
+
+  it('warns on stderr when the prompts directory itself cannot be read', (t) => {
+    const root = mkdtempSync(join(process.cwd(), '.pa-notdir-'));
+    writeFileSync(join(root, '.prompts'), 'not a directory');
+    const warn = t.mock.method(console, 'error', () => {});
+    try {
+      const all = loadTemplates(root);
+      assert.ok(all.length > 0 && all.every(x => x.source === 'user'));
+      assert.strictEqual(warn.mock.callCount(), 1);
+      const msg = String(warn.mock.calls[0].arguments[0]);
+      assert.ok(msg.startsWith(`promptargs: cannot read ${join(root, '.prompts')}: `));
+      assert.match(msg, /ENOTDIR/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('stays silent when the prompts directory does not exist', (t) => {
+    const root = mkdtempSync(join(process.cwd(), '.pa-nodir-'));
+    const warn = t.mock.method(console, 'error', () => {});
+    try {
+      loadTemplates(root);
+      assert.strictEqual(warn.mock.callCount(), 0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('findTemplate', () => {
@@ -104,33 +131,6 @@ describe('findTemplate', () => {
         e.name === 'UsageError' && e.message.includes(bad) && /EACCES/.test(e.message));
     } finally {
       chmodSync(bad, 0o644);
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
-  it('warns on stderr when the prompts directory itself cannot be read', (t) => {
-    const root = mkdtempSync(join(process.cwd(), '.pa-notdir-'));
-    writeFileSync(join(root, '.prompts'), 'not a directory');
-    const warn = t.mock.method(console, 'error', () => {});
-    try {
-      const all = loadTemplates(root);
-      assert.ok(all.length > 0 && all.every(x => x.source === 'user'));
-      assert.strictEqual(warn.mock.callCount(), 1);
-      const msg = String(warn.mock.calls[0].arguments[0]);
-      assert.ok(msg.startsWith(`promptargs: cannot read ${join(root, '.prompts')}: `));
-      assert.match(msg, /ENOTDIR/);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
-  it('stays silent when the prompts directory does not exist', (t) => {
-    const root = mkdtempSync(join(process.cwd(), '.pa-nodir-'));
-    const warn = t.mock.method(console, 'error', () => {});
-    try {
-      loadTemplates(root);
-      assert.strictEqual(warn.mock.callCount(), 0);
-    } finally {
       rmSync(root, { recursive: true, force: true });
     }
   });
