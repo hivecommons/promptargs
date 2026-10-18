@@ -50,7 +50,11 @@ export function doList() {
                     return `${v.name}=${v.defaultValue}`;
                 return v.name;
             });
-            console.log(sanitizeForTerminal(`    vars: {{${varNames.join('}}  {{')}}}`));
+            if (varNames.length === 0) {
+                console.log(sanitizeForTerminal(`    vars: (none)`));
+            } else {
+                console.log(sanitizeForTerminal(`    vars: {{${varNames.join('}}  {{')}}}`));
+            }
         }
         catch (err) {
             console.log(sanitizeForTerminal(`    vars: (error: ${err instanceof Error ? err.message : String(err)})`));
