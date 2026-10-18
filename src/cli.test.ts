@@ -87,6 +87,27 @@ test('template without variables is printed as-is', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('template without variables honours --json', () => {
+  const { cwd, home } = makeDirs();
+  mkdirSync(join(cwd, '.prompts'));
+  writeFileSync(join(cwd, '.prompts', 'plain.md'), 'No variables here.\n');
+  const res = runCli(['plain', '--json', '--no-interactive'], cwd, home);
+  assert.strictEqual(res.status, 0);
+  assert.strictEqual(JSON.parse(res.stdout), 'No variables here.\n');
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('template without variables honours --status', () => {
+  const { cwd, home } = makeDirs();
+  mkdirSync(join(cwd, '.prompts'));
+  writeFileSync(join(cwd, '.prompts', 'plain.md'), 'No variables here.\n');
+  const res = runCli(['plain', '--status', '--no-interactive'], cwd, home);
+  assert.strictEqual(res.status, 0);
+  assert.strictEqual(res.stdout.trim(), '✅ plain:');
+  assert.doesNotMatch(res.stdout, /No variables here/);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('unknown template exits 1 with guidance', () => {
   const { cwd, home } = makeDirs();
   const res = runCli(['nope', '--no-interactive'], cwd, home);

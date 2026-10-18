@@ -102,8 +102,16 @@ async function main() {
     }
     const vars = parseVars(content);
     if (vars.length === 0) {
-        // No variables — just output the template as-is
-        console.log(content);
+        // No variables — skip expand() so Mustache-style content that is not a promptargs blank stays untouched
+        if (statusOnly) {
+            console.log(renderStatus(name, vars, {}, undefined, new Set()));
+        }
+        else if (asJson) {
+            console.log(JSON.stringify(content, null, 2));
+        }
+        else {
+            console.log(content);
+        }
         return;
     }
     const { iterations, defaulted } = await resolve(vars, flags, interactive, cross);
