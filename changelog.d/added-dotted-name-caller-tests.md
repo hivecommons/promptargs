@@ -1,0 +1,1 @@
+Added tests pinning how a dotted blank name is reported past the parser: `promptargs list` prints the error inline and keeps listing other templates, `show` exits 1, and the UI preview shows the message with an `error` count and a bare command. (#256)

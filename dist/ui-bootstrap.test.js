@@ -332,6 +332,18 @@ test('clearing the template renders the empty-state preview and a bare command',
     assert.equal(p.previewCount.className, 'preview-count empty');
     assert.equal(p.cli(), 'promptargs');
 });
+test('typing a dotted variable shows the parser error in the preview and adds no row for it', () => {
+    const p = loadPage();
+    const before = p.rowData();
+    p.tmpl.value += ' owned by {{repo.owner}}';
+    p.tmpl.fire('input');
+    mock.timers.tick(DEBOUNCE_MS);
+    assert.deepEqual(p.rowData(), before, 'the preset rows survive; no row is added for the rejected name');
+    assert.match(p.previewBody.innerHTML, /^<span class="preview-empty">Unsupported variable name "repo\.owner".*use \{\{repo_owner\}\}<\/span>$/);
+    assert.equal(p.previewCount.textContent, 'error');
+    assert.equal(p.previewCount.className, 'preview-count empty');
+    assert.equal(p.cli(), 'promptargs');
+});
 test('editing a row to a glob or @file source re-renders with the matching command syntax', () => {
     const p = loadPage();
     for (const r of [...p.varBody.rows])

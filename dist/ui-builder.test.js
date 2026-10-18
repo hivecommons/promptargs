@@ -177,6 +177,17 @@ test('update highlights variables that remain unfilled after expansion', () => {
     h.update();
     assert.deepEqual(expandedTexts(h), ['Fix <span class="unfilled">{{issue}}</span> in main.go']);
 });
+test('update renders the parser error for a dotted variable and resets the command', () => {
+    const h = makeHarness();
+    h.tmpl.value = 'Owner is {{repo.owner}} of {{name}}';
+    h.rows.push({ name: 'name', values: 'promptargs' });
+    h.update();
+    assert.match(h.previewBody.innerHTML, /^<span class="preview-empty">Unsupported variable name "repo\.owner".*use \{\{repo_owner\}\}<\/span>$/);
+    assert.equal(h.previewCount.textContent, 'error');
+    assert.equal(h.previewCount.className, 'preview-count empty');
+    assert.equal(h.cli(), 'promptargs');
+    assert.equal(h.iterations(), 0);
+});
 test('update HTML-escapes template text, values, and labels before rendering', () => {
     const h = makeHarness('zip');
     h.tmpl.value = '<b>{{x}}</b> & {{y}}';

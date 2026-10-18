@@ -295,6 +295,24 @@ test('syncVarsFromTemplate recognises whitespace-padded blanks like the CLI does
         ['team', 'core', 'manual'],
     ]);
 });
+test('syncVarsFromTemplate adds no rows for a template with a dotted variable and keeps existing ones', () => {
+    const h = makeHarness();
+    h.addVarRow('name', 'promptargs', 'manual');
+    h.tmpl.value = 'Owner is {{repo.owner}} of {{name}} and {{other}}';
+    h.syncVarsFromTemplate();
+    assert.deepEqual(h.rowData(), [['name', 'promptargs', 'manual']], 'rows are left for update() to explain the error');
+});
+test('scheduleUpdate renders the parser error in the preview for a dotted variable', async () => {
+    const h = makeHarness(5);
+    h.tmpl.value = 'Owner is {{repo.owner}}';
+    h.scheduleUpdate();
+    await tick(20);
+    assert.deepEqual(h.rowData(), []);
+    assert.match(h.previewBody.innerHTML, /^<span class="preview-empty">Unsupported variable name "repo\.owner"/);
+    assert.equal(h.previewCount.textContent, 'error');
+    assert.equal(h.previewCount.className, 'preview-count empty');
+    assert.equal(h.cli(), 'promptargs');
+});
 test('a removed row disappears from the table and is re-added only if still in the template', async () => {
     const h = makeHarness();
     h.tmpl.value = 'Hello {{name}} and {{other}}';

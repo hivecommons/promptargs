@@ -146,6 +146,32 @@ test('list with no templates suggests init', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('list reports a template with a dotted variable inline and still lists the others', () => {
+  const { cwd, home } = makeDirs();
+  mkdirSync(join(cwd, '.prompts'));
+  writeFileSync(join(cwd, '.prompts', 'bad.md'), 'Owner is {{repo.owner}} of {{name}}.');
+  writeFileSync(join(cwd, '.prompts', 'good.md'), 'Review {{file}} for {{focus=bugs}}.');
+  const res = runCli(['list'], cwd, home);
+  assert.strictEqual(res.status, 0);
+  assert.match(res.stdout, /^\s+bad$/m);
+  assert.match(res.stdout, /vars: \(error: Unsupported variable name "repo\.owner".*use \{\{repo_owner\}\}\)/);
+  assert.doesNotMatch(res.stdout, /\{\{name\}\}/, 'no vars are listed for a template that fails to parse');
+  assert.match(res.stdout, /^\s+good$/m);
+  assert.match(res.stdout, /\{\{file\}\}\s+\{\{focus=bugs\}\}/);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('show rejects a template with a dotted variable as a usage error', () => {
+  const { cwd, home } = makeDirs();
+  mkdirSync(join(cwd, '.prompts'));
+  writeFileSync(join(cwd, '.prompts', 'bad.md'), 'Owner is {{repo.owner}}.');
+  const res = runCli(['show', 'bad'], cwd, home);
+  assert.strictEqual(res.status, 1);
+  assert.match(res.stderr, /Unsupported variable name "repo\.owner"/);
+  assert.doesNotMatch(res.stdout, /Template: bad/);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('show highlights required and defaulted variables', () => {
   const { cwd, home } = makeDirs();
   mkdirSync(join(cwd, '.prompts'));
