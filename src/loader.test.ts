@@ -113,7 +113,8 @@ describe('findTemplate', () => {
     writeFileSync(join(root, '.prompts'), 'not a directory');
     const warn = t.mock.method(console, 'error', () => {});
     try {
-      assert.deepStrictEqual(loadTemplates(root), []);
+      const all = loadTemplates(root);
+      assert.ok(all.length > 0 && all.every(x => x.source === 'user'));
       assert.strictEqual(warn.mock.callCount(), 1);
       const msg = String(warn.mock.calls[0].arguments[0]);
       assert.ok(msg.startsWith(`promptargs: cannot read ${join(root, '.prompts')}: `));
