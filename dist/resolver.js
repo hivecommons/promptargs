@@ -19,14 +19,24 @@ function expandPiece(piece) {
     }
     return [piece];
 }
-function expandArrayValue(raw) {
+function expandArrayValue(raw, varName) {
     // @file — read lines from file
     if (raw.startsWith('@') && existsSync(raw.slice(1))) {
-        return readFileSync(raw.slice(1), 'utf8')
-            .split('\n')
-            .map((l) => l.trim())
-            .filter(Boolean)
-            .flatMap(expandPiece);
+        const filePath = raw.slice(1);
+        try {
+            return readFileSync(filePath, 'utf8')
+                .split('\n')
+                .map((l) => l.trim())
+                .filter(Boolean)
+                .flatMap(expandPiece);
+        }
+        catch (err) {
+            const e = err;
+            if (e.code === 'EISDIR') {
+                throw new UsageError(`Variable "${varName}": @${filePath} is a directory, not a file; pass @FILE with one value per line`);
+            }
+            throw new UsageError(`Variable "${varName}": could not read @${filePath}: ${e.message}`);
+        }
     }
     // - (stdin) handled at CLI level before this
     if (raw === '-')
@@ -90,7 +100,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
     for (const v of vars) {
         // 1. Check flags
         if (Object.hasOwn(flags, v.name)) {
-            const expanded = expandArrayValue(flags[v.name]);
+            const expanded = expandArrayValue(flags[v.name], v.name);
             if (expanded.length > 1) {
                 arrayVars[v.name] = expanded;
                 hasArrays = true;
@@ -117,7 +127,7 @@ export async function resolve(vars, flags, interactive, cross = false) {
         // 4. Ask interactively
         if (interactive) {
             const answer = await ask(`  ${v.name}: `, v.name);
-            const expanded = expandArrayValue(answer);
+            const expanded = expandArrayValue(answer, v.name);
             if (expanded.length > 1) {
                 arrayVars[v.name] = expanded;
                 hasArrays = true;

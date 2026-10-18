@@ -1,0 +1,1 @@
+- Resolver: `@path` list files now report `UsageError` naming the variable and path (e.g., `Variable "files": @src is a directory`) instead of crashing with raw `EISDIR`.

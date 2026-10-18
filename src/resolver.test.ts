@@ -99,6 +99,17 @@ describe('resolve array expansion', () => {
     assert.strictEqual(r.values.pa_f, '@/no/such/file');
   });
 
+  it('rejects with a UsageError when @path is a directory', async () => {
+    const dir = mkdtempSync(join(tmp, 'subdir-'));
+    await assert.rejects(
+      () => resolve([v('pa_f')], { pa_f: `@${dir}` }, false),
+      (err: any) =>
+        err.name === 'UsageError' &&
+        /Variable "pa_f": @.*is a directory/.test(err.message) &&
+        /pass @FILE with one value per line/.test(err.message),
+    );
+  });
+
   it('zips arrays of equal length by default', async () => {
     const r = await resolve(
       [v('pa_a'), v('pa_b')],
