@@ -25,7 +25,8 @@ function loadFromDir(dir: string, source: 'project' | 'user'): PromptTemplate[] 
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
+  } catch (err) {
+    console.error(`promptargs: cannot read ${dir}: ${err instanceof Error ? err.message : String(err)}`);
     return [];
   }
 

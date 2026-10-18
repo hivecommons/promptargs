@@ -95,5 +95,31 @@ describe('findTemplate', () => {
             rmSync(root, { recursive: true, force: true });
         }
     });
+    it('warns on stderr when the prompts directory itself cannot be read', (t) => {
+        const root = mkdtempSync(join(process.cwd(), '.pa-notdir-'));
+        writeFileSync(join(root, '.prompts'), 'not a directory');
+        const warn = t.mock.method(console, 'error', () => { });
+        try {
+            assert.deepStrictEqual(loadTemplates(root), []);
+            assert.strictEqual(warn.mock.callCount(), 1);
+            const msg = String(warn.mock.calls[0].arguments[0]);
+            assert.ok(msg.startsWith(`promptargs: cannot read ${join(root, '.prompts')}: `));
+            assert.match(msg, /ENOTDIR/);
+        }
+        finally {
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
+    it('stays silent when the prompts directory does not exist', (t) => {
+        const root = mkdtempSync(join(process.cwd(), '.pa-nodir-'));
+        const warn = t.mock.method(console, 'error', () => { });
+        try {
+            loadTemplates(root);
+            assert.strictEqual(warn.mock.callCount(), 0);
+        }
+        finally {
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
 });
 //# sourceMappingURL=loader.test.js.map

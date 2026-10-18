@@ -1,0 +1,1 @@
+A `.prompts/` directory that cannot be read (e.g. EACCES, ENOTDIR) now prints `promptargs: cannot read <dir>: <error>` on stderr instead of silently hiding its templates; a missing directory stays silent. (#265)

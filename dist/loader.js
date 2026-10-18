@@ -14,7 +14,8 @@ function loadFromDir(dir, source) {
     try {
         entries = readdirSync(dir, { withFileTypes: true });
     }
-    catch {
+    catch (err) {
+        console.error(`promptargs: cannot read ${dir}: ${err instanceof Error ? err.message : String(err)}`);
         return [];
     }
     const templates = [];
