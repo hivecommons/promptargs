@@ -48,7 +48,7 @@ const DETECTORS = {
         }
     },
     user: () => git('config user.name'),
-    date: () => new Date().toISOString().split('T')[0],
+    date: () => new Date().toLocaleDateString('sv-SE'),
 };
 export const AUTODETECT_VARS = Object.keys(DETECTORS);
 // Env var names that look like credentials. The implicit process.env fallback

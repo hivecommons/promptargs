@@ -48,7 +48,7 @@ const DETECTORS: Record<string, () => string | undefined> = {
     }
   },
   user: () => git('config user.name'),
-  date: () => new Date().toISOString().split('T')[0],
+  date: () => new Date().toLocaleDateString('sv-SE'),
 };
 
 export const AUTODETECT_VARS = Object.keys(DETECTORS);

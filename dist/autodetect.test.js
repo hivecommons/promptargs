@@ -76,6 +76,15 @@ describe('date detector', () => {
     it('returns an ISO date (YYYY-MM-DD)', () => {
         assert.match(autodetect('date'), /^\d{4}-\d{2}-\d{2}$/);
     });
+    it('uses the local calendar day, not the UTC day', () => {
+        // UTC+14 and UTC-12 are 26h apart, so their local dates always differ.
+        process.env.TZ = 'Pacific/Kiritimati';
+        const east = autodetect('date');
+        process.env.TZ = 'Etc/GMT+12';
+        const west = autodetect('date');
+        delete process.env.TZ;
+        assert.notStrictEqual(east, west);
+    });
 });
 describe('environment fallback', () => {
     it('falls back to environment variables for unknown names', () => {
