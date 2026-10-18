@@ -5,6 +5,8 @@ import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, basename, extname } from 'node:path';
 import { homedir } from 'node:os';
 import { UsageError } from './flags.js';
+import { diag, classifyError } from './log.js';
+import { sanitizeForTerminal } from './sanitize.js';
 const PROJECT_DIR = '.prompts';
 const USER_DIR = join(homedir(), '.prompts');
 function loadFromDir(dir, source) {
@@ -15,7 +17,8 @@ function loadFromDir(dir, source) {
         entries = readdirSync(dir, { withFileTypes: true });
     }
     catch (err) {
-        console.error(`promptargs: cannot read ${dir}: ${err instanceof Error ? err.message : String(err)}`);
+        const msg = err instanceof Error ? err.message : String(err);
+        diag('loader_dir_unreadable', { error_class: classifyError(err) }, sanitizeForTerminal(`promptargs: cannot read ${dir}: ${msg}`));
         return [];
     }
     const templates = [];

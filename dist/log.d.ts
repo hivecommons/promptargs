@@ -3,7 +3,7 @@
  * written to stderr as one JSON object per line with a fixed, bounded field
  * set. Template contents, argument values, paths and URLs are never logged.
  */
-export type LogEvent = 'ui_host_rejected' | 'ui_host_rejected_total' | 'ui_asset_error' | 'ui_request' | 'ui_start_error' | 'ui_browser_open_failed' | 'cli_iteration' | 'cli_error';
+export type LogEvent = 'ui_host_rejected' | 'ui_host_rejected_total' | 'ui_asset_error' | 'ui_request' | 'ui_start_error' | 'ui_browser_open_failed' | 'cli_iteration' | 'cli_error' | 'loader_dir_unreadable';
 export type ErrorClass = 'usage' | 'not_found' | 'io' | 'port_in_use' | 'unknown';
 export interface LogFields {
     status?: number | string;
