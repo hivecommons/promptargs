@@ -48,7 +48,7 @@ Templates are `.md` files in `.prompts/` (project, overrides) or `~/.prompts/` (
 - `{{name=default}}` — blank with a default
 - `{{! comment }}` — Mustache comment, safe to use
 
-Names may use letters, digits, `_` and `-` (`{{file-name}}`). Dotted names such as `{{repo.owner}}` are rejected with a `UsageError` — use `{{repo_owner}}` instead. A default may appear on any occurrence of a repeated blank (`{{name}} … {{name=hello}}`); if two occurrences give different defaults, the first one wins.
+Names may use letters, digits, `_` and `-` (`{{file-name}}`). Dotted names such as `{{repo.owner}}` are rejected with a `UsageError` — use `{{repo_owner}}` instead; the switch names `no-interactive`, `cross`, `json` and `status` are also rejected, as they are reserved for CLI switches. A default may appear on any occurrence of a repeated blank (`{{name}} … {{name=hello}}`); if two occurrences give different defaults, the first one wins.
 
 Avoid Mustache sections (`{{#x}}`) and partials (`{{>x}}`): promptargs does not fill them.
 
