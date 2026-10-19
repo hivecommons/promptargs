@@ -53,7 +53,7 @@ Replace `v0.7.0` with the missing release tag. Run the workflow from `main` so i
 
 1. Open the failed `Release` run and read the failing step (dist drift, tests, tag/version mismatch, npm auth, or a misconfigured npm Trusted Publisher).
 2. If the cause was in the repository, fix it on `main` and bump the patch version. The tag already points at the broken commit.
-3. If the cause was transient (npm outage) or npm rejected the OIDC token, check the Trusted Publisher on npmjs.com for `@hivecommons/promptargs` (Settings → Trusted Publisher → GitHub Actions: owner `hivecommons`, repository `promptargs`, workflow filename `release.yml`, environment blank), then re-run the failed `Release` run. No `NPM_TOKEN` secret is used. The tag matches `package.json` at that commit, so the version check passes.
+3. If the cause was transient (npm outage) or npm rejected the OIDC token, check the Trusted Publisher on npmjs.com for `@hivecommons/promptargs` (Settings → Trusted Publisher → GitHub Actions: owner `hivecommons`, repository `promptargs`, workflow filename `release.yml`, environment `npm-publish`), then re-run the failed `Release` run. No `NPM_TOKEN` secret is used. The tag matches `package.json` at that commit, so the version check passes.
 
 ## Checks before cutting a release
 

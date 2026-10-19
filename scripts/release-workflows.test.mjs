@@ -291,8 +291,8 @@ test('dist sync guard: ignores changes outside dist/', () => {
 
 // --- release.yml: npm Trusted Publishing (OIDC) ------------------------------
 
-// A `npm` that reports MOCK_NPM_VERSION for `--version` and records every
-// other invocation, so the test can see whether the step chose to upgrade.
+// A `npm` that reports the given version for `--version` and records every
+// other invocation, so the test can prove the gate never installs anything.
 function installNpmMock(dir, version) {
   writeFileSync(join(dir, 'bin', 'npm'), `#!/bin/bash
 if [ "$1" = "--version" ]; then
@@ -305,7 +305,7 @@ printf '%s\\n' "$*" >> "$MOCK_DIR/calls"
 
 const npmGateScript = stepScript('release.yml', 'Ensure npm supports Trusted Publishing');
 
-for (const [version, upgrades] of [
+for (const [version, tooOld] of [
   ['11.5.1', false],
   ['11.6.0', false],
   // Lexically "11.10.2" < "11.5.1"; the gate must compare as versions.
@@ -314,20 +314,30 @@ for (const [version, upgrades] of [
   ['11.4.9', true],
   ['10.9.4', true],
 ]) {
-  test(`release: npm ${version} ${upgrades ? 'is upgraded for' : 'already supports'} Trusted Publishing`, () => {
+  test(`release: npm ${version} ${tooOld ? 'fails the' : 'passes the'} Trusted Publishing gate`, () => {
     withSandbox((dir) => {
       installNpmMock(dir, version);
       const result = runStep(npmGateScript, { cwd: dir, env: sandboxEnv(dir) });
-      assert.equal(result.status, 0, result.stderr);
-      assert.deepEqual(calls(dir), upgrades ? ['install -g npm@latest'] : []);
-      if (upgrades) {
-        assert.match(result.stdout, new RegExp(`npm ${version.replaceAll('.', '\\.')} is too old for Trusted Publishing`));
+      // The gate must never self-upgrade npm inside the id-token:write job.
+      assert.deepEqual(calls(dir), []);
+      if (tooOld) {
+        assert.notEqual(result.status, 0, 'gate must fail for an npm that cannot do Trusted Publishing');
+        assert.match(result.stdout, new RegExp(`::error::npm ${version.replaceAll('.', '\\.')} is too old for Trusted Publishing`));
       } else {
+        assert.equal(result.status, 0, result.stderr);
         assert.doesNotMatch(result.stdout, /too old/);
       }
     });
   });
 }
+
+test('release: publish job is scoped to the npm-publish environment', () => {
+  const publish = readWorkflow('release.yml').split('\n  publish:\n')[1];
+  assert.ok(publish, 'release.yml has no publish job');
+  assert.match(publish, /^    environment: npm-publish$/m);
+  assert.match(publish, /^      id-token: write/m);
+  assert.doesNotMatch(publish, /npm install -g npm/);
+});
 
 const oidcGuardScript = stepScript('release.yml', 'Require OIDC token for npm Trusted Publishing');
 

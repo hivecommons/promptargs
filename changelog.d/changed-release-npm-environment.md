@@ -1,0 +1,1 @@
+`release.yml` now publishes from the `npm-publish` GitHub Environment (deployments limited to `main` and `v*` tags), so only the merged workflow can mint an npm Trusted Publishing token, and the step that checked the bundled npm version fails loudly instead of installing an unpinned `npm@latest` inside the `id-token: write` job.

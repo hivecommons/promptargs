@@ -20,7 +20,10 @@ jobs:
     # Publishes with npm Trusted Publishing (OIDC); no NPM_TOKEN secret.
     # The npm-side Trusted Publisher for @hivecommons/promptargs must match:
     #   provider: GitHub Actions, owner: hivecommons, repository: promptargs,
-    #   workflow filename: release.yml, environment: (blank — this job uses none)
+    #   workflow filename: release.yml, environment: npm-publish
+    # The npm-publish environment only deploys from main and v* tags, so only
+    # release.yml as merged to main / tagged can mint a publish-capable token.
+    environment: npm-publish
     permissions:
       contents: read
       id-token: write   # OIDC token for npm Trusted Publishing + provenance
@@ -37,13 +40,14 @@ jobs:
           cache: npm
           registry-url: https://registry.npmjs.org
 
-      # Trusted Publishing needs npm >= 11.5.1.
+      # Trusted Publishing needs npm >= 11.5.1; Node 24 bundles it. Fail loudly
+      # rather than install an unpinned npm inside the id-token:write job.
       - name: Ensure npm supports Trusted Publishing
         run: |
           have="$(npm --version)"
           if [ "$(printf '%s\n' 11.5.1 "$have" | sort -V | head -n1)" != "11.5.1" ]; then
-            echo "npm $have is too old for Trusted Publishing; upgrading"
-            npm install -g npm@latest
+            echo "::error::npm $have is too old for Trusted Publishing (need >= 11.5.1); bump node-version in release.yml"
+            exit 1
           fi
           npm --version
 
