@@ -219,4 +219,15 @@ test('the slash-command skill files agree with SKILL.md on the always-on switch'
         assert.strictEqual(fm.name, 'promptargs', `${f}: frontmatter name should be promptargs`);
     }
 });
+test('README.md and SKILL.md list exactly the reserved subcommand names', () => {
+    // Both docs enumerate the template names the CLI reserves for its
+    // subcommands; a subcommand added to SUBCOMMANDS must be documented there.
+    const expected = [...CLI_SUBCOMMANDS].sort();
+    for (const file of [README, SKILL_FILE]) {
+        const m = /template file names (.*?) are reserved for the subcommands/.exec(readFileSync(file, 'utf-8'));
+        assert.ok(m, `${file} should list the template names reserved for subcommands`);
+        const names = [...m[1].matchAll(/`([^`]+)`/g)].map((x) => x[1]);
+        assert.deepStrictEqual([...new Set(names)].sort(), expected, `${file}: reserved subcommand names drifted from SUBCOMMANDS`);
+    }
+});
 //# sourceMappingURL=skill.test.js.map
