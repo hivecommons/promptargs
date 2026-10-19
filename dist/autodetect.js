@@ -5,9 +5,17 @@ import { execSync } from 'node:child_process';
 // gh is the only network call on the UI startup path; bound it so a stalled gh
 // (hung proxy, expired auth) cannot hang startup.
 const GH_TIMEOUT_MS = 5000;
+// execSync's default 1 MiB maxBuffer makes `git diff` on a large staged change
+// throw ENOBUFS, which the catch below turns into a silent "nothing detected"
+// (#281). Raise it so large diffs are returned rather than dropped.
+const GIT_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 function git(cmd) {
     try {
-        const out = execSync(`git ${cmd}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 }).trim();
+        const out = execSync(`git ${cmd}`, {
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+            maxBuffer: GIT_MAX_BUFFER_BYTES,
+        }).trim();
         // Success with empty output (detached HEAD for `branch --show-current`,
         // clean tree for `diff`) is "nothing detected", not an empty value —
         // otherwise it would override the template default and skip the prompt.

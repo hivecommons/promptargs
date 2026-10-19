@@ -71,6 +71,24 @@ describe('git detectors', () => {
             execSync('git checkout -q -- tracked.txt', { stdio: 'pipe', timeout: 10_000 });
         }
     });
+    it('returns a staged diff larger than execSync default maxBuffer (1 MiB) instead of dropping it (#281)', () => {
+        // Each line is unique so git cannot compress the diff below the threshold.
+        const lines = [];
+        for (let i = 0; i < 40_000; i++)
+            lines.push(`line ${i} ${'x'.repeat(24)}`);
+        writeFileSync(join(repo, 'big.txt'), lines.join('\n') + '\n');
+        execSync('git add big.txt', { stdio: 'pipe', timeout: 10_000 });
+        try {
+            const diff = autodetect('diff');
+            assert.ok(diff !== undefined, 'large staged diff was silently dropped');
+            assert.ok(diff.length > 1024 * 1024, `diff is only ${diff.length} bytes`);
+            assert.match(diff, /^diff --git a\/big\.txt/);
+        }
+        finally {
+            execSync('git rm -q --cached big.txt', { stdio: 'pipe', timeout: 10_000 });
+            rmSync(join(repo, 'big.txt'), { force: true });
+        }
+    });
 });
 describe('date detector', () => {
     it('returns an ISO date (YYYY-MM-DD)', () => {
