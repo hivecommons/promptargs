@@ -17,7 +17,8 @@ import { findTemplate } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
 import { startUI } from './ui.js';
-import { UsageError, assertNoReservedVars, parseFlags, parsePort } from './flags.js';
+import { UsageError, assertNoReservedVars, parseFlags, parsePort, SUBCOMMANDS } from './flags.js';
+import type { Subcommand } from './flags.js';
 import { diag, classifyError } from './log.js';
 import { doInit, doList, doShow, printEnv } from './commands.js';
 import { sanitizeForTerminal } from './sanitize.js';
@@ -56,36 +57,42 @@ Templates live in:
   ~/.prompts/         User-level (personal templates)
 `;
 
+type SubcommandHandler = (args: string[]) => void | Promise<void>;
+
+// The shared set supplies the runtime gate and its names supply the key union.
+// The Record makes adding a subcommand without a handler (or vice versa) a type error.
+const SUBCOMMAND_HANDLERS: Record<Subcommand, SubcommandHandler> = {
+  help: () => {
+    console.log(HELP);
+    printEnv();
+  },
+  env: () => printEnv(),
+  ui: (args) => {
+    const flags = parseFlags(args);
+    startUI(parsePort(flags));
+  },
+  init: () => doInit(),
+  list: () => doList(),
+  show: (args) => doShow(args[0]),
+};
+
+function isSubcommand(value: string): value is Subcommand {
+  return SUBCOMMANDS.has(value as Subcommand);
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args.length === 0 || args[0] === 'help' || args[0] === '--help') {
+  if (args.length === 0 || args[0] === '--help') {
     console.log(HELP);
     printEnv();
     return;
   }
 
-  if (args[0] === 'env') {
-    printEnv();
+  const command = args[0];
+  if (isSubcommand(command)) {
+    await SUBCOMMAND_HANDLERS[command](args.slice(1));
     return;
-  }
-
-  if (args[0] === 'ui') {
-    const flags = parseFlags(args.slice(1));
-    startUI(parsePort(flags));
-    return;
-  }
-
-  if (args[0] === 'init') {
-    return doInit();
-  }
-
-  if (args[0] === 'list') {
-    return doList();
-  }
-
-  if (args[0] === 'show') {
-    return doShow(args[1]);
   }
 
   // Run a template

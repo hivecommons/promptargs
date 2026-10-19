@@ -6,6 +6,9 @@ export class UsageError extends Error {
 }
 
 export const SWITCHES = new Set(['no-interactive', 'cross', 'json', 'status']);
+const SUBCOMMAND_NAMES = ['help', 'env', 'ui', 'init', 'list', 'show'] as const;
+export type Subcommand = (typeof SUBCOMMAND_NAMES)[number];
+export const SUBCOMMANDS = new Set<string>(SUBCOMMAND_NAMES);
 
 export function assertNoReservedVars(vars: { name: string }[]): void {
   for (const v of vars) {

@@ -5,6 +5,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SUBCOMMANDS as CLI_SUBCOMMANDS } from './flags.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const CLI = join(__dirname, 'cli.js');
@@ -25,7 +26,7 @@ const SPEC_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const SPEC_FIELDS = new Set(['name', 'description', 'license', 'compatibility', 'metadata', 'allowed-tools']);
 // Switches cli.ts accepts; every other --flag must be a template variable.
 const CLI_SWITCHES = new Set(['no-interactive', 'cross', 'json', 'status']);
-const CLI_SUBCOMMANDS = new Set(['help', 'env', 'ui', 'init', 'list', 'show']);
+// The CLI's subcommand set is shared with the dispatch implementation.
 // Templates `promptargs init` writes, so `promptargs <name>` resolves.
 const INIT_TEMPLATES = new Set(['review', 'explain', 'fix']);
 function parseFrontmatter(markdown) {
