@@ -1,10 +1,15 @@
-import { describe, it } from 'node:test';
+import { describe, it, after } from 'node:test';
 import assert from 'node:assert';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { doShow, doList } from './commands.js';
-import { UsageError } from './flags.js';
+// Isolate HOME before importing commands.js, which imports loader.js.
+// loader.ts evaluates homedir() at import time, so we must set HOME first.
+const fakeHome = mkdtempSync(join(process.cwd(), '.pa-home-'));
+process.env.HOME = fakeHome;
+mkdirSync(join(fakeHome, '.prompts'));
+const { doShow, doList } = await import('./commands.js');
+const { UsageError } = await import('./flags.js');
 function captureShowNamed(name, content) {
     const dir = mkdtempSync(join(tmpdir(), 'promptargs-show-'));
     mkdirSync(join(dir, '.prompts'));
@@ -52,6 +57,9 @@ function captureList(templateContent, templateName = 'demo.md') {
     }
     return lines.join('\n');
 }
+after(() => {
+    rmSync(fakeHome, { recursive: true, force: true });
+});
 describe('doShow', () => {
     it('throws UsageError when no template name is given', () => {
         assert.throws(() => doShow(undefined), {
