@@ -1,6 +1,8 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough, Readable } from 'node:stream';
 import { resolve } from './resolver.js';
@@ -108,6 +110,29 @@ describe('resolve array expansion', () => {
         /Variable "pa_f": @.*is a directory/.test(err.message) &&
         /pass @FILE with one value per line/.test(err.message),
     );
+  });
+
+  it('rejects with a UsageError naming the cause when @path exists but cannot be read', async () => {
+    // A Unix socket passes existsSync but open(2) refuses it (ENXIO on
+    // Linux, EOPNOTSUPP on macOS), so this is the non-EISDIR read-failure
+    // arm regardless of the user running the tests. Bound under os.tmpdir()
+    // to stay inside sun_path's ~100-byte limit.
+    const sockDir = mkdtempSync(join(tmpdir(), 'pa-'));
+    const sock = join(sockDir, 's');
+    const server = createServer();
+    await new Promise<void>((res) => server.listen(sock, res));
+    try {
+      await assert.rejects(
+        () => resolve([v('pa_f')], { pa_f: `@${sock}` }, false),
+        (err: any) =>
+          err.name === 'UsageError' &&
+          err.message.startsWith(`Variable "pa_f": could not read @${sock}: `) &&
+          !/is a directory/.test(err.message),
+      );
+    } finally {
+      await new Promise<void>((res) => server.close(() => res()));
+      rmSync(sockDir, { recursive: true, force: true });
+    }
   });
 
   it('zips arrays of equal length by default', async () => {
@@ -339,6 +364,16 @@ describe('resolve interactive prompting', () => {
       r.iterations.map(i => i.pa_ask),
       ['one', 'two', 'three'],
     );
+  });
+
+  it('resolves a separator-only interactive answer to the empty string', async () => {
+    // Unlike the flag path, which leaves the variable absent, an answered
+    // prompt always produces a value: a ',' with nothing around it is ''.
+    const r = await withStdin(',\n', () =>
+      resolve([v('pa_ask')], {}, true),
+    );
+    assert.strictEqual(r.values.pa_ask, '');
+    assert.deepStrictEqual(r.iterations, [bare({ pa_ask: '' })]);
   });
 
   it('rejects with a UsageError when stdin ends before an answer', async () => {
