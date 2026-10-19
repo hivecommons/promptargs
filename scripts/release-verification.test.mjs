@@ -15,8 +15,8 @@ const script = workflow.split(marker)[1].split('\n      - ')[0]
 for (const [scenario, expectedStatus, expectedCalls, expectedSleeps] of [
   ['immediate', 0, 1, 0],
   ['delayed', 0, 3, 2],
-  ['missing', 1, 6, 5],
-  ['wrong', 1, 6, 5],
+  ['missing', 1, 12, 11],
+  ['wrong', 1, 12, 11],
 ]) {
   test(`npm verification: ${scenario}`, () => {
     const dir = mkdtempSync(join(tmpdir(), 'promptargs-release-'));
@@ -46,7 +46,7 @@ esac
         assert.equal(call, 'view @hivecommons/promptargs@0.7.0 version --registry=https://registry.npmjs.org');
       }
       if (expectedSleeps) {
-        assert.deepEqual(readFileSync(join(dir, 'sleeps'), 'utf8').trim().split('\n'), Array(expectedSleeps).fill('10'));
+        assert.deepEqual(readFileSync(join(dir, 'sleeps'), 'utf8').trim().split('\n'), Array(expectedSleeps).fill('30'));
       }
       if (expectedStatus) assert.match(result.stdout, /::error::npm does not serve @hivecommons\/promptargs@0\.7\.0 after publish/);
     } finally {
