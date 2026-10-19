@@ -182,8 +182,10 @@ test('auto-release: an empty changelog.d falls back to a minimal release note', 
 test('auto-release: a failing release-notes renderer aborts before any release is created', () => {
   withSandbox((dir) => {
     installGhMock(dir);
-    // No changelog.d directory at all: readdirSync throws inside the renderer.
-    installReleaseNotes(dir, null);
+    // The step stages fragments into $RUNNER_TEMP, so a missing changelog.d no
+    // longer reaches the renderer; break the renderer itself instead.
+    installReleaseNotes(dir, { 'fixed-x.md': 'x' });
+    writeFileSync(join(dir, 'scripts', 'release-notes.mjs'), "throw new Error('renderer exploded');\n");
     const result = runStep(createScript, { cwd: dir, env: sandboxEnv(dir) });
     assert.notEqual(result.status, 0);
     assert.doesNotMatch(result.stdout, /minimal release note/);
