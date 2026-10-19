@@ -44,7 +44,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          node scripts/release-notes.mjs changelog.d > "$RUNNER_TEMP/release-notes.md"
+          # Fragments stay in changelog.d/; render only those added since the previous tag.
+          frag_dir="$RUNNER_TEMP/changelog.d"
+          mkdir -p "$frag_dir"
+          if prev="$(git describe --tags --abbrev=0 HEAD 2>/dev/null)"; then
+            git diff --name-only --diff-filter=AR "$prev..HEAD" -- changelog.d/ | while IFS= read -r f; do
+              [ -f "$f" ] && cp "$f" "$frag_dir/"
+            done
+          else
+            cp changelog.d/* "$frag_dir/" 2>/dev/null || true
+          fi
+          node scripts/release-notes.mjs "$frag_dir" > "$RUNNER_TEMP/release-notes.md"
           if [ ! -s "$RUNNER_TEMP/release-notes.md" ]; then
             echo "No changelog.d fragments; using a minimal release note."
             printf 'Release %s\n' "${{ steps.version.outputs.tag }}" > "$RUNNER_TEMP/release-notes.md"
