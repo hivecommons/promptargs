@@ -528,6 +528,17 @@ The switch names `no-interactive`, `cross`, `json` and `status` are reserved and
 
 ---
 
+## Contributing & Community
+
+promptargs is part of [Hive Commons](https://hivecommons.dev), a family of tools for working with AI agents.
+
+- Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, and pull request guidelines.
+- Found a bug or have an idea? Open an [issue](https://github.com/hivecommons/promptargs/issues).
+- Reporting a security vulnerability? Follow [SECURITY.md](SECURITY.md) to report it privately, not through public issues.
+- Please follow the [Hive Commons Code of Conduct](https://github.com/hivecommons/.github/blob/main/CODE_OF_CONDUCT.md).
+
+---
+
 ## License
 
 Apache-2.0
