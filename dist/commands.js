@@ -50,7 +50,9 @@ export function doList() {
             continue;
         }
         try {
-            const varNames = parseVars(t.content).map(v => {
+            const tplVars = parseVars(t.content);
+            assertNoReservedVars(tplVars);
+            const varNames = tplVars.map(v => {
                 if (v.defaultValue !== undefined)
                     return `${v.name}=${v.defaultValue}`;
                 return v.name;

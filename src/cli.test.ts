@@ -182,6 +182,22 @@ test('list reports a template with a dotted variable inline and still lists the 
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('list reports a template variable named like a CLI switch inline and still lists the others', () => {
+  const { cwd, home } = makeDirs();
+  mkdirSync(join(cwd, '.prompts'));
+  writeFileSync(join(cwd, '.prompts', 'bad.md'), 'Status {{status}} of {{name}}.');
+  writeFileSync(join(cwd, '.prompts', 'good.md'), 'Review {{file}} for {{focus=bugs}}.');
+  const res = runCli(['list'], cwd, home);
+  assert.strictEqual(res.status, 0);
+  assert.match(res.stdout, /^\s+bad$/m);
+  assert.match(res.stdout, /vars: \(error: Unsupported variable name "status".*reserved for the --status switch.*\)/);
+  assert.doesNotMatch(res.stdout, /\{\{status\}\}/, 'a reserved name is not listed as fillable');
+  assert.doesNotMatch(res.stdout, /\{\{name\}\}/, 'no vars are listed for a template that fails validation');
+  assert.match(res.stdout, /^\s+good$/m);
+  assert.match(res.stdout, /\{\{file\}\}\s+\{\{focus=bugs\}\}/);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('show rejects a template with a dotted variable as a usage error', () => {
   const { cwd, home } = makeDirs();
   mkdirSync(join(cwd, '.prompts'));
