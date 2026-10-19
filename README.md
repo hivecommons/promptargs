@@ -308,6 +308,8 @@ promptargs "Review {{file}} for {{focus}}" \
 
 Project templates override personal ones with the same name.
 
+Symlinked `*.md` entries are followed to their target file (so a template can live in a shared directory and be linked into `.prompts/`); symlinks to directories and dangling symlinks are skipped.
+
 ---
 
 ## Auto-Magic Variables ✨
