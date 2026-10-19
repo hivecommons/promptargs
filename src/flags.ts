@@ -7,6 +7,16 @@ export class UsageError extends Error {
 
 export const SWITCHES = new Set(['no-interactive', 'cross', 'json', 'status']);
 
+export function assertNoReservedVars(vars: { name: string }[]): void {
+  for (const v of vars) {
+    if (SWITCHES.has(v.name)) {
+      throw new UsageError(
+        `Unsupported variable name "${v.name}": it is reserved for the --${v.name} switch; rename the blank`,
+      );
+    }
+  }
+}
+
 export function parseFlags(args: string[]): Record<string, string> {
   const flags: Record<string, string> = {};
   for (let i = 0; i < args.length; i++) {

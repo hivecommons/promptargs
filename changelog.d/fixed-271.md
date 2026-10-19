@@ -1,0 +1,1 @@
+Templates with a blank named like a CLI switch (`{{status}}`, `{{json}}`, `{{cross}}`, `{{no-interactive}}`) are now rejected by the CLI and `show` with a usage error instead of the switch silently shadowing the blank. (#271)

@@ -524,6 +524,8 @@ If you installed the skill (see [Install](#as-an-agent-skill)), use it directly 
 | `... \| claude -p "do this"` | Pipe to Claude |
 | `... \| goose run` | Pipe to Goose |
 
+The switch names `no-interactive`, `cross`, `json` and `status` are reserved and cannot be used as template variable names.
+
 ---
 
 ## License

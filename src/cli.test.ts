@@ -193,6 +193,29 @@ test('show rejects a template with a dotted variable as a usage error', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('show rejects a template variable named like a CLI switch', () => {
+  const { cwd, home } = makeDirs();
+  mkdirSync(join(cwd, '.prompts'));
+  writeFileSync(join(cwd, '.prompts', 'bad.md'), 'Status {{status}}.');
+  const res = runCli(['show', 'bad'], cwd, home);
+  assert.strictEqual(res.status, 1);
+  assert.match(res.stderr, /Unsupported variable name "status": it is reserved for the --status switch/);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('run rejects inline {{status}} and {{json}} blanks but still fills ordinary names', () => {
+  const { cwd, home } = makeDirs();
+  for (const name of ['status', 'json']) {
+    const res = runCli([`Emit {{${name}}}`, `--${name}=x`], cwd, home);
+    assert.strictEqual(res.status, 1);
+    assert.match(res.stderr, new RegExp(`Unsupported variable name "${name}": it is reserved for the --${name} switch`));
+  }
+  const ok = runCli(['Emit {{state}}', '--state=open', '--no-interactive'], cwd, home);
+  assert.strictEqual(ok.status, 0);
+  assert.match(ok.stdout, /Emit open/);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('show highlights required and defaulted variables', () => {
   const { cwd, home } = makeDirs();
   mkdirSync(join(cwd, '.prompts'));

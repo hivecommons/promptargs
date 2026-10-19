@@ -14,7 +14,7 @@ import { findTemplate } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
 import { startUI } from './ui.js';
-import { UsageError, parseFlags, parsePort } from './flags.js';
+import { UsageError, assertNoReservedVars, parseFlags, parsePort } from './flags.js';
 import { diag, classifyError } from './log.js';
 import { doInit, doList, doShow, printEnv } from './commands.js';
 import { sanitizeForTerminal } from './sanitize.js';
@@ -101,6 +101,7 @@ async function main() {
         name = tpl.name;
     }
     const vars = parseVars(content);
+    assertNoReservedVars(vars);
     if (vars.length === 0) {
         // No variables — skip expand() so Mustache-style content that is not a promptargs blank stays untouched
         if (statusOnly) {
