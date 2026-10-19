@@ -4,7 +4,7 @@ import { parseVars, VAR_PATTERN } from './parser.js';
 import { findTemplate, loadTemplates } from './loader.js';
 import { autodetect, AUTODETECT_VARS } from './autodetect.js';
 import { sanitizeForTerminal } from './sanitize.js';
-import { UsageError, assertNoReservedVars } from './flags.js';
+import { UsageError, assertNoReservedVars, subcommandCollision } from './flags.js';
 
 const EXAMPLE_REVIEW = `Review {{file}} for {{focus=correctness}} issues.
 Be {{tone=concise}} in your feedback.
@@ -54,6 +54,12 @@ export function doList() {
       console.log('');
       continue;
     }
+    const collision = subcommandCollision(t.name);
+    if (collision) {
+      console.log(sanitizeForTerminal(`    ${collision}`));
+      console.log('');
+      continue;
+    }
     try {
       const tplVars = parseVars(t.content);
       assertNoReservedVars(tplVars);
@@ -81,6 +87,9 @@ export function doShow(templateName?: string) {
   if (!tpl) {
     throw new UsageError(`Template "${templateName}" not found.`);
   }
+
+  const collision = subcommandCollision(tpl.name);
+  if (collision) console.error(sanitizeForTerminal(collision));
 
   // Defaults are merged across repeated blanks, so {{name}} … {{name=dflt}}
   // must colour every occurrence as "has default", not just the one that

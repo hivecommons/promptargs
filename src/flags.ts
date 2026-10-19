@@ -10,6 +10,12 @@ const SUBCOMMAND_NAMES = ['help', 'env', 'ui', 'init', 'list', 'show'] as const;
 export type Subcommand = (typeof SUBCOMMAND_NAMES)[number];
 export const SUBCOMMANDS = new Set<string>(SUBCOMMAND_NAMES);
 
+export function subcommandCollision(name: string): string | undefined {
+  return SUBCOMMANDS.has(name)
+    ? `(unreachable: name collides with the "${name}" subcommand; rename the file)`
+    : undefined;
+}
+
 export function assertNoReservedVars(vars: { name: string }[]): void {
   for (const v of vars) {
     if (SWITCHES.has(v.name)) {

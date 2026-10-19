@@ -6,25 +6,31 @@ import { join } from 'node:path';
 import { doShow, doList } from './commands.js';
 import { UsageError } from './flags.js';
 
-function captureShow(templateContent: string): string {
+function captureShowNamed(name: string, content: string): { out: string; err: string } {
   const dir = mkdtempSync(join(tmpdir(), 'promptargs-show-'));
   mkdirSync(join(dir, '.prompts'));
-  writeFileSync(join(dir, '.prompts', 'demo.md'), templateContent);
+  writeFileSync(join(dir, '.prompts', `${name}.md`), content);
   const prevCwd = process.cwd();
   const origLog = console.log;
-  const lines: string[] = [];
+  const origErr = console.error;
+  const out: string[] = [];
+  const err: string[] = [];
   process.chdir(dir);
-  console.log = (...args: unknown[]) => {
-    lines.push(args.map(String).join(' '));
-  };
+  console.log = (...args: unknown[]) => { out.push(args.map(String).join(' ')); };
+  console.error = (...args: unknown[]) => { err.push(args.map(String).join(' ')); };
   try {
-    doShow('demo');
+    doShow(name);
   } finally {
     console.log = origLog;
+    console.error = origErr;
     process.chdir(prevCwd);
     rmSync(dir, { recursive: true, force: true });
   }
-  return lines.join('\n');
+  return { out: out.join('\n'), err: err.join('\n') };
+}
+
+function captureShow(templateContent: string): string {
+  return captureShowNamed('demo', templateContent).out;
 }
 
 function captureList(templateContent: string, templateName: string = 'demo.md'): string {
@@ -85,5 +91,29 @@ describe('doList', () => {
     assert.ok(out.includes('{{file}}'), 'should include {{file}}');
     assert.ok(out.includes('{{focus=correctness}}'), 'should include {{focus=correctness}}');
   });
+
+  it('marks a template named after a subcommand as unreachable instead of listing its vars', () => {
+    const out = captureList('List {{dir}}.\n', 'list.md');
+    assert.ok(out.includes('(unreachable: name collides with the "list" subcommand; rename the file)'));
+    assert.ok(!out.includes('vars:'), 'should not print a vars line');
+  });
+
+  it('does not mark a normally named template as unreachable', () => {
+    const out = captureList('Hello {{who}}.\n', 'greet.md');
+    assert.ok(!out.includes('unreachable'));
+    assert.ok(out.includes('vars: {{who}}'));
+  });
 });
 
+describe('doShow subcommand collisions', () => {
+  it('warns on stderr before previewing a template named after a subcommand', () => {
+    const { out, err } = captureShowNamed('list', 'List {{dir}}.\n');
+    assert.ok(err.includes('(unreachable: name collides with the "list" subcommand; rename the file)'));
+    assert.ok(out.includes('List'));
+  });
+
+  it('prints no warning for a normally named template', () => {
+    const { err } = captureShowNamed('greet', 'Hello.\n');
+    assert.strictEqual(err, '');
+  });
+});

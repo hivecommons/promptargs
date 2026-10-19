@@ -5,6 +5,7 @@ export declare const SWITCHES: Set<string>;
 declare const SUBCOMMAND_NAMES: readonly ["help", "env", "ui", "init", "list", "show"];
 export type Subcommand = (typeof SUBCOMMAND_NAMES)[number];
 export declare const SUBCOMMANDS: Set<string>;
+export declare function subcommandCollision(name: string): string | undefined;
 export declare function assertNoReservedVars(vars: {
     name: string;
 }[]): void;

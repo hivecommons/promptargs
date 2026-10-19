@@ -5,6 +5,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, existsSync, readFileSync, rmSync
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { SUBCOMMANDS } from './flags.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLI = join(__dirname, 'cli.js');
@@ -637,4 +638,19 @@ test('cli treats non-TTY stdin as non-interactive instead of printing nothing', 
   });
   assert.strictEqual(res.status, 0);
   assert.strictEqual(res.stdout, 'Hi {{pa_unfilled}}\n');
+});
+
+test('every SUBCOMMANDS name is dispatched before template lookup', () => {
+  // A template file named after a subcommand must never be expanded: the
+  // subcommand wins (and `list` flags the file as unreachable). `ui` is left
+  // out because it starts a server instead of returning.
+  const { cwd, home } = makeDirs();
+  mkdirSync(join(cwd, '.prompts'), { recursive: true });
+  for (const name of SUBCOMMANDS) {
+    if (name === 'ui') continue;
+    writeFileSync(join(cwd, '.prompts', `${name}.md`), 'EXPANDED-{{x}}-SENTINEL\n');
+    const res = runCli([name, '--x=yes', '--no-interactive'], cwd, home);
+    assert.doesNotMatch(res.stdout + res.stderr, /EXPANDED-yes-SENTINEL/, `${name} ran as a template`);
+  }
+  rmSync(dirname(cwd), { recursive: true, force: true });
 });

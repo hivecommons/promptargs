@@ -7,6 +7,11 @@ export class UsageError extends Error {
 export const SWITCHES = new Set(['no-interactive', 'cross', 'json', 'status']);
 const SUBCOMMAND_NAMES = ['help', 'env', 'ui', 'init', 'list', 'show'];
 export const SUBCOMMANDS = new Set(SUBCOMMAND_NAMES);
+export function subcommandCollision(name) {
+    return SUBCOMMANDS.has(name)
+        ? `(unreachable: name collides with the "${name}" subcommand; rename the file)`
+        : undefined;
+}
 export function assertNoReservedVars(vars) {
     for (const v of vars) {
         if (SWITCHES.has(v.name)) {
