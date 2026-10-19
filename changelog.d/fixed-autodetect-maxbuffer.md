@@ -1,0 +1,1 @@
+The `diff` detector (`git diff --staged` falling back to `git diff`) was silently falling back to unstaged changes when the staged diff exceeded Node's 1 MiB `execSync` buffer limit (ENOBUFS error). This is now fixed by raising `maxBuffer` to 64 MiB for all `git()` calls. (#281)

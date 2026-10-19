@@ -10,7 +10,7 @@ const GH_TIMEOUT_MS = 5000;
 
 function git(cmd: string): string | undefined {
   try {
-    const out = execSync(`git ${cmd}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    const out = execSync(`git ${cmd}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 }).trim();
     // Success with empty output (detached HEAD for `branch --show-current`,
     // clean tree for `diff`) is "nothing detected", not an empty value —
     // otherwise it would override the template default and skip the prompt.
