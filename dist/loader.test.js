@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 // loader.ts resolves the user template dir from homedir() at import time,
 // so point HOME at a scratch dir before importing it (each test file runs
@@ -96,6 +96,30 @@ describe('findTemplate', () => {
             const names = loadTemplates(root).map(t => t.name);
             assert.ok(!names.includes('foo'));
             assert.ok(names.includes('ok'));
+        }
+        finally {
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
+    it('follows symlinks to files, skips symlinks to directories and dangling symlinks', () => {
+        const root = mkdtempSync(join(process.cwd(), '.pa-link-'));
+        const prompts = join(root, '.prompts');
+        mkdirSync(prompts);
+        mkdirSync(join(root, 'elsewhere'));
+        writeFileSync(join(root, 'elsewhere', 'real.txt'), 'Linked {{x}}');
+        symlinkSync(join(root, 'elsewhere', 'real.txt'), join(prompts, 'linked.md'));
+        symlinkSync(join(root, 'elsewhere'), join(prompts, 'dir.md'));
+        symlinkSync(join(root, 'missing.txt'), join(prompts, 'dangling.md'));
+        writeFileSync(join(prompts, 'plain.md'), 'plain');
+        try {
+            const all = loadTemplates(root).filter(x => x.source === 'project');
+            assert.deepStrictEqual(all.map(x => x.name).sort(), ['linked', 'plain']);
+            const linked = all.find(x => x.name === 'linked');
+            assert.strictEqual(linked?.content, 'Linked {{x}}');
+            assert.strictEqual(linked?.path, join(prompts, 'linked.md'));
+            assert.strictEqual(linked?.error, undefined);
+            assert.strictEqual(findTemplate('dangling', root), undefined);
+            assert.strictEqual(findTemplate('dir', root), undefined);
         }
         finally {
             rmSync(root, { recursive: true, force: true });
