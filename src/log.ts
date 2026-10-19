@@ -7,6 +7,8 @@
 export type LogEvent =
   | 'ui_host_rejected'
   | 'ui_host_rejected_total'
+  | 'ui_token_rejected'
+  | 'ui_token_rejected_total'
   | 'ui_asset_error'
   | 'ui_request'
   | 'ui_start_error'

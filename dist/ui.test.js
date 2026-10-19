@@ -7,7 +7,7 @@ import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSy
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { buildUIHtml, collectEnvVars, shouldSkipEnv, startUI, truncateValue, } from './ui.js';
+import { buildUIHtml, collectEnvVars, requestCarriesToken, shouldSkipEnv, startUI, truncateValue, } from './ui.js';
 test('shouldSkipEnv filters noisy shell and tooling variables', () => {
     assert.equal(shouldSkipEnv('HOME'), true);
     assert.equal(shouldSkipEnv('npm_config_cache'), true);
@@ -119,20 +119,64 @@ test('buildUIHtml injects env data before the module script in the real ui.html'
     assert.ok(moduleIdx > envIdx);
 });
 test('startUI binds a server that rejects non-local Host headers', async () => {
-    const server = startUI(0, { openBrowser: false });
-    await onceListening(server);
-    const { port } = server.address();
+    const { server, port, page } = await launch();
     try {
-        const allowed = await request(port, `127.0.0.1:${port}`);
+        const allowed = await request(port, `127.0.0.1:${port}`, page);
         assert.equal(allowed.statusCode, 200);
         assert.match(allowed.body, /window\.__PROMPTARGS_ENV__/);
-        const forbidden = await request(port, 'evil.example');
+        // A valid token does not rescue a request with a foreign Host.
+        const forbidden = await request(port, 'evil.example', page);
         assert.equal(forbidden.statusCode, 403);
         assert.equal(forbidden.body, 'Forbidden');
     }
     finally {
         await closeServer(server);
     }
+});
+test('startUI serves the env-bearing page only to a client presenting the per-run token', async () => {
+    // Loopback is shared by every account on the host; the Host check alone
+    // would let another local user read the embedded environment.
+    const lines = [];
+    const origError = console.error;
+    console.error = (...args) => { lines.push(args.join(' ')); };
+    const { server, port, token, page } = await launch();
+    const host = `localhost:${port}`;
+    try {
+        assert.match(token, /^[0-9a-f]{32}$/);
+        for (const path of ['/', '/?t=', `/?t=${token.slice(0, -1)}`, `/?t=${token}0`, `/?x=${token}`, '/index.html']) {
+            const denied = await request(port, host, path);
+            assert.equal(denied.statusCode, 403, path);
+            assert.equal(denied.body, 'Forbidden', path);
+            assert.doesNotMatch(denied.body, /__PROMPTARGS_ENV__/);
+        }
+        const allowed = await request(port, host, page);
+        assert.equal(allowed.statusCode, 200);
+        assert.match(allowed.body, /window\.__PROMPTARGS_ENV__/);
+        // Public module code the page imports needs no token.
+        assert.equal((await request(port, host, '/parser.js')).statusCode, 200);
+        assert.equal(lines.length, 1);
+        assert.match(lines[0], /rejected request without the access token/);
+        assert.doesNotMatch(lines[0], new RegExp(token));
+        await closeServer(server);
+        assert.equal(lines.length, 2);
+        assert.match(lines[1], /rejected 6 requests without the access token/);
+    }
+    finally {
+        console.error = origError;
+        if (server.listening)
+            await closeServer(server);
+    }
+});
+test('requestCarriesToken compares the t query parameter exactly', () => {
+    const token = 'ab'.repeat(16);
+    assert.equal(requestCarriesToken(`/?t=${token}`, token), true);
+    assert.equal(requestCarriesToken(`/anything?x=1&t=${token}`, token), true);
+    assert.equal(requestCarriesToken(`/?t=${token.toUpperCase()}`, token), false);
+    assert.equal(requestCarriesToken(`/?t=${token.slice(1)}`, token), false);
+    assert.equal(requestCarriesToken('/?t=', token), false);
+    assert.equal(requestCarriesToken('/', token), false);
+    assert.equal(requestCarriesToken(undefined, token), false);
+    assert.equal(requestCarriesToken('http://[::1', token), false);
 });
 test('startUI logs a rejected Host once on stderr without echoing it, and totals on close', async () => {
     const lines = [];
@@ -164,23 +208,24 @@ test('startUI emits one ui_request JSON line per request when PROMPTARGS_LOG=jso
     const origLog = process.env.PROMPTARGS_LOG;
     console.error = (...args) => { lines.push(args.join(' ')); };
     process.env.PROMPTARGS_LOG = 'json';
-    const server = startUI(0, { openBrowser: false });
+    const { server, port, token, page } = await launch();
     try {
-        await onceListening(server);
-        const { port } = server.address();
-        assert.equal((await request(port, `127.0.0.1:${port}`)).statusCode, 200);
+        assert.equal((await request(port, `127.0.0.1:${port}`, page)).statusCode, 200);
         assert.equal((await request(port, 'evil.example')).statusCode, 403);
+        assert.equal((await request(port, `127.0.0.1:${port}`)).statusCode, 403);
         await closeServer(server);
         const events = lines.map(l => JSON.parse(l));
         const requests = events.filter(e => e.event === 'ui_request');
-        assert.deepStrictEqual(requests.map(e => e.status), [200, 403]);
+        assert.deepStrictEqual(requests.map(e => e.status), [200, 403, 403]);
         for (const e of requests) {
             assert.deepStrictEqual(Object.keys(e), ['event', 'status', 'duration_ms']);
             assert.ok(e.duration_ms >= 0);
         }
         assert.ok(events.some(e => e.event === 'ui_host_rejected' && e.status === 403));
+        assert.ok(events.some(e => e.event === 'ui_token_rejected' && e.status === 403));
         // Never echo the attacker-controlled Host header, even in JSON mode.
         assert.ok(!lines.some(l => l.includes('evil.example')));
+        assert.ok(!lines.some(l => l.includes(token)));
     }
     finally {
         console.error = origError;
@@ -193,9 +238,7 @@ test('startUI emits one ui_request JSON line per request when PROMPTARGS_LOG=jso
     }
 });
 test('startUI serves the parser/iterate/mustache modules the browser imports', async () => {
-    const server = startUI(0, { openBrowser: false });
-    await onceListening(server);
-    const { port } = server.address();
+    const { server, port, token } = await launch();
     try {
         const parser = await request(port, `127.0.0.1:${port}`, '/parser.js');
         assert.equal(parser.statusCode, 200);
@@ -210,23 +253,23 @@ test('startUI serves the parser/iterate/mustache modules the browser imports', a
         assert.equal(mustache.statusCode, 200);
         assert.match(mustache.body, /export default mustache/);
         const missing = await request(port, `127.0.0.1:${port}`, '/does-not-exist.js');
-        assert.equal(missing.statusCode, 200);
-        assert.match(missing.body, /window\.__PROMPTARGS_ENV__/);
+        assert.equal(missing.statusCode, 403);
+        const missingWithToken = await request(port, `127.0.0.1:${port}`, `/does-not-exist.js?t=${token}`);
+        assert.equal(missingWithToken.statusCode, 200);
+        assert.match(missingWithToken.body, /window\.__PROMPTARGS_ENV__/);
     }
     finally {
         await closeServer(server);
     }
 });
 test('startUI with port 0 accepts every loopback Host carrying the actual bound port', async () => {
-    const server = startUI(0, { openBrowser: false });
-    await onceListening(server);
-    const { port } = server.address();
+    const { server, port, page } = await launch();
     try {
         assert.notEqual(port, 0);
         for (const host of [`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`]) {
-            assert.equal((await request(port, host)).statusCode, 200, host);
+            assert.equal((await request(port, host, page)).statusCode, 200, host);
         }
-        assert.equal((await request(port, 'localhost:0')).statusCode, 403);
+        assert.equal((await request(port, 'localhost:0', page)).statusCode, 403);
     }
     finally {
         await closeServer(server);
@@ -276,6 +319,24 @@ function onceListening(server) {
     if (server.listening)
         return Promise.resolve();
     return new Promise(resolve => server.once('listening', resolve));
+}
+// Starts the UI on an ephemeral port and recovers the per-run access token
+// from the URL it prints, the same way a user would.
+async function launch() {
+    const origLog = console.log;
+    let out = '';
+    console.log = (...args) => { out += args.join(' ') + '\n'; };
+    const server = startUI(0, { openBrowser: false });
+    try {
+        await onceListening(server);
+    }
+    finally {
+        console.log = origLog;
+    }
+    const { port } = server.address();
+    const token = out.match(new RegExp(`running at http://localhost:${port}/\\?t=([0-9a-f]+)`))?.[1];
+    assert.ok(token, `no access token in startup output: ${out}`);
+    return { server, port, token, page: `/?t=${token}` };
 }
 function closeServer(server) {
     return new Promise((resolve, reject) => {
@@ -402,13 +463,17 @@ test('browser open picks the right command for each platform', { skip: process.p
                 env: { ...process.env, PATH: shimDir },
             });
             assert.strictEqual(res.status, 0, `platform ${platform}: ${res.stderr}`);
-            const port = res.stdout.match(/promptargs builder running at http:\/\/localhost:(\d+)/)?.[1];
-            assert.ok(port, `platform ${platform}: no bound port in stdout: ${res.stdout}`);
+            const [, port, token] = res.stdout.match(/promptargs builder running at http:\/\/localhost:(\d+)\/\?t=([0-9a-f]{32})/) ?? [];
+            assert.ok(port && token, `platform ${platform}: no bound port and token in stdout: ${res.stdout}`);
+            const url = `http://localhost:${port}/?t=${token}`;
             // collectEnvVars' git/gh probes go through the same shell; keep only opener calls.
             const openers = new Set(Object.values(expected));
             const invocations = readFileSync(logFile, 'utf-8').trim().split('\n')
                 .filter(line => openers.has(line.split(' ')[0]));
-            assert.deepStrictEqual(invocations, [`${cmd} http://localhost:${port}`], `platform ${platform} should open the browser with ${cmd} exactly once`);
+            // POSIX shims see the URL as one unquoted argv word; the cmd.exe shim
+            // records the whole `start "" "<url>"` command line it was handed.
+            const expectedInvocation = platform === 'win32' ? `start "" "${url}"` : `${cmd} ${url}`;
+            assert.deepStrictEqual(invocations, [expectedInvocation], `platform ${platform} should open the browser with ${cmd} exactly once`);
         }
     }
     finally {
@@ -431,7 +496,7 @@ test('missing opener logs a hint', { skip: process.platform === 'win32' && 'POSI
     assert.strictEqual(res.status, 0, res.stderr);
     const port = res.stdout.match(/promptargs builder running at http:\/\/localhost:(\d+)/)?.[1];
     assert.ok(port, `no bound port in stdout: ${res.stdout}`);
-    assert.match(res.stderr, new RegExp(`promptargs: could not open a browser \\(.+\\); open http://localhost:${port} manually`));
+    assert.match(res.stderr, new RegExp(`promptargs: could not open a browser \\(.+\\); open http://localhost:${port}/\\?t=[0-9a-f]{32} manually`));
 });
 test('startUI rethrows non-EADDRINUSE server errors', async (t) => {
     // Only run where binding port 1 really fails with EACCES; containers with

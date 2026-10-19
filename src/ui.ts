@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -82,6 +83,24 @@ const STATIC_JS_ROUTES: Record<string, string> = {
   '/mustache.mjs': 'mustache.mjs',
 };
 
+// Query parameter carrying the per-run access token (see startUI).
+export const UI_TOKEN_PARAM = 't';
+const UI_TOKEN_BYTES = 16;
+
+export function requestCarriesToken(url: string | undefined, token: string): boolean {
+  if (!url) return false;
+  let supplied: string | null;
+  try {
+    supplied = new URL(url, 'http://localhost').searchParams.get(UI_TOKEN_PARAM);
+  } catch {
+    return false;
+  }
+  if (supplied === null) return false;
+  const a = Buffer.from(supplied, 'utf8');
+  const b = Buffer.from(token, 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Server {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const htmlPath = join(__dirname, 'ui.html');
@@ -99,7 +118,14 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
   // Filled once the server is bound, because port 0 means the OS picks one.
   const ALLOWED_HOSTS = new Set<string>();
 
+  // Loopback is shared by every account on the machine, so the Host check
+  // alone still lets another local user read the embedded environment. The
+  // page is only served to a client presenting this per-run random token,
+  // which reaches the user's browser solely through the printed/opened URL.
+  const token = randomBytes(UI_TOKEN_BYTES).toString('hex');
+
   let rejectedHosts = 0;
+  let rejectedTokens = 0;
 
   const server = createServer((req, res) => {
     if (jsonLogEnabled()) {
@@ -133,6 +159,17 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
       return;
     }
 
+    // Only the page embeds environment data; the module routes above are
+    // public package code and stay reachable for the page's relative imports.
+    if (!requestCarriesToken(req.url, token)) {
+      if (rejectedTokens++ === 0) {
+        diag('ui_token_rejected', { status: 403 }, 'promptargs: rejected request without the access token printed at startup (further rejections suppressed)');
+      }
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Forbidden');
+      return;
+    }
+
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
   });
@@ -144,7 +181,7 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
     ALLOWED_HOSTS.add(`localhost:${boundPort}`);
     ALLOWED_HOSTS.add(`127.0.0.1:${boundPort}`);
     ALLOWED_HOSTS.add(`[::1]:${boundPort}`);
-    const url = `http://localhost:${boundPort}`;
+    const url = `http://localhost:${boundPort}/?${UI_TOKEN_PARAM}=${token}`;
     console.log(`promptargs builder running at ${url}`);
     console.log('Press Ctrl+C to stop.\n');
 
@@ -153,7 +190,11 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
         import('node:child_process').then(({ exec }) => {
           const cmd = process.platform === 'darwin' ? 'open' :
                       process.platform === 'win32' ? 'start' : 'xdg-open';
-          exec(`${cmd} ${url}`, err => {
+          // The URL is program-generated (digits and hex only) but carries a
+          // "?", so quote it for the shell; `start` reads its first quoted
+          // argument as a window title, hence the empty one on Windows.
+          const command = cmd === 'start' ? `start "" "${url}"` : `${cmd} "${url}"`;
+          exec(command, err => {
             if (!err) return;
             // Through a shell, a missing opener surfaces as exit status 127 rather than ENOENT.
             const why = (err.code as unknown) === 127 ? 'not found' : String(err.code ?? err.message);
@@ -168,6 +209,9 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
   server.on('close', () => {
     if (rejectedHosts > 1) {
       diag('ui_host_rejected_total', { count: rejectedHosts }, `promptargs: rejected ${rejectedHosts} requests with unexpected Host headers in total`);
+    }
+    if (rejectedTokens > 1) {
+      diag('ui_token_rejected_total', { count: rejectedTokens }, `promptargs: rejected ${rejectedTokens} requests without the access token in total`);
     }
   });
 
