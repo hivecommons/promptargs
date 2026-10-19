@@ -1,0 +1,1 @@
+`.prompts/*.md` symlinks whose real target lies outside the owning `.prompts/` directory are now refused (listed with an error, usage error when run) instead of being followed, so a cloned repo cannot make `promptargs` read arbitrary files such as `~/.ssh/id_rsa`. Symlinks that stay inside the directory still work. (#274)

@@ -101,14 +101,14 @@ describe('findTemplate', () => {
             rmSync(root, { recursive: true, force: true });
         }
     });
-    it('follows symlinks to files, skips symlinks to directories and dangling symlinks', () => {
+    it('follows symlinks to files inside .prompts, skips symlinks to directories and dangling symlinks', () => {
         const root = mkdtempSync(join(process.cwd(), '.pa-link-'));
         const prompts = join(root, '.prompts');
         mkdirSync(prompts);
-        mkdirSync(join(root, 'elsewhere'));
-        writeFileSync(join(root, 'elsewhere', 'real.txt'), 'Linked {{x}}');
-        symlinkSync(join(root, 'elsewhere', 'real.txt'), join(prompts, 'linked.md'));
-        symlinkSync(join(root, 'elsewhere'), join(prompts, 'dir.md'));
+        mkdirSync(join(prompts, 'shared'));
+        writeFileSync(join(prompts, 'shared', 'real.txt'), 'Linked {{x}}');
+        symlinkSync(join('shared', 'real.txt'), join(prompts, 'linked.md'));
+        symlinkSync(join(prompts, 'shared'), join(prompts, 'dir.md'));
         symlinkSync(join(root, 'missing.txt'), join(prompts, 'dangling.md'));
         writeFileSync(join(prompts, 'plain.md'), 'plain');
         try {
@@ -120,6 +120,37 @@ describe('findTemplate', () => {
             assert.strictEqual(linked?.error, undefined);
             assert.strictEqual(findTemplate('dangling', root), undefined);
             assert.strictEqual(findTemplate('dir', root), undefined);
+        }
+        finally {
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
+    it('refuses symlinks whose real target escapes the .prompts dir', () => {
+        const root = mkdtempSync(join(process.cwd(), '.pa-escape-'));
+        const prompts = join(root, '.prompts');
+        mkdirSync(prompts);
+        mkdirSync(join(root, 'secrets'));
+        const secret = join(root, 'secrets', 'id_rsa');
+        writeFileSync(secret, 'PRIVATE KEY');
+        symlinkSync(secret, join(prompts, 'absolute.md'));
+        symlinkSync(join('..', 'secrets', 'id_rsa'), join(prompts, 'relative.md'));
+        // A sibling directory whose name merely starts with ".prompts" must not pass the prefix check.
+        mkdirSync(join(root, '.prompts-other'));
+        writeFileSync(join(root, '.prompts-other', 'x.md'), 'other');
+        symlinkSync(join(root, '.prompts-other', 'x.md'), join(prompts, 'sibling.md'));
+        // A link to a link that lands inside .prompts is still fine.
+        writeFileSync(join(prompts, 'inner.md'), 'inner');
+        symlinkSync(join(prompts, 'inner.md'), join(prompts, 'hop.md'));
+        try {
+            const all = loadTemplates(root).filter(x => x.source === 'project');
+            for (const name of ['absolute', 'relative', 'sibling']) {
+                const t = all.find(x => x.name === name);
+                assert.ok(t, `${name} is listed`);
+                assert.strictEqual(t.content, '', `${name} content is never read`);
+                assert.match(t.error ?? '', /outside .*\.prompts/);
+                assert.throws(() => findTemplate(name, root), (e) => e.name === 'UsageError' && /outside/.test(e.message) && !e.message.includes('PRIVATE KEY'));
+            }
+            assert.strictEqual(findTemplate('hop', root)?.content, 'inner');
         }
         finally {
             rmSync(root, { recursive: true, force: true });

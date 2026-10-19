@@ -2,8 +2,8 @@
  * Find and load prompt templates from .prompts/ directories.
  */
 
-import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
-import { join, basename, extname } from 'node:path';
+import { readFileSync, readdirSync, existsSync, statSync, realpathSync } from 'node:fs';
+import { join, basename, extname, sep } from 'node:path';
 import { homedir } from 'node:os';
 import { UsageError } from './flags.js';
 import { diag, classifyError } from './log.js';
@@ -33,19 +33,40 @@ function loadFromDir(dir: string, source: 'project' | 'user'): PromptTemplate[] 
     return [];
   }
 
+  // Symlinked templates must resolve to a file inside this .prompts dir; a
+  // cloned repo must not be able to make `promptargs x` read ~/.ssh/id_rsa.
+  let realDir: string;
+  try {
+    realDir = realpathSync(dir);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    diag('loader_dir_unreadable', { error_class: classifyError(err) }, sanitizeForTerminal(`promptargs: cannot resolve ${dir}: ${msg}`));
+    return [];
+  }
+  const realDirPrefix = realDir.endsWith(sep) ? realDir : realDir + sep;
+
   const templates: PromptTemplate[] = [];
   for (const entry of entries) {
     const f = entry.name;
     if (!f.endsWith('.md')) continue;
     const path = join(dir, f);
+    const isLink = entry.isSymbolicLink();
     try {
-      const isFile = entry.isSymbolicLink() ? statSync(path).isFile() : entry.isFile();
+      const isFile = isLink ? statSync(path).isFile() : entry.isFile();
       if (!isFile) continue;
     } catch {
       continue; // dangling symlink
     }
     const template: PromptTemplate = { name: basename(f, extname(f)), content: '', path, source };
     try {
+      if (isLink) {
+        const target = realpathSync(path);
+        if (!target.startsWith(realDirPrefix)) {
+          template.error = `symlink target ${target} is outside ${dir}; templates must stay inside the .prompts directory`;
+          templates.push(template);
+          continue;
+        }
+      }
       template.content = readFileSync(path, 'utf8');
     } catch (err) {
       template.error = err instanceof Error ? err.message : String(err);
