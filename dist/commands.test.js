@@ -1,6 +1,6 @@
 import { describe, it, after } from 'node:test';
 import assert from 'node:assert';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, lstatSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 // Isolate HOME before importing commands.js, which imports loader.js.
@@ -8,7 +8,7 @@ import { join } from 'node:path';
 const fakeHome = mkdtempSync(join(process.cwd(), '.pa-home-'));
 process.env.HOME = fakeHome;
 mkdirSync(join(fakeHome, '.prompts'));
-const { doShow, doList } = await import('./commands.js');
+const { doShow, doList, doInit } = await import('./commands.js');
 const { UsageError } = await import('./flags.js');
 function captureShowNamed(name, content) {
     const dir = mkdtempSync(join(tmpdir(), 'promptargs-show-'));
@@ -114,5 +114,35 @@ describe('doShow subcommand collisions', () => {
         const { err } = captureShowNamed('greet', 'Hello.\n');
         assert.strictEqual(err, '');
     });
+});
+describe('doInit with a symlinked project .prompts', () => {
+    for (const [label, dangling] of [['a symlink to a directory', false], ['a dangling symlink', true]]) {
+        it(`refuses ${label} without writing through it`, (t) => {
+            const root = mkdtempSync(join(process.cwd(), '.pa-initlink-'));
+            const target = join(root, 'elsewhere');
+            if (!dangling)
+                mkdirSync(target);
+            mkdirSync(join(root, 'proj'));
+            symlinkSync(target, join(root, 'proj', '.prompts'));
+            const errs = t.mock.method(console, 'error', () => { });
+            const logs = t.mock.method(console, 'log', () => { });
+            const prevCwd = process.cwd();
+            const prevExit = process.exitCode;
+            process.chdir(join(root, 'proj'));
+            try {
+                doInit();
+                assert.strictEqual(process.exitCode, 1);
+                assert.ok(errs.mock.calls.some(c => /is a symlink/.test(String(c.arguments[0]))));
+                assert.ok(!logs.mock.calls.some(c => /already exists/.test(String(c.arguments[0]))));
+                assert.ok(lstatSync(join(root, 'proj', '.prompts')).isSymbolicLink());
+                assert.strictEqual(existsSync(join(target, 'review.md')), false);
+            }
+            finally {
+                process.exitCode = prevExit;
+                process.chdir(prevCwd);
+                rmSync(root, { recursive: true, force: true });
+            }
+        });
+    }
 });
 //# sourceMappingURL=commands.test.js.map
