@@ -1,0 +1,1 @@
+A project `.prompts` entry that is itself a symlink is now refused (with a diagnostic) instead of being resolved and trusted as the template root, closing the gap #285 left open: a cloned repo could point `.prompts` at a directory elsewhere on the machine and have its `*.md` files listed and expanded as project templates. `~/.prompts` may still be a symlink. (#294)

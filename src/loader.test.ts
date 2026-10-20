@@ -170,6 +170,27 @@ describe('findTemplate', () => {
     }
   });
 
+  it('refuses a project .prompts that is itself a symlink', () => {
+    const root = mkdtempSync(join(process.cwd(), '.pa-dirlink-'));
+    mkdirSync(join(root, 'elsewhere'));
+    writeFileSync(join(root, 'elsewhere', 'journal.md'), 'private {{note}}');
+    symlinkSync(join(root, 'elsewhere'), join(root, '.prompts'));
+    const origError = console.error;
+    const errors: string[] = [];
+    console.error = (...args: unknown[]) => { errors.push(args.map(String).join(' ')); };
+    try {
+      const all = loadTemplates(root);
+      assert.strictEqual(all.filter(x => x.source === 'project').length, 0);
+      // User templates are unaffected by a refused project dir.
+      assert.ok(all.some(x => x.source === 'user' && x.name === 'global'));
+      assert.strictEqual(findTemplate('journal', root), undefined);
+      assert.ok(errors.some(e => /is a symlink/.test(e)), 'explains why the project dir was refused');
+    } finally {
+      console.error = origError;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('does not let an unreadable file break its siblings', (t) => {
     if (process.getuid?.() === 0) return t.skip('root bypasses file permissions');
     const root = mkdtempSync(join(process.cwd(), '.pa-perm-'));

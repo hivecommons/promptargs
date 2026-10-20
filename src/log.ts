@@ -15,7 +15,8 @@ export type LogEvent =
   | 'ui_browser_open_failed'
   | 'cli_iteration'
   | 'cli_error'
-  | 'loader_dir_unreadable';
+  | 'loader_dir_unreadable'
+  | 'loader_dir_symlink';
 
 export type ErrorClass = 'usage' | 'not_found' | 'io' | 'port_in_use' | 'unknown';
 
