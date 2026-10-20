@@ -308,7 +308,7 @@ promptargs "Review {{file}} for {{focus}}" \
 
 Project templates override personal ones with the same name.
 
-Symlinked `*.md` entries are followed only when their real target is inside the same `.prompts/` directory (a sub-directory is fine); a symlink whose target escapes the directory is listed with an error and refused when run, so a cloned repo cannot make `promptargs` read files elsewhere on your machine. Symlinks to directories and dangling symlinks are skipped. The project `.prompts/` entry itself must be a real directory: if it is a symlink, it is refused with a diagnostic on stderr and no project templates are loaded (`~/.prompts/` is yours and may be a symlink).
+Symlinked `*.md` entries are followed only when their real target is inside the same `.prompts/` directory (a sub-directory is fine); a symlink whose target escapes the directory is listed with an error and refused when run, so a cloned repo cannot make `promptargs` read files elsewhere on your machine. Symlinks to directories and dangling symlinks are skipped. The project `.prompts/` entry itself must be a real directory: if it is a symlink, it is refused with a diagnostic on stderr (`loader_dir_symlink` under `PROMPTARGS_LOG=json`) and no project templates are loaded (`~/.prompts/` is yours and may be a symlink).
 
 ---
 
