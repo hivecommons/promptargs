@@ -10,12 +10,11 @@ import { sanitizeForTerminal } from './sanitize.js';
 const PROJECT_DIR = '.prompts';
 const USER_DIR = join(homedir(), '.prompts');
 function loadFromDir(dir, source) {
-    if (!existsSync(dir))
-        return [];
     // The per-file escape check below trusts the resolved directory as its root,
     // so a checked-out repo must not be able to replace the project .prompts
     // entry itself with a link to somewhere else on the machine. ~/.prompts is
-    // the user's own and may be a link.
+    // the user's own and may be a link. lstat runs before existsSync (which
+    // follows links) so a dangling project link is explained rather than skipped.
     if (source === 'project') {
         try {
             if (lstatSync(dir).isSymbolicLink()) {
@@ -24,11 +23,15 @@ function loadFromDir(dir, source) {
             }
         }
         catch (err) {
+            if (err.code === 'ENOENT')
+                return [];
             const msg = err instanceof Error ? err.message : String(err);
             diag('loader_dir_unreadable', { error_class: classifyError(err) }, sanitizeForTerminal(`promptargs: cannot stat ${dir}: ${msg}`));
             return [];
         }
     }
+    if (!existsSync(dir))
+        return [];
     let entries;
     try {
         entries = readdirSync(dir, { withFileTypes: true });

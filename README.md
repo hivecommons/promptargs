@@ -308,7 +308,7 @@ promptargs "Review {{file}} for {{focus}}" \
 
 Project templates override personal ones with the same name.
 
-Symlinked `*.md` entries are followed only when their real target is inside the same `.prompts/` directory (a sub-directory is fine); a symlink whose target escapes the directory is listed with an error and refused when run, so a cloned repo cannot make `promptargs` read files elsewhere on your machine. Symlinks to directories and dangling symlinks are skipped.
+Symlinked `*.md` entries are followed only when their real target is inside the same `.prompts/` directory (a sub-directory is fine); a symlink whose target escapes the directory is listed with an error and refused when run, so a cloned repo cannot make `promptargs` read files elsewhere on your machine. Symlinks to directories and dangling symlinks are skipped. The project `.prompts/` entry itself must be a real directory: if it is a symlink, it is refused with a diagnostic on stderr and no project templates are loaded (`~/.prompts/` is yours and may be a symlink).
 
 ---
 
@@ -423,7 +423,7 @@ promptargs does not collect or export telemetry. There is no telemetry SDK, metr
 
 All runtime diagnostics are human-readable console output (CLI status/errors, UI startup/port messages). The **Builder UI** (`promptargs ui`) binds to loopback only (`127.0.0.1`), rejects requests with a non-local `Host` header, and only serves the page to a client presenting the random per-run token in the URL it prints at startup, so the page — including the auto-detected Git and terminal environment values it embeds (see [Auto-Magic Variables](#auto-magic-variables-)) — is never reachable from other machines on your network, nor from other accounts sharing the same machine's loopback interface.
 
-**Opt-in structured diagnostics:** set `PROMPTARGS_LOG=json` to make diagnostics (CLI errors and iteration progress, UI Host and token rejections, asset failures, unreadable prompts directories, and one line per UI request) print as JSON lines on stderr with a fixed field set: `event`, plus `status`, `duration_ms`, `error_class` (`usage`, `not_found`, `io`, `port_in_use`, `unknown`), `count`, `current`, `total` where relevant. Template contents, argument values, paths and error messages are never logged. When unset, output is unchanged. Nothing is sent over the network.
+**Opt-in structured diagnostics:** set `PROMPTARGS_LOG=json` to make diagnostics (CLI errors and iteration progress, UI Host and token rejections, asset failures, unreadable or symlinked prompts directories, and one line per UI request) print as JSON lines on stderr with a fixed field set: `event`, plus `status`, `duration_ms`, `error_class` (`usage`, `not_found`, `io`, `port_in_use`, `unknown`), `count`, `current`, `total` where relevant. Template contents, argument values, paths and error messages are never logged. When unset, output is unchanged. Nothing is sent over the network.
 
 If observability is ever added in the future, it will be explicit opt-in, bounded to local diagnostics, and will exclude environment values, template/prompt content, file paths, diffs, and user identifiers. No network exporter will be added unless you explicitly configure a backend yourself.
 

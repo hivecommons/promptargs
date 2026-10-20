@@ -156,24 +156,36 @@ describe('findTemplate', () => {
             rmSync(root, { recursive: true, force: true });
         }
     });
-    it('refuses a project .prompts that is itself a symlink', () => {
+    it('refuses a project .prompts that is itself a symlink', (t) => {
         const root = mkdtempSync(join(process.cwd(), '.pa-dirlink-'));
         mkdirSync(join(root, 'elsewhere'));
         writeFileSync(join(root, 'elsewhere', 'journal.md'), 'private {{note}}');
         symlinkSync(join(root, 'elsewhere'), join(root, '.prompts'));
-        const origError = console.error;
-        const errors = [];
-        console.error = (...args) => { errors.push(args.map(String).join(' ')); };
+        const warn = t.mock.method(console, 'error', () => { });
         try {
             const all = loadTemplates(root);
             assert.strictEqual(all.filter(x => x.source === 'project').length, 0);
             // User templates are unaffected by a refused project dir.
             assert.ok(all.some(x => x.source === 'user' && x.name === 'global'));
             assert.strictEqual(findTemplate('journal', root), undefined);
+            const errors = warn.mock.calls.map(c => String(c.arguments[0]));
             assert.ok(errors.some(e => /is a symlink/.test(e)), 'explains why the project dir was refused');
         }
         finally {
-            console.error = origError;
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
+    it('explains a dangling project .prompts symlink instead of skipping it silently', (t) => {
+        const root = mkdtempSync(join(process.cwd(), '.pa-dangling-'));
+        symlinkSync(join(root, 'missing'), join(root, '.prompts'));
+        const warn = t.mock.method(console, 'error', () => { });
+        try {
+            const all = loadTemplates(root);
+            assert.strictEqual(all.filter(x => x.source === 'project').length, 0);
+            const errors = warn.mock.calls.map(c => String(c.arguments[0]));
+            assert.ok(errors.some(e => /is a symlink/.test(e)));
+        }
+        finally {
             rmSync(root, { recursive: true, force: true });
         }
     });
