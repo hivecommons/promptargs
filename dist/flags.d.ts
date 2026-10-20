@@ -9,6 +9,7 @@ export declare function subcommandCollision(name: string): string | undefined;
 export declare function assertNoReservedVars(vars: {
     name: string;
 }[]): void;
+export declare function wantsHelp(args: string[]): boolean;
 export declare function parseFlags(args: string[]): Record<string, string>;
 export declare function parsePort(flags: Record<string, string>): number | undefined;
 export {};

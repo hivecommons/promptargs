@@ -17,7 +17,7 @@ import { findTemplate } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
 import { startUI } from './ui.js';
-import { UsageError, assertNoReservedVars, parseFlags, parsePort, SUBCOMMANDS } from './flags.js';
+import { UsageError, assertNoReservedVars, parseFlags, parsePort, wantsHelp, SUBCOMMANDS } from './flags.js';
 import type { Subcommand } from './flags.js';
 import { diag, classifyError } from './log.js';
 import { doInit, doList, doShow, printEnv } from './commands.js';
@@ -41,6 +41,7 @@ Flags:
   --cross             Cross-product mode: all combinations of array values
   --json              Output as JSON instead of plain text
   --status            Print status line only (for IDE integration)
+  -h, --help          Show this help
   --var value         Same as --var=value (switches above take no value)
 
 Array values:
@@ -83,7 +84,7 @@ function isSubcommand(value: string): value is Subcommand {
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args.length === 0 || args.some(a => a === '--help' || a === '-h')) {
+  if (args.length === 0 || wantsHelp(args)) {
     console.log(HELP);
     printEnv();
     return;

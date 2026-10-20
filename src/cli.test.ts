@@ -59,6 +59,19 @@ test('-h and --help anywhere on the command line print usage and exit 0', () => 
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('-h as the value of a preceding bare --flag is not the help flag', () => {
+  const { cwd, home } = makeDirs();
+  for (const args of [
+    ['Hello {{name}}', '--name', '-h', '--no-interactive'],
+    ['Hello {{name}}', '--name=-h', '--no-interactive'],
+  ]) {
+    const res = runCli(args, cwd, home);
+    assert.strictEqual(res.status, 0, `exit code for ${args.join(' ')}`);
+    assert.strictEqual(res.stdout.trim(), 'Hello -h', `output for ${args.join(' ')}`);
+  }
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('a {{help}} blank is rejected as reserved', () => {
   const { cwd, home } = makeDirs();
   const res = runCli(['Hello {{help}}', '--no-interactive'], cwd, home);

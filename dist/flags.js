@@ -22,6 +22,18 @@ export function assertNoReservedVars(vars) {
         }
     }
 }
+// -h/--help anywhere requests usage, except as the value of a preceding bare --flag (as parseFlags consumes it).
+export function wantsHelp(args) {
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        if (arg === '--help' || arg === '-h')
+            return true;
+        if (arg.startsWith('--') && !arg.includes('=') && !SWITCHES.has(arg.slice(2)) && i + 1 < args.length && !args[i + 1].startsWith('--')) {
+            i++;
+        }
+    }
+    return false;
+}
 export function parseFlags(args) {
     const flags = {};
     for (let i = 0; i < args.length; i++) {
