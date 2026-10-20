@@ -83,7 +83,7 @@ function isSubcommand(value: string): value is Subcommand {
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args.length === 0 || args[0] === '--help') {
+  if (args.length === 0 || args.some(a => a === '--help' || a === '-h')) {
     console.log(HELP);
     printEnv();
     return;

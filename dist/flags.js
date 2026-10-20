@@ -14,6 +14,9 @@ export function subcommandCollision(name) {
 }
 export function assertNoReservedVars(vars) {
     for (const v of vars) {
+        if (v.name === 'help') {
+            throw new UsageError('Unsupported variable name "help": it is reserved for the --help flag; rename the blank');
+        }
         if (SWITCHES.has(v.name)) {
             throw new UsageError(`Unsupported variable name "${v.name}": it is reserved for the --${v.name} switch; rename the blank`);
         }

@@ -48,6 +48,25 @@ test('no args prints help and exits 0', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('-h and --help anywhere on the command line print usage and exit 0', () => {
+  const { cwd, home } = makeDirs();
+  const cases = [['-h'], ['show', '--help'], ['Hello {{name}}', '--help'], ['Hello {{name}}', '-h'], ['list', '--help'], ['env', '--help']];
+  for (const args of cases) {
+    const res = runCli(args, cwd, home);
+    assert.strictEqual(res.status, 0, `exit code for ${args.join(' ')}`);
+    assert.match(res.stdout, /Usage:/, `usage for ${args.join(' ')}`);
+  }
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('a {{help}} blank is rejected as reserved', () => {
+  const { cwd, home } = makeDirs();
+  const res = runCli(['Hello {{help}}', '--no-interactive'], cwd, home);
+  assert.strictEqual(res.status, 1);
+  assert.match(res.stderr, /Unsupported variable name "help": it is reserved for the --help flag/);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('help subcommand and --help flag print usage', () => {
   const { cwd, home } = makeDirs();
   for (const arg of ['help', '--help']) {
