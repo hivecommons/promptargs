@@ -1,0 +1,1 @@
+Added a loader test covering the "cannot resolve" path taken when the real path of a `.prompts` directory cannot be resolved after it was read, so the symlink-escape root check is exercised on its failure branch.

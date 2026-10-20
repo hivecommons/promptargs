@@ -1,6 +1,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync, symlinkSync } from 'node:fs';
+import fs, { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync, symlinkSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 import { join } from 'node:path';
 
 // loader.ts resolves the user template dir from homedir() at import time,
@@ -88,6 +89,52 @@ describe('loadTemplates', () => {
       assert.strictEqual(warn.mock.callCount(), 0);
     } finally {
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  // The symlink-escape check trusts realpath(dir) as its root. If that
+  // resolution fails after readdir succeeded (the directory vanished or became
+  // unreachable in between), the loader must drop the whole directory with a
+  // "cannot resolve" diagnostic rather than fall through to the per-file check
+  // with no root. No filesystem layout makes realpath fail where readdir did
+  // not, so swap the builtin and re-sync the ESM binding loader.js imported.
+  it('warns and drops the directory when its real path cannot be resolved', (t) => {
+    const root = mkdtempSync(join(process.cwd(), '.pa-noreal-'));
+    const dir = join(root, '.prompts');
+    mkdirSync(dir);
+    writeFileSync(join(dir, 'local.md'), 'Local {{x}}');
+    const realRealpath = fs.realpathSync;
+    const realpath = t.mock.method(fs, 'realpathSync', ((p: fs.PathLike, ...rest: unknown[]) => {
+      if (p === dir) {
+        const err = new Error(`ENOENT: no such file or directory, realpath '${dir}'`) as NodeJS.ErrnoException;
+        err.code = 'ENOENT';
+        throw err;
+      }
+      return (realRealpath as (...a: unknown[]) => string)(p, ...rest);
+    }) as typeof fs.realpathSync);
+    syncBuiltinESMExports();
+    const warn = t.mock.method(console, 'error', () => {});
+    try {
+      const all = loadTemplates(root);
+      assert.ok(all.length > 0 && all.every(x => x.source === 'user'));
+      assert.ok(!all.some(x => x.name === 'local'));
+      assert.strictEqual(warn.mock.callCount(), 1);
+      const msg = String(warn.mock.calls[0].arguments[0]);
+      assert.ok(msg.startsWith(`promptargs: cannot resolve ${dir}: `));
+      assert.match(msg, /ENOENT/);
+    } finally {
+      realpath.mock.restore();
+      syncBuiltinESMExports();
+      rmSync(root, { recursive: true, force: true });
+    }
+    // The restored binding must see the directory again.
+    const root2 = mkdtempSync(join(process.cwd(), '.pa-noreal2-'));
+    mkdirSync(join(root2, '.prompts'));
+    writeFileSync(join(root2, '.prompts', 'back.md'), 'Back');
+    try {
+      assert.ok(loadTemplates(root2).some(x => x.name === 'back' && x.source === 'project'));
+    } finally {
+      rmSync(root2, { recursive: true, force: true });
     }
   });
 });
