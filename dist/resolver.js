@@ -1,6 +1,6 @@
 /**
  * Resolve variable values: flags → auto-detect → defaults → ask.
- * Handles array expansion (comma-separated, globs, @file, stdin).
+ * Handles array expansion (comma-separated, globs, @file).
  */
 import { createInterface } from 'node:readline';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -38,7 +38,7 @@ function expandArrayValue(raw, varName) {
             throw new UsageError(`Variable "${varName}": could not read @${filePath}: ${e.message}`);
         }
     }
-    // - (stdin) handled at CLI level before this
+    // A bare '-' is a literal value, not stdin.
     if (raw === '-')
         return [raw];
     // Comma-separated: split first so each piece can be a glob
