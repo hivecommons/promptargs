@@ -34,6 +34,11 @@ export function wantsHelp(args) {
     }
     return false;
 }
+export function assertNoArgs(args) {
+    if (args.length > 0) {
+        throw new UsageError(`Unexpected argument: ${args[0]}`);
+    }
+}
 export function parseFlags(args) {
     const flags = {};
     for (let i = 0; i < args.length; i++) {

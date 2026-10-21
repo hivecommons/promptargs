@@ -43,6 +43,12 @@ export function wantsHelp(args: string[]): boolean {
   return false;
 }
 
+export function assertNoArgs(args: string[]): void {
+  if (args.length > 0) {
+    throw new UsageError(`Unexpected argument: ${args[0]}`);
+  }
+}
+
 export function parseFlags(args: string[]): Record<string, string> {
   const flags: Record<string, string> = {};
   for (let i = 0; i < args.length; i++) {

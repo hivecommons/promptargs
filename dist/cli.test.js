@@ -306,10 +306,10 @@ test('ui subcommand rejects a non-numeric, bare or out-of-range --port', () => {
 });
 test('extra positional arguments are rejected instead of ignored', () => {
     const { cwd, home } = makeDirs();
-    for (const args of [['review', 'no-interactive'], ['ui', 'extra']]) {
+    for (const args of [['review', 'no-interactive'], ['ui', 'extra'], ['list', '--json'], ['show', 'review', '--json'], ['init', '--force'], ['env', 'extra']]) {
         const res = runCli(args, cwd, home);
         assert.strictEqual(res.status, 1, args.join(' '));
-        assert.match(res.stderr, /Unexpected argument: (no-interactive|extra)/, args.join(' '));
+        assert.match(res.stderr, /Unexpected argument: (no-interactive|extra|--json|--force)/, args.join(' '));
     }
     rmSync(dirname(cwd), { recursive: true, force: true });
 });

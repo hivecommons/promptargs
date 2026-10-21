@@ -10,6 +10,7 @@ export declare function assertNoReservedVars(vars: {
     name: string;
 }[]): void;
 export declare function wantsHelp(args: string[]): boolean;
+export declare function assertNoArgs(args: string[]): void;
 export declare function parseFlags(args: string[]): Record<string, string>;
 export declare function parsePort(flags: Record<string, string>): number | undefined;
 export {};

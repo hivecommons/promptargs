@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { UsageError, parseFlags, parsePort } from './flags.js';
+import { UsageError, assertNoArgs, parseFlags, parsePort } from './flags.js';
 
 describe('parseFlags', () => {
   it('parses --key=value', () => {
@@ -63,5 +63,15 @@ describe('parsePort', () => {
         message: 'Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700',
       });
     }
+  });
+});
+
+describe('assertNoArgs', () => {
+  it('accepts an empty list', () => {
+    assert.doesNotThrow(() => assertNoArgs([]));
+  });
+
+  it('rejects the first leftover argument', () => {
+    assert.throws(() => assertNoArgs(['--json', 'x']), (e: unknown) => e instanceof UsageError && e.message === 'Unexpected argument: --json');
   });
 });

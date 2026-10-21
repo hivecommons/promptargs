@@ -14,7 +14,7 @@ import { findTemplate } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
 import { startUI } from './ui.js';
-import { UsageError, assertNoReservedVars, parseFlags, parsePort, wantsHelp, SUBCOMMANDS } from './flags.js';
+import { UsageError, assertNoReservedVars, assertNoArgs, parseFlags, parsePort, wantsHelp, SUBCOMMANDS } from './flags.js';
 import { diag, classifyError } from './log.js';
 import { doInit, doList, doShow, printEnv } from './commands.js';
 import { sanitizeForTerminal } from './sanitize.js';
@@ -59,14 +59,26 @@ const SUBCOMMAND_HANDLERS = {
         console.log(HELP);
         printEnv();
     },
-    env: () => printEnv(),
+    env: (args) => {
+        assertNoArgs(args);
+        printEnv();
+    },
     ui: (args) => {
         const flags = parseFlags(args);
         startUI(parsePort(flags));
     },
-    init: () => doInit(),
-    list: () => doList(),
-    show: (args) => doShow(args[0]),
+    init: (args) => {
+        assertNoArgs(args);
+        doInit();
+    },
+    list: (args) => {
+        assertNoArgs(args);
+        doList();
+    },
+    show: (args) => {
+        assertNoArgs(args.slice(1));
+        doShow(args[0]);
+    },
 };
 function isSubcommand(value) {
     return SUBCOMMANDS.has(value);
