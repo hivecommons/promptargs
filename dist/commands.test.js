@@ -1,6 +1,7 @@
 import { describe, it, after } from 'node:test';
 import assert from 'node:assert';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, lstatSync, existsSync } from 'node:fs';
+import fs, { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, lstatSync, existsSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 // Isolate HOME before importing commands.js, which imports loader.js.
@@ -144,5 +145,60 @@ describe('doInit with a symlinked project .prompts', () => {
             }
         });
     }
+});
+// doInit swallows only ENOENT from the pre-flight lstat (no entry yet is the
+// normal case). Any other failure must surface instead of being masked by
+// existsSync, which would then either report "already exists" or create the
+// directory behind a permission or I/O error. No filesystem layout makes
+// lstat of <cwd>/.prompts fail with anything but ENOENT for a non-root user
+// in a writable scratch dir, so swap the builtin and re-sync the ESM binding
+// commands.js imported.
+describe('doInit when the .prompts pre-flight lstat fails', () => {
+    it('rethrows a non-ENOENT error and leaves the project untouched', (t) => {
+        const root = mkdtempSync(join(process.cwd(), '.pa-initlstat-'));
+        const dir = join(root, '.prompts');
+        const realLstat = fs.lstatSync;
+        const lstat = t.mock.method(fs, 'lstatSync', ((p, ...rest) => {
+            if (p === dir) {
+                const err = new Error(`EIO: i/o error, lstat '${dir}'`);
+                err.code = 'EIO';
+                throw err;
+            }
+            return realLstat(p, ...rest);
+        }));
+        syncBuiltinESMExports();
+        const errs = t.mock.method(console, 'error', () => { });
+        const logs = t.mock.method(console, 'log', () => { });
+        const prevCwd = process.cwd();
+        const prevExit = process.exitCode;
+        process.chdir(root);
+        try {
+            assert.throws(() => doInit(), (e) => e.code === 'EIO' && e.message.includes(dir));
+            assert.strictEqual(process.exitCode, prevExit);
+            assert.strictEqual(errs.mock.callCount(), 0);
+            assert.strictEqual(logs.mock.callCount(), 0);
+            assert.strictEqual(existsSync(dir), false);
+        }
+        finally {
+            process.exitCode = prevExit;
+            process.chdir(prevCwd);
+            lstat.mock.restore();
+            syncBuiltinESMExports();
+            rmSync(root, { recursive: true, force: true });
+        }
+        // The restored binding must take the ENOENT path and scaffold again.
+        const root2 = mkdtempSync(join(process.cwd(), '.pa-initlstat2-'));
+        const logs2 = t.mock.method(console, 'log', () => { });
+        process.chdir(root2);
+        try {
+            doInit();
+            assert.ok(existsSync(join(root2, '.prompts', 'review.md')));
+            assert.ok(logs2.mock.calls.some(c => /Created/.test(String(c.arguments[0]))));
+        }
+        finally {
+            process.chdir(prevCwd);
+            rmSync(root2, { recursive: true, force: true });
+        }
+    });
 });
 //# sourceMappingURL=commands.test.js.map
