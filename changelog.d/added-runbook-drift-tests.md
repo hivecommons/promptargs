@@ -1,0 +1,1 @@
+`runbooks.test.ts` now pins the incident and rollback runbooks to the code they describe: the `PROMPTARGS_LOG=json` field set and `error_class` values in `src/log.ts` (also as listed in README) and the `release.yml` dispatch inputs. (#307)
