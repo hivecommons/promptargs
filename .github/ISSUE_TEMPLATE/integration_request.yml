@@ -1,0 +1,60 @@
+name: AI tool integration
+description: The promptargs skill or slash command misbehaves in an AI coding tool, or you want support for a new tool
+title: "integration: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        promptargs ships an Agent Skill in [`skills/promptargs/`](https://github.com/hivecommons/promptargs/tree/main/skills/promptargs)
+        and slash-command files for Claude Code, Goose and Bob. See
+        [Install](https://github.com/hivecommons/promptargs#install) and
+        [Use with AI Coding Tools](https://github.com/hivecommons/promptargs#use-with-ai-coding-tools) in the README.
+        Redact tokens and private data from any session output you paste.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Request type
+      options:
+        - Existing integration does not work as documented
+        - Support for an AI tool promptargs does not cover yet
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: AI tool
+      options:
+        - Claude Code
+        - GitHub Copilot
+        - Goose
+        - Bob
+        - other (name it below)
+    validations:
+      required: true
+  - type: input
+    id: tool-version
+    attributes:
+      label: Tool name and version
+      description: For example Claude Code 2.x, or the name and version of the new tool.
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How promptargs was installed in the tool
+      options:
+        - gh skill install
+        - skill directory copied manually
+        - slash command file (curl)
+        - piping promptargs output into the tool
+        - not installed yet (new tool)
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened, or what the new tool needs
+      description: For a problem, what you asked the tool and what it did. For a new tool, where it loads skills or commands from and a link to its docs.
+    validations:
+      required: true

@@ -1,0 +1,80 @@
+name: Bug report
+description: Report a reproducible problem in promptargs
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. If the skill or slash command for an AI coding tool is
+        not working, use the **AI tool integration** form instead.
+        Redact tokens and private data from any template, flag value or output you paste.
+  - type: input
+    id: version
+    attributes:
+      label: promptargs version
+      description: Output of `npm ls -g @hivecommons/promptargs` (or the version in your project's lockfile).
+      placeholder: "0.8.0"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, shell, and `node --version` (promptargs requires Node.js 22 or newer).
+      placeholder: "macOS 15, zsh, Node v22.11.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: command
+    attributes:
+      label: Command
+      description: Which part of promptargs shows the problem?
+      options:
+        - running a template (promptargs <name> ...)
+        - inline template (promptargs "... {{var}} ...")
+        - ui (Builder UI)
+        - env
+        - init
+        - list
+        - show
+        - help
+        - library API (import from @hivecommons/promptargs)
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: template
+    attributes:
+      label: Template
+      description: The template text (or the `.prompts/` file) involved, if any.
+      render: markdown
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands you ran, including flags.
+      placeholder: |
+        1. promptargs review --file=src/app.ts --no-interactive
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead, including any stderr output.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Diagnostics (optional)
+      description: Re-run with `PROMPTARGS_LOG=json` and paste the JSON lines from stderr. They never contain template contents, argument values or paths.
+      render: shell
