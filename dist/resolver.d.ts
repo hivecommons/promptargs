@@ -1,6 +1,6 @@
 /**
  * Resolve variable values: flags → auto-detect → defaults → ask.
- * Handles array expansion (comma-separated, globs, @file, stdin).
+ * Handles array expansion (comma-separated, globs, @file).
  */
 import type { TemplateVar } from './parser.js';
 export interface ResolvedValues {
