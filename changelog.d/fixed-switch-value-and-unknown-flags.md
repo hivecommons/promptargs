@@ -1,0 +1,1 @@
+A switch given a value (`--json=false`, `--cross=0`) is now rejected with `Invalid --<switch>: --<switch> takes no value`, and a flag that names no blank in the template is rejected with `Unknown flag --<name>: ...` instead of being silently ignored. (#313)

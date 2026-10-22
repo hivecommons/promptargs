@@ -39,8 +39,19 @@ export function assertNoArgs(args) {
         throw new UsageError(`Unexpected argument: ${args[0]}`);
     }
 }
+export function assertKnownFlags(flags, vars, templateName) {
+    const known = new Set(vars.map((v) => v.name));
+    for (const key of Object.keys(flags)) {
+        if (!SWITCHES.has(key) && !known.has(key)) {
+            // An inline template cannot be re-shown by name, so the hint only applies to file templates.
+            const hint = templateName === 'inline' ? '' : ` Run "promptargs show ${templateName}" to see its variables.`;
+            throw new UsageError(`Unknown flag --${key}: template "${templateName}" has no {{${key}}} blank.${hint}`);
+        }
+    }
+}
 export function parseFlags(args) {
-    const flags = {};
+    // Null prototype so a key like __proto__ is stored as an own property instead of silently vanishing.
+    const flags = Object.create(null);
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
         if (!arg.startsWith('--')) {
@@ -48,11 +59,11 @@ export function parseFlags(args) {
         }
         const eq = arg.indexOf('=');
         if (eq > 0) {
-            const name = arg.slice(2, eq);
-            if (SWITCHES.has(name)) {
-                throw new UsageError(`Invalid --${name}: --${name} takes no value`);
+            const key = arg.slice(2, eq);
+            if (SWITCHES.has(key)) {
+                throw new UsageError(`Invalid --${key}: --${key} takes no value`);
             }
-            flags[name] = arg.slice(eq + 1);
+            flags[key] = arg.slice(eq + 1);
             continue;
         }
         const name = arg.slice(2);
@@ -66,7 +77,8 @@ export function parseFlags(args) {
             throw new UsageError(`Invalid --${name}: --${name} requires a value: --${name}=<value>`);
         }
     }
-    return flags;
+    // Spread copies own keys (including __proto__) onto an ordinary object for callers and deepStrictEqual.
+    return { ...flags };
 }
 export function parsePort(flags) {
     if (!('port' in flags))

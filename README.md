@@ -526,7 +526,7 @@ If you installed the skill (see [Install](#as-an-agent-skill)), use it directly 
 | `... \| claude -p "do this"` | Pipe to Claude |
 | `... \| goose run` | Pipe to Goose |
 
-The switch names `no-interactive`, `cross`, `json`, `status` and `help` are reserved and cannot be used as template variable names.
+The switch names `no-interactive`, `cross`, `json`, `status` and `help` are reserved and cannot be used as template variable names. Switches take no value: `--json=false` is rejected with a usage error. A flag that names no blank in the template (e.g. a typo like `--fiel=x`) is also an error.
 
 ---
 

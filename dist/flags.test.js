@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { UsageError, assertNoArgs, parseFlags, parsePort } from './flags.js';
+import { UsageError, assertKnownFlags, assertNoArgs, parseFlags, parsePort } from './flags.js';
 describe('parseFlags', () => {
     it('parses --key=value', () => {
         assert.deepStrictEqual(parseFlags(['--file=a.go']), { file: 'a.go' });
@@ -15,6 +15,11 @@ describe('parseFlags', () => {
             status: 'true',
             'no-interactive': 'true',
         });
+    });
+    it('rejects a switch given a value', () => {
+        for (const name of ['no-interactive', 'cross', 'json', 'status']) {
+            assert.throws(() => parseFlags([`--${name}=false`]), (err) => err instanceof UsageError && err.message === `Invalid --${name}: --${name} takes no value`);
+        }
     });
     it('does not consume the next arg after a switch', () => {
         assert.deepStrictEqual(parseFlags(['--json', '--file=a']), { json: 'true', file: 'a' });
@@ -71,6 +76,24 @@ describe('assertNoArgs', () => {
     });
     it('rejects the first leftover argument', () => {
         assert.throws(() => assertNoArgs(['--json', 'x']), (e) => e instanceof UsageError && e.message === 'Unexpected argument: --json');
+    });
+});
+describe('assertKnownFlags', () => {
+    it('accepts declared variables and switches', () => {
+        assert.doesNotThrow(() => assertKnownFlags({ file: 'a', json: 'true' }, [{ name: 'file' }], 'review'));
+    });
+    it('rejects a flag that names no blank', () => {
+        assert.throws(() => assertKnownFlags({ fiel: 'a' }, [{ name: 'file' }], 'review'), (err) => err instanceof UsageError &&
+            err.message ===
+                'Unknown flag --fiel: template "review" has no {{fiel}} blank. Run "promptargs show review" to see its variables.');
+    });
+    it('omits the show hint for inline templates', () => {
+        assert.throws(() => assertKnownFlags({ fiel: 'a' }, [{ name: 'file' }], 'inline'), (err) => err instanceof UsageError && err.message === 'Unknown flag --fiel: template "inline" has no {{fiel}} blank.');
+    });
+    it('rejects --__proto__ instead of dropping it', () => {
+        const flags = parseFlags(['--__proto__=x']);
+        assert.ok(Object.keys(flags).includes('__proto__'));
+        assert.throws(() => assertKnownFlags(flags, [{ name: 'file' }], 'review'), (err) => err instanceof UsageError && /^Unknown flag --__proto__:/.test(err.message));
     });
 });
 //# sourceMappingURL=flags.test.js.map
