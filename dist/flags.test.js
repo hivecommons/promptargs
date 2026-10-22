@@ -77,5 +77,13 @@ describe('assertKnownFlags', () => {
             err.message ===
                 'Unknown flag --fiel: template "review" has no {{fiel}} blank. Run "promptargs show review" to see its variables.');
     });
+    it('omits the show hint for inline templates', () => {
+        assert.throws(() => assertKnownFlags({ fiel: 'a' }, [{ name: 'file' }], 'inline'), (err) => err instanceof UsageError && err.message === 'Unknown flag --fiel: template "inline" has no {{fiel}} blank.');
+    });
+    it('rejects --__proto__ instead of dropping it', () => {
+        const flags = parseFlags(['--__proto__=x']);
+        assert.ok(Object.keys(flags).includes('__proto__'));
+        assert.throws(() => assertKnownFlags(flags, [{ name: 'file' }], 'review'), (err) => err instanceof UsageError && /^Unknown flag --__proto__:/.test(err.message));
+    });
 });
 //# sourceMappingURL=flags.test.js.map

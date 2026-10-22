@@ -53,15 +53,16 @@ export function assertKnownFlags(flags: Record<string, string>, vars: { name: st
   const known = new Set(vars.map((v) => v.name));
   for (const key of Object.keys(flags)) {
     if (!SWITCHES.has(key) && !known.has(key)) {
-      throw new UsageError(
-        `Unknown flag --${key}: template "${templateName}" has no {{${key}}} blank. Run "promptargs show ${templateName}" to see its variables.`,
-      );
+      // An inline template cannot be re-shown by name, so the hint only applies to file templates.
+      const hint = templateName === 'inline' ? '' : ` Run "promptargs show ${templateName}" to see its variables.`;
+      throw new UsageError(`Unknown flag --${key}: template "${templateName}" has no {{${key}}} blank.${hint}`);
     }
   }
 }
 
 export function parseFlags(args: string[]): Record<string, string> {
-  const flags: Record<string, string> = {};
+  // Null prototype so a key like __proto__ is stored as an own property instead of silently vanishing.
+  const flags: Record<string, string> = Object.create(null);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (!arg.startsWith('--')) {
@@ -85,7 +86,8 @@ export function parseFlags(args: string[]): Record<string, string> {
       throw new UsageError(`Invalid --${name}: --${name} requires a value: --${name}=<value>`);
     }
   }
-  return flags;
+  // Spread copies own keys (including __proto__) onto an ordinary object for callers and deepStrictEqual.
+  return { ...flags };
 }
 
 export function parsePort(flags: Record<string, string>): number | undefined {
