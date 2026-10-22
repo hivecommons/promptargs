@@ -20,12 +20,14 @@ describe('parseFlags', () => {
     });
   });
 
-  it('rejects a switch given a value', () => {
+  it('rejects a switch given a value, including an empty one', () => {
     for (const name of ['no-interactive', 'cross', 'json', 'status']) {
-      assert.throws(
-        () => parseFlags([`--${name}=false`]),
-        (err: unknown) => err instanceof UsageError && err.message === `Invalid --${name}: --${name} takes no value`,
-      );
+      for (const value of ['false', '', '0', 'no', 'true']) {
+        assert.throws(
+          () => parseFlags([`--${name}=${value}`]),
+          (err: unknown) => err instanceof UsageError && err.message === `Invalid --${name}: --${name} takes no value`,
+        );
+      }
     }
   });
 

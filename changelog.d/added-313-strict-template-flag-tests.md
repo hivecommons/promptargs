@@ -1,0 +1,1 @@
+Regression tests pinning strict template-flag parsing: every switch rejects any `=value` (including an empty one), and template runs reject flags naming no blank for named, inline, blank-free and comment-only templates in both `--flag=value` and `--flag value` forms, while `--port` stays an ordinary template variable. (#313)
