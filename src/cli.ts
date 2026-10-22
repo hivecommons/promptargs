@@ -17,7 +17,7 @@ import { findTemplate } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
 import { startUI } from './ui.js';
-import { UsageError, assertNoReservedVars, assertNoArgs, parseFlags, parsePort, wantsHelp, SUBCOMMANDS } from './flags.js';
+import { UsageError, assertKnownFlags, assertNoReservedVars, assertNoArgs, parseFlags, parsePort, wantsHelp, SUBCOMMANDS } from './flags.js';
 import type { Subcommand } from './flags.js';
 import { diag, classifyError } from './log.js';
 import { doInit, doList, doShow, printEnv } from './commands.js';
@@ -137,6 +137,7 @@ async function main() {
 
   const vars = parseVars(content);
   assertNoReservedVars(vars);
+  assertKnownFlags(flags, vars, name);
 
   if (vars.length === 0) {
     // No variables — skip expand() so Mustache-style content that is not a promptargs blank stays untouched

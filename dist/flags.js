@@ -39,6 +39,14 @@ export function assertNoArgs(args) {
         throw new UsageError(`Unexpected argument: ${args[0]}`);
     }
 }
+export function assertKnownFlags(flags, vars, templateName) {
+    const known = new Set(vars.map((v) => v.name));
+    for (const key of Object.keys(flags)) {
+        if (!SWITCHES.has(key) && !known.has(key)) {
+            throw new UsageError(`Unknown flag --${key}: template "${templateName}" has no {{${key}}} blank. Run "promptargs show ${templateName}" to see its variables.`);
+        }
+    }
+}
 export function parseFlags(args) {
     const flags = {};
     for (let i = 0; i < args.length; i++) {
@@ -48,7 +56,11 @@ export function parseFlags(args) {
         }
         const eq = arg.indexOf('=');
         if (eq > 0) {
-            flags[arg.slice(2, eq)] = arg.slice(eq + 1);
+            const key = arg.slice(2, eq);
+            if (SWITCHES.has(key)) {
+                throw new UsageError(`Invalid --${key}: --${key} takes no value`);
+            }
+            flags[key] = arg.slice(eq + 1);
             continue;
         }
         const name = arg.slice(2);

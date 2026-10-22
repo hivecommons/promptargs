@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { UsageError, assertNoArgs, parseFlags, parsePort } from './flags.js';
+import { UsageError, assertKnownFlags, assertNoArgs, parseFlags, parsePort } from './flags.js';
 
 describe('parseFlags', () => {
   it('parses --key=value', () => {
@@ -18,6 +18,15 @@ describe('parseFlags', () => {
       status: 'true',
       'no-interactive': 'true',
     });
+  });
+
+  it('rejects a switch given a value', () => {
+    for (const name of ['no-interactive', 'cross', 'json', 'status']) {
+      assert.throws(
+        () => parseFlags([`--${name}=false`]),
+        (err: unknown) => err instanceof UsageError && err.message === `Invalid --${name}: --${name} takes no value`,
+      );
+    }
   });
 
   it('does not consume the next arg after a switch', () => {
@@ -73,5 +82,21 @@ describe('assertNoArgs', () => {
 
   it('rejects the first leftover argument', () => {
     assert.throws(() => assertNoArgs(['--json', 'x']), (e: unknown) => e instanceof UsageError && e.message === 'Unexpected argument: --json');
+  });
+});
+
+describe('assertKnownFlags', () => {
+  it('accepts declared variables and switches', () => {
+    assert.doesNotThrow(() => assertKnownFlags({ file: 'a', json: 'true' }, [{ name: 'file' }], 'review'));
+  });
+
+  it('rejects a flag that names no blank', () => {
+    assert.throws(
+      () => assertKnownFlags({ fiel: 'a' }, [{ name: 'file' }], 'review'),
+      (err: unknown) =>
+        err instanceof UsageError &&
+        err.message ===
+          'Unknown flag --fiel: template "review" has no {{fiel}} blank. Run "promptargs show review" to see its variables.',
+    );
   });
 });
