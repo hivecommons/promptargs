@@ -1,0 +1,1 @@
+Reject values on valueless switches (including `--json=false` and `--no-interactive=`) instead of silently enabling them. Template runs now reject flags that do not name a declared blank, including inline templates and templates without blanks; `ui --port` remains supported.

@@ -48,7 +48,11 @@ export function parseFlags(args) {
         }
         const eq = arg.indexOf('=');
         if (eq > 0) {
-            flags[arg.slice(2, eq)] = arg.slice(eq + 1);
+            const name = arg.slice(2, eq);
+            if (SWITCHES.has(name)) {
+                throw new UsageError(`Invalid --${name}: --${name} takes no value`);
+            }
+            flags[name] = arg.slice(eq + 1);
             continue;
         }
         const name = arg.slice(2);
