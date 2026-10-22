@@ -340,6 +340,31 @@ test('ui subcommand rejects a non-numeric, bare or out-of-range --port', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('ui subcommand rejects unknown flags before starting the server', () => {
+  const { cwd, home } = makeDirs();
+  try {
+    for (const { args, flag } of [
+      { args: ['--prot=3700'], flag: 'prot' },
+      { args: ['--prot', '3700'], flag: 'prot' },
+      { args: ['--json'], flag: 'json' },
+      { args: ['--cross'], flag: 'cross' },
+      { args: ['--cross', '--status'], flag: 'cross' },
+      { args: ['--status'], flag: 'status' },
+      { args: ['--no-interactive'], flag: 'no-interactive' },
+      { args: ['--port=0', '--json'], flag: 'json' },
+      { args: ['--json', '--port=0'], flag: 'json' },
+      { args: ['--__proto__=3700'], flag: '__proto__' },
+    ]) {
+      const res = runCli(['ui', ...args], cwd, home);
+      assert.strictEqual(res.status, 1, args.join(' '));
+      assert.ok(res.stderr.includes(`Unknown flag --${flag}: ui only accepts --port=<value>`), res.stderr);
+      assert.strictEqual(res.stdout, '', args.join(' '));
+    }
+  } finally {
+    rmSync(dirname(cwd), { recursive: true, force: true });
+  }
+});
+
 test('extra positional arguments are rejected instead of ignored', () => {
   const { cwd, home } = makeDirs();
   for (const args of [['review', 'no-interactive'], ['ui', 'extra'], ['list', '--json'], ['show', 'review', '--json'], ['init', '--force'], ['env', 'extra']]) {
@@ -657,16 +682,6 @@ test('ui subcommand accepts the space-separated --port value form', async () => 
     await new Promise(resolve => blocker.close(resolve));
     rmSync(dirname(cwd), { recursive: true, force: true });
   }
-});
-
-test('ui subcommand rejects unknown flags', () => {
-  const { cwd, home } = makeDirs();
-  for (const arg of ['--prot=3700', '--json', '--cross', '--status', '--no-interactive']) {
-    const res = runCli(['ui', arg], cwd, home);
-    assert.strictEqual(res.status, 1, arg);
-    assert.match(res.stderr, /Unknown flag --(prot|json|cross|status|no-interactive): ui only accepts --port=<value>/, arg);
-  }
-  rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
 test('cli treats non-TTY stdin as non-interactive instead of printing nothing', () => {
