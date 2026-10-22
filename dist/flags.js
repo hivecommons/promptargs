@@ -49,6 +49,14 @@ export function assertKnownFlags(flags, vars, templateName) {
         }
     }
 }
+export function assertOnlyFlags(flags, allowed, command) {
+    const allowedSet = new Set(allowed);
+    for (const key of Object.keys(flags)) {
+        if (!allowedSet.has(key)) {
+            throw new UsageError(`Unknown flag --${key}: ${command} only accepts ${allowed.map((a) => `--${a}=<value>`).join(', ')}`);
+        }
+    }
+}
 export function parseFlags(args) {
     // Null prototype so a key like __proto__ is stored as an own property instead of silently vanishing.
     const flags = Object.create(null);

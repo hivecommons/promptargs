@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { UsageError, assertKnownFlags, assertNoArgs, parseFlags, parsePort } from './flags.js';
+import { UsageError, assertKnownFlags, assertNoArgs, parseFlags, parsePort, assertOnlyFlags } from './flags.js';
 
 describe('parseFlags', () => {
   it('parses --key=value', () => {
@@ -127,6 +127,34 @@ describe('assertKnownFlags', () => {
     assert.throws(
       () => assertKnownFlags(flags, [{ name: 'file' }], 'review'),
       (err: unknown) => err instanceof UsageError && /^Unknown flag --__proto__:/.test(err.message),
+    );
+  });
+});
+
+describe('assertOnlyFlags', () => {
+  it('accepts empty flags object', () => {
+    assert.doesNotThrow(() => assertOnlyFlags({}, ['port'], 'ui'));
+  });
+
+  it('accepts allowed flags', () => {
+    assert.doesNotThrow(() => assertOnlyFlags({ port: '3700' }, ['port'], 'ui'));
+  });
+
+  it('rejects unknown flag --prot', () => {
+    assert.throws(
+      () => assertOnlyFlags({ prot: '3700' }, ['port'], 'ui'),
+      (err: unknown) =>
+        err instanceof UsageError &&
+        err.message === 'Unknown flag --prot: ui only accepts --port=<value>',
+    );
+  });
+
+  it('rejects unknown flag --json', () => {
+    assert.throws(
+      () => assertOnlyFlags({ json: 'true' }, ['port'], 'ui'),
+      (err: unknown) =>
+        err instanceof UsageError &&
+        err.message === 'Unknown flag --json: ui only accepts --port=<value>',
     );
   });
 });

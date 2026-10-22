@@ -584,6 +584,15 @@ test('ui subcommand accepts the space-separated --port value form', async () => 
         rmSync(dirname(cwd), { recursive: true, force: true });
     }
 });
+test('ui subcommand rejects unknown flags', () => {
+    const { cwd, home } = makeDirs();
+    for (const arg of ['--prot=3700', '--json', '--cross', '--status', '--no-interactive']) {
+        const res = runCli(['ui', arg], cwd, home);
+        assert.strictEqual(res.status, 1, arg);
+        assert.match(res.stderr, /Unknown flag --(prot|json|cross|status|no-interactive): ui only accepts --port=<value>/, arg);
+    }
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 test('cli treats non-TTY stdin as non-interactive instead of printing nothing', () => {
     const { cwd, home } = makeDirs();
     const res = spawnSync(process.execPath, [CLI, 'Hi {{pa_unfilled}}'], {

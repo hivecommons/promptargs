@@ -14,7 +14,7 @@ import { findTemplate } from './loader.js';
 import { resolve } from './resolver.js';
 import { renderStatus } from './status.js';
 import { startUI } from './ui.js';
-import { UsageError, assertKnownFlags, assertNoReservedVars, assertNoArgs, parseFlags, parsePort, wantsHelp, SUBCOMMANDS } from './flags.js';
+import { UsageError, assertKnownFlags, assertNoReservedVars, assertNoArgs, parseFlags, parsePort, wantsHelp, SUBCOMMANDS, assertOnlyFlags } from './flags.js';
 import { diag, classifyError } from './log.js';
 import { doInit, doList, doShow, printEnv } from './commands.js';
 import { sanitizeForTerminal } from './sanitize.js';
@@ -65,6 +65,7 @@ const SUBCOMMAND_HANDLERS = {
     },
     ui: (args) => {
         const flags = parseFlags(args);
+        assertOnlyFlags(flags, ['port'], 'ui');
         startUI(parsePort(flags));
     },
     init: (args) => {

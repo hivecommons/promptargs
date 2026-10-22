@@ -14,6 +14,7 @@ export declare function assertNoArgs(args: string[]): void;
 export declare function assertKnownFlags(flags: Record<string, string>, vars: {
     name: string;
 }[], templateName: string): void;
+export declare function assertOnlyFlags(flags: Record<string, string>, allowed: readonly string[], command: string): void;
 export declare function parseFlags(args: string[]): Record<string, string>;
 export declare function parsePort(flags: Record<string, string>): number | undefined;
 export {};

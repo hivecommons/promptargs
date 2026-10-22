@@ -60,6 +60,15 @@ export function assertKnownFlags(flags: Record<string, string>, vars: { name: st
   }
 }
 
+export function assertOnlyFlags(flags: Record<string, string>, allowed: readonly string[], command: string): void {
+  const allowedSet = new Set(allowed);
+  for (const key of Object.keys(flags)) {
+    if (!allowedSet.has(key)) {
+      throw new UsageError(`Unknown flag --${key}: ${command} only accepts ${allowed.map((a) => `--${a}=<value>`).join(', ')}`);
+    }
+  }
+}
+
 export function parseFlags(args: string[]): Record<string, string> {
   // Null prototype so a key like __proto__ is stored as an own property instead of silently vanishing.
   const flags: Record<string, string> = Object.create(null);
