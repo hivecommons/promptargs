@@ -545,4 +545,4 @@ promptargs is part of [Hive Commons](https://hivecommons.dev), a family of tools
 
 Apache-2.0
 
-Pirate flag icon: [Twemoji](https://twemoji.twitter.com/), [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Pirate flag icon: [Twemoji](https://github.com/twitter/twemoji), [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
