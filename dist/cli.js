@@ -142,6 +142,12 @@ async function main() {
         console.log(status);
         return;
     }
+    const missing = vars.filter(v => iterations.some(values => !Object.hasOwn(values, v.name)));
+    if (missing.length > 0) {
+        const first = missing[0].name;
+        throw new UsageError(`Missing value for ${missing.map(v => `{{${v.name}}}`).join(', ')}: ` +
+            `pass --${first}=<value> or run without --no-interactive to be asked.`);
+    }
     const results = [];
     for (let i = 0; i < iterations.length; i++) {
         const values = iterations[i];

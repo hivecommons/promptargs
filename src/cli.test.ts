@@ -110,6 +110,31 @@ test('inline template expands flag values', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('inline template with an unfilled blank under --no-interactive exits 1', () => {
+  const { cwd, home } = makeDirs();
+  const res = runCli(['Review {{file}}', '--no-interactive'], cwd, home);
+  assert.strictEqual(res.status, 1);
+  assert.match(res.stderr, /Missing value for \{\{file\}\}: pass --file=<value> or run without --no-interactive to be asked\./);
+  assert.strictEqual(res.stdout, '');
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('inline template with a default succeeds under --no-interactive', () => {
+  const { cwd, home } = makeDirs();
+  const res = runCli(['Review {{file=x}}', '--no-interactive'], cwd, home);
+  assert.strictEqual(res.status, 0);
+  assert.strictEqual(res.stdout.trim(), 'Review x');
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('inline template with a flag value succeeds under --no-interactive', () => {
+  const { cwd, home } = makeDirs();
+  const res = runCli(['Review {{file}}', '--file=a', '--no-interactive'], cwd, home);
+  assert.strictEqual(res.status, 0);
+  assert.strictEqual(res.stdout.trim(), 'Review a');
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('template without variables is printed as-is', () => {
   const { cwd, home } = makeDirs();
   mkdirSync(join(cwd, '.prompts'));

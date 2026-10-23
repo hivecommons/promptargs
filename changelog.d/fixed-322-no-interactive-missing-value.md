@@ -1,0 +1,1 @@
+`promptargs` now exits 1 with `Missing value for {{name}}: ...` when a blank has no value under `--no-interactive` (or piped stdin) instead of printing the unfilled `{{name}}` placeholder and exiting 0. (#322)
