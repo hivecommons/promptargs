@@ -145,8 +145,14 @@ async function main() {
     const missing = vars.filter(v => iterations.some(values => !Object.hasOwn(values, v.name)));
     if (missing.length > 0) {
         const first = missing[0].name;
-        throw new UsageError(`Missing value for ${missing.map(v => `{{${v.name}}}`).join(', ')}: ` +
-            `pass --${first}=<value> or run without --no-interactive to be asked.`);
+        // A flag that expanded to nothing (e.g. --file= or --file=@empty.txt) was passed but filled no blank
+        const supply = Object.hasOwn(flags, first)
+            ? `give --${first} a non-empty value`
+            : `pass --${first}=<value>`;
+        const tail = flags['no-interactive']
+            ? 'or run without --no-interactive to be asked.'
+            : 'or give the blank a default; stdin is not a terminal, so it cannot be asked for.';
+        throw new UsageError(`Missing value for ${missing.map(v => `{{${v.name}}}`).join(', ')}: ${supply} ${tail}`);
     }
     const results = [];
     for (let i = 0; i < iterations.length; i++) {

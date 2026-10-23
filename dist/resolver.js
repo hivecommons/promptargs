@@ -163,7 +163,7 @@ function ask(prompt, name) {
             if (settled)
                 return;
             settled = true;
-            reject(new UsageError(`Variable "${name}" has no value and stdin is closed; pass --${name}=<value> or --no-interactive`));
+            reject(new UsageError(`Variable "${name}" has no value and stdin is closed; pass --${name}=<value> or give the blank a default`));
         });
         rl.question(prompt, (answer) => {
             if (settled)

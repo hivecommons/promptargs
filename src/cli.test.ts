@@ -119,6 +119,17 @@ test('inline template with an unfilled blank under --no-interactive exits 1', ()
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('inline template whose flag expands to nothing under --no-interactive exits 1', () => {
+  const { cwd, home } = makeDirs();
+  const emptyFile = join(cwd, 'empty.txt');
+  writeFileSync(emptyFile, '\n');
+  const res = runCli(['Review {{file}}', `--file=@${emptyFile}`, '--no-interactive'], cwd, home);
+  assert.strictEqual(res.status, 1);
+  assert.match(res.stderr, /Missing value for \{\{file\}\}: give --file a non-empty value or run without --no-interactive to be asked\./);
+  assert.strictEqual(res.stdout, '');
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('inline template with a default succeeds under --no-interactive', () => {
   const { cwd, home } = makeDirs();
   const res = runCli(['Review {{file=x}}', '--no-interactive'], cwd, home);
@@ -721,6 +732,8 @@ test('cli treats non-TTY stdin as non-interactive instead of printing nothing', 
   assert.strictEqual(res.status, 1);
   assert.strictEqual(res.stdout, '');
   assert.ok(res.stderr.includes('Missing value for {{pa_unfilled}}'), res.stderr);
+  assert.ok(res.stderr.includes('stdin is not a terminal, so it cannot be asked for.'), res.stderr);
+  assert.ok(!res.stderr.includes('run without --no-interactive'), res.stderr);
 });
 
 test('every SUBCOMMANDS name is dispatched before template lookup', () => {

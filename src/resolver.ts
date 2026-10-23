@@ -191,7 +191,7 @@ function ask(prompt: string, name: string): Promise<string> {
       settled = true;
       reject(
         new UsageError(
-          `Variable "${name}" has no value and stdin is closed; pass --${name}=<value> or --no-interactive`,
+          `Variable "${name}" has no value and stdin is closed; pass --${name}=<value> or give the blank a default`,
         ),
       );
     });
