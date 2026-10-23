@@ -171,13 +171,14 @@ test('every promptargs command in SKILL.md runs successfully against dist/cli.js
         rmSync(dir, { recursive: true, force: true });
     }
 });
-test('SKILL.md pitfalls match CLI behaviour: an unfilled blank stays literal and --status is one line', () => {
+test('SKILL.md pitfalls match CLI behaviour: an unfilled blank is a usage error and --status is one line', () => {
     const dir = mkdtempSync(join(tmpdir(), 'promptargs-skill-'));
     try {
         const run = (args) => spawnSync(process.execPath, [CLI, ...args], { cwd: dir, encoding: 'utf-8', env: process.env, timeout: 30_000 });
         const unfilled = run(['Explain {{concept}} now', '--no-interactive']);
-        assert.strictEqual(unfilled.status, 0);
-        assert.strictEqual(unfilled.stdout.trim(), 'Explain {{concept}} now');
+        assert.strictEqual(unfilled.status, 1);
+        assert.strictEqual(unfilled.stdout, '');
+        assert.ok(unfilled.stderr.includes('Missing value for {{concept}}'), unfilled.stderr);
         const status = run(['Explain {{concept}} to a {{audience=beginner}}', '--concept=recursion', '--no-interactive', '--status']);
         assert.strictEqual(status.status, 0);
         const lines = status.stdout.trim().split('\n');

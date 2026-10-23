@@ -718,8 +718,9 @@ test('cli treats non-TTY stdin as non-interactive instead of printing nothing', 
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 30_000,
   });
-  assert.strictEqual(res.status, 0);
-  assert.strictEqual(res.stdout, 'Hi {{pa_unfilled}}\n');
+  assert.strictEqual(res.status, 1);
+  assert.strictEqual(res.stdout, '');
+  assert.ok(res.stderr.includes('Missing value for {{pa_unfilled}}'), res.stderr);
 });
 
 test('every SUBCOMMANDS name is dispatched before template lookup', () => {

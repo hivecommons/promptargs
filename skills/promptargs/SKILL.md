@@ -89,5 +89,5 @@ Or read the expanded prompt and act on it directly in the current session.
 
 ## Pitfalls
 
-- A blank with no value and no default stays as literal `{{name}}` in the output; check with `promptargs show <template>` or `--status`.
+- A blank with no value and no default is a usage error under `--no-interactive` (or piped stdin): the run exits 1 with `Missing value for {{name}}`. Pass `--name=value`, give it a default, or check with `promptargs show <template>` or `--status`.
 - Auto-detected values and defaults are never prompted for; pass `--name=value` to override.
