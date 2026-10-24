@@ -172,13 +172,6 @@ describe('doInit when .prompts is a regular file', () => {
         }
     });
 });
-// doInit swallows only ENOENT from the pre-flight lstat (no entry yet is the
-// normal case). Any other failure must surface instead of being masked by
-// existsSync, which would then either report "already exists" or create the
-// directory behind a permission or I/O error. No filesystem layout makes
-// lstat of <cwd>/.prompts fail with anything but ENOENT for a non-root user
-// in a writable scratch dir, so swap the builtin and re-sync the ESM binding
-// commands.js imported.
 describe('doInit when the .prompts pre-flight lstat fails', () => {
     it('rethrows a non-ENOENT error and leaves the project untouched', (t) => {
         const root = mkdtempSync(join(process.cwd(), '.pa-initlstat-'));
