@@ -110,6 +110,14 @@ test('inline template expands flag values', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('inline template expands ampersand tags', () => {
+  const { cwd, home } = makeDirs();
+  const res = runCli(['A: {{&word}}', '--word=hi', '--no-interactive'], cwd, home);
+  assert.strictEqual(res.status, 0);
+  assert.strictEqual(res.stdout.trim(), 'A: hi');
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('inline template with an unfilled blank under --no-interactive exits 1', () => {
   const { cwd, home } = makeDirs();
   const res = runCli(['Review {{file}}', '--no-interactive'], cwd, home);

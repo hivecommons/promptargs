@@ -20,12 +20,14 @@ function usageError(message) {
 // as an empty string — the blank silently vanished instead of being asked for,
 // filled from --flags, highlighted by `show`, or preserved as {{name}}.
 // Trailing padding after a default is not part of the default.
-export const VAR_PATTERN = /\{\{\s*([\w-]+)(?:=([^}]*?))?\s*\}\}/g;
+// Ampersand tags ({{&name}}) are Mustache's unescaped-variable alias and are
+// the same blank as {{name}}.
+export const VAR_PATTERN = /\{\{\s*(?:&\s*)?([\w-]+)(?:=([^}]*?))?\s*\}\}/g;
 // Dotted names ({{repo.owner}}) are Mustache context paths, which promptargs
 // never fills; they would silently render empty, so they are rejected.
 // The lookbehind skips triple-mustache tags; sigil tags ({{#x}}, {{!c}}) do
 // not start with a name character and never match.
-const DOTTED_PATTERN = /(?<!\{)\{\{\s*([\w-]+\.[\w.-]*)\s*(?:=[^}]*)?\}\}/;
+const DOTTED_PATTERN = /(?<!\{)\{\{\s*(?:&\s*)?([\w-]+\.[\w.-]*)\s*(?:=[^}]*)?\}\}/;
 export function parseVars(template) {
     const vars = [];
     // The first offending tag aborts; the message is built from the name only
@@ -69,7 +71,8 @@ export function expand(template, values) {
         }
     }
     // Convert {{var=default}} to {{var}} so Mustache can handle it
-    const normalized = template.replace(VAR_PATTERN, (_match, name) => `{{${name}}}`);
+    // The & sigil is kept so Mustache still sees an unescaped variable tag.
+    const normalized = template.replace(VAR_PATTERN, (match, name) => /^\{\{\s*&/.test(match) ? `{{&${name}}}` : `{{${name}}}`);
     // Disable HTML escaping for this render only — we want raw text output.
     // Passed via the per-call config (4th arg) rather than assigning to the
     // module-level Mustache.escape, which would permanently disable escaping

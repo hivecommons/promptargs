@@ -156,6 +156,24 @@ describe('variable name grammar and repeated blanks', () => {
     assert.doesNotThrow(() => parseVars('{{!a.b}} {{{x}}} {{name=a.b}}'));
   });
 
+  it('recognises ampersand tags as blanks', () => {
+    for (const tpl of ['{{&name}}', '{{& name }}']) {
+      const vars = parseVars(tpl);
+      assert.strictEqual(vars.length, 1);
+      assert.strictEqual(vars[0].name, 'name');
+      assert.strictEqual(expand(tpl, { name: 'hi' }), 'hi');
+    }
+    const vars = parseVars('{{name}} {{&name=dflt}}');
+    assert.strictEqual(vars.length, 1);
+    assert.strictEqual(vars[0].defaultValue, 'dflt');
+    assert.strictEqual(expand('{{&name=dflt}}', {}), 'dflt');
+    assert.strictEqual(expand('{{&name}}', {}), '{{name}}');
+  });
+
+  it('rejects dotted ampersand tags', () => {
+    assert.throws(() => parseVars('{{&a.b}}'), (err: Error) => err.name === 'UsageError' && /a\.b/.test(err.message));
+  });
+
   it('adopts a default from a later occurrence', () => {
     const vars = parseVars('{{name}} and {{name=dflt}}');
     assert.strictEqual(vars.length, 1);
