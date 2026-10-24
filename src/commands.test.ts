@@ -159,13 +159,32 @@ describe('doInit with a symlinked project .prompts', () => {
   }
 });
 
-// doInit swallows only ENOENT from the pre-flight lstat (no entry yet is the
-// normal case). Any other failure must surface instead of being masked by
-// existsSync, which would then either report "already exists" or create the
-// directory behind a permission or I/O error. No filesystem layout makes
-// lstat of <cwd>/.prompts fail with anything but ENOENT for a non-root user
-// in a writable scratch dir, so swap the builtin and re-sync the ESM binding
-// commands.js imported.
+describe('doInit when .prompts is a regular file', () => {
+  it('throws UsageError and does not write anything', (t) => {
+    const root = mkdtempSync(join(process.cwd(), '.pa-initfile-'));
+    mkdirSync(join(root, 'proj'));
+    writeFileSync(join(root, 'proj', '.prompts'), 'I am a file');
+    const errs = t.mock.method(console, 'error', () => {});
+    const logs = t.mock.method(console, 'log', () => {});
+    const prevCwd = process.cwd();
+    const prevExit = process.exitCode;
+    process.chdir(join(root, 'proj'));
+    try {
+      assert.throws(() => doInit(), {
+        name: 'UsageError',
+        message: /exists but is not a directory/,
+      });
+      assert.ok(!logs.mock.calls.some(c => /already exists/.test(String(c.arguments[0]))));
+      assert.ok(!logs.mock.calls.some(c => /Created/.test(String(c.arguments[0]))));
+      assert.strictEqual(lstatSync(join(root, 'proj', '.prompts')).isFile(), true);
+    } finally {
+      process.exitCode = prevExit;
+      process.chdir(prevCwd);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('doInit when the .prompts pre-flight lstat fails', () => {
   it('rethrows a non-ENOENT error and leaves the project untouched', (t) => {
     const root = mkdtempSync(join(process.cwd(), '.pa-initlstat-'));

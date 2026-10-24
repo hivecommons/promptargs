@@ -213,6 +213,16 @@ test('init is a no-op when .prompts already exists', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('init fails with UsageError when .prompts is a regular file', () => {
+  const { cwd, home } = makeDirs();
+  writeFileSync(join(cwd, '.prompts'), 'I am a file');
+  const res = runCli(['init'], cwd, home);
+  assert.strictEqual(res.status, 1);
+  assert.match(res.stderr, /exists but is not a directory/);
+  assert.ok(!existsSync(join(cwd, '.prompts', 'review.md')));
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('list shows template names, vars with defaults, and user source tag', () => {
   const { cwd, home } = makeDirs();
   mkdirSync(join(cwd, '.prompts'));

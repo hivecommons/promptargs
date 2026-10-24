@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, existsSync, lstatSync } from 'node:fs';
+import { mkdirSync, writeFileSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseVars, VAR_PATTERN } from './parser.js';
 import { findTemplate, loadTemplates } from './loader.js';
@@ -20,22 +20,25 @@ The actual behavior is: {{actual}}
 export function doInit() {
     const dir = join(process.cwd(), '.prompts');
     // Same rule as the loader: the project .prompts entry must be a real
-    // directory. lstat runs before existsSync, which follows links and would
-    // report a dangling link as absent (then mkdirSync throws EEXIST).
+    // directory. lstat runs before any check, which is used to distinguish
+    // symlinks, regular files, and directories.
     try {
-        if (lstatSync(dir).isSymbolicLink()) {
+        const stats = lstatSync(dir);
+        if (stats.isSymbolicLink()) {
             diag('loader_dir_symlink', { status: 'refused' }, sanitizeForTerminal(`promptargs: ${dir} is a symlink; the project .prompts directory must be a real directory`));
             process.exitCode = 1;
             return;
         }
+        if (!stats.isDirectory()) {
+            throw new UsageError(`promptargs: ${dir} exists but is not a directory; move or remove it before running init`);
+        }
+        // Existing directory: already exists
+        console.log('.prompts/ already exists!');
+        return;
     }
     catch (err) {
         if (err.code !== 'ENOENT')
             throw err;
-    }
-    if (existsSync(dir)) {
-        console.log('.prompts/ already exists!');
-        return;
     }
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'review.md'), EXAMPLE_REVIEW);
