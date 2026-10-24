@@ -835,7 +835,7 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
     }
 
     const arrayVars = [];
-    const scalarValues = {};
+    const scalarValues = Object.create(null);
 
     for (const row of rows) {
       const vals = splitValues(row.values, row.source);
@@ -858,7 +858,7 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
     const results = [];
     try {
       for (const combo of combos) {
-        const vals = { ...scalarValues };
+        const vals = Object.assign(Object.create(null), scalarValues);
         arrayVars.forEach((v, i) => { vals[v.name] = combo[i]; });
         results.push({ values: { ...vals }, expanded: sharedExpand(text, vals) });
       }

@@ -454,6 +454,46 @@ test('update zips comma-separated rows in zip mode and renders one iteration per
   assert.equal(h.cli(), 'promptargs "Review {{file}} for {{focus}}" --file=a.go,b.go --focus=x,y');
 });
 
+test('update fills a scalar __proto__ blank advertised by the CLI command', async () => {
+  const h = makeHarness(5);
+  h.tmpl.value = 'Hello {{__proto__}}';
+  h.addVarRow('__proto__', 'world', 'manual');
+  h.scheduleUpdate();
+  await tick(20);
+  assert.equal(h.previewCount.textContent, '1 result');
+  assert.equal(h.previewBody.innerHTML,
+    '<div class="iteration"><div class="expanded-text">Hello world</div></div>');
+  assert.equal(h.cli(), 'promptargs "Hello {{__proto__}}" --__proto__=world');
+});
+
+for (const mode of ['zip', 'cross'] as const) {
+  for (const values of ['world', 'world,friend']) {
+    test(`update preserves ${values.includes(',') ? 'array' : 'scalar'} __proto__ values and labels in ${mode} mode`, async () => {
+      const h = makeHarness(5);
+      h.loadPreset({ name: 'empty', desc: '', template: '', vars: {}, mode });
+      h.tmpl.value = 'Hello {{__proto__}} from {{place}}';
+      h.addVarRow('__proto__', values, 'manual');
+      h.addVarRow('place', 'here,there', 'manual');
+      h.scheduleUpdate();
+      await tick(20);
+
+      const expected = values === 'world'
+        ? [['world', 'here'], ['world', 'there']]
+        : mode === 'zip'
+          ? [['world', 'here'], ['friend', 'there']]
+          : [['world', 'here'], ['world', 'there'], ['friend', 'here'], ['friend', 'there']];
+      assert.equal(h.previewCount.textContent, `${expected.length} results`);
+      assert.equal(h.previewBody.innerHTML, expected.map(([name, place], i) =>
+        `<div class="iteration"><div class="iter-label">[${i + 1}/${expected.length}] __proto__=${name}  place=${place}</div>` +
+        `<div class="expanded-text">Hello ${name} from ${place}</div></div>`
+      ).join(''));
+      const crossFlag = mode === 'cross' && values.includes(',') ? ' --cross' : '';
+      assert.equal(h.cli(),
+        `promptargs "Hello {{__proto__}} from {{place}}" --__proto__=${values} --place=here,there${crossFlag}`);
+    });
+  }
+}
+
 test('update with a blank template renders the empty state and a bare command', async () => {
   const h = makeHarness(5);
   h.addVarRow('name', 'World', 'manual');
