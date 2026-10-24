@@ -149,6 +149,15 @@ describe('environment fallback', () => {
       delete process.env.PA_TEST_PLAIN_URL;
     }
   });
+
+  it('treats empty env var as not detected', () => {
+    process.env.PROMPTARGS_TEST_EMPTY = '';
+    try {
+      assert.strictEqual(autodetect('PROMPTARGS_TEST_EMPTY'), undefined);
+    } finally {
+      delete process.env.PROMPTARGS_TEST_EMPTY;
+    }
+  });
 });
 
 describe('isSensitiveEnvName', () => {

@@ -111,7 +111,8 @@ export function autodetect(varName) {
     if (isSensitiveEnvName(varName) || !Object.hasOwn(process.env, varName))
         return undefined;
     const value = process.env[varName];
-    if (value === undefined || isSensitiveEnvValue(value))
+    // Treat empty env var as not detected, matching --FOO= flags and git detectors (see #91).
+    if (value === undefined || value === '' || isSensitiveEnvValue(value))
         return undefined;
     return value;
 }
