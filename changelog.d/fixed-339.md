@@ -1,0 +1,1 @@
+- A trailing `**` in a glob value (`--file="src/**"`) now matches files as well as directories beneath the base. (#339)

@@ -87,6 +87,16 @@ function descendantDirs(base: string): string[] {
   return out;
 }
 
+function filesIn(base: string): string[] {
+  try {
+    return readdirSync(base === '' ? '.' : base, { withFileTypes: true })
+      .filter(e => !e.name.startsWith('.') && !e.isDirectory())
+      .map(e => (base === '' ? e.name : join(base, e.name)));
+  } catch {
+    return [];
+  }
+}
+
 function expandGlob(pattern: string): string[] {
   const absolute = pattern.startsWith('/');
   const segments = pattern.split('/').filter(Boolean);
@@ -98,7 +108,12 @@ function expandGlob(pattern: string): string[] {
     if (segment === '**') {
       // Consecutive ** segments behave as one
       if (segments[i + 1] === '**') continue;
-      for (const base of bases) next.push(base, ...descendantDirs(base));
+      const trailing = i === segments.length - 1;
+      for (const base of bases) {
+        const dirs = [base, ...descendantDirs(base)];
+        next.push(...dirs);
+        if (trailing) for (const d of dirs) next.push(...filesIn(d));
+      }
     } else if (!segment.includes('*') && !segment.includes('?')) {
       for (const base of bases) {
         const p = base === '' ? segment : join(base, segment);

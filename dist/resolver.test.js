@@ -147,11 +147,30 @@ describe('resolve glob expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: `${dir}/**/*.go` }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a.go'), join(dir, 'x', 'b.go'), join(dir, 'x', 'y', 'c.go')]);
     });
-    it('trailing ** matches every descendant directory', async () => {
+    it('trailing ** matches every descendant file and directory', async () => {
         const dir = join(tmp, 'starstar-end');
         mkdirSync(join(dir, 'x', 'y'), { recursive: true });
+        writeFileSync(join(dir, 'top.txt'), '');
+        writeFileSync(join(dir, '.hid.txt'), '');
+        writeFileSync(join(dir, 'x', 'mid.txt'), '');
+        writeFileSync(join(dir, 'x', 'y', 'deep.txt'), '');
         const r = await resolve([v('pa_f')], { pa_f: `${dir}/**` }, false);
-        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [dir, join(dir, 'x'), join(dir, 'x', 'y')]);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [
+            dir,
+            join(dir, 'top.txt'),
+            join(dir, 'x'),
+            join(dir, 'x', 'mid.txt'),
+            join(dir, 'x', 'y'),
+            join(dir, 'x', 'y', 'deep.txt'),
+        ]);
+    });
+    it('trailing ** with no subdirectories still returns the files', async () => {
+        const dir = join(tmp, 'starstar-flat');
+        mkdirSync(dir);
+        writeFileSync(join(dir, 'a.txt'), '');
+        writeFileSync(join(dir, 'b.txt'), '');
+        const r = await resolve([v('pa_f')], { pa_f: `${dir}/**` }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [dir, join(dir, 'a.txt'), join(dir, 'b.txt')]);
     });
     it('** skips dot-directories', async () => {
         const dir = join(tmp, 'starstar-dot');
