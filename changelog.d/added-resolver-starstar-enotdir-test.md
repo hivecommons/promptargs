@@ -1,0 +1,1 @@
+Test pinning that a trailing `**` under a regular file swallows the ENOTDIR from `readdir` in both the directory walk and the file listing, so the pattern resolves to the file itself instead of throwing.

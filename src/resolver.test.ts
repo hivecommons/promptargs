@@ -263,6 +263,18 @@ describe('resolve glob expansion', () => {
     assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'x', 'v.go')]);
   });
 
+  it('trailing ** under a plain file yields just that file (ENOTDIR readdir is swallowed)', async () => {
+    // descendantDirs() and filesIn() both readdir their base; when the base
+    // is a regular file that throws ENOTDIR, and both must treat it as empty
+    // rather than surface the error.
+    const dir = join(tmp, 'starstar-file-base');
+    mkdirSync(dir);
+    const file = join(dir, 'leaf.txt');
+    writeFileSync(file, '');
+    const r = await resolve([v('pa_f')], { pa_f: `${file}/**` }, false);
+    assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [file]);
+  });
+
   it('keeps a non-matching ** pattern literal', async () => {
     const dir = join(tmp, 'starstar-none');
     mkdirSync(dir);
