@@ -1,0 +1,1 @@
+- Implicit env-var auto-detection and the Builder UI terminal-env list now refuse `CREDS`/`CREDENTIALS` names (`AWS_CREDS`, `CREDS_FILE`) and values with Hugging Face, PyPI, DigitalOcean, Linear, Shopify, SendGrid, Databricks, Grafana and Google OAuth token prefixes. (#344)

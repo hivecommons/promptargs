@@ -71,11 +71,11 @@ export const AUTODETECT_VARS = Object.keys(DETECTORS);
 // AUTH_HEADER do not.
 const SENSITIVE_ENV_PATTERN = new RegExp(
   [
-    'TOKEN', 'SECRET', 'PASSWORD', 'PASSWD', 'PASSPHRASE', 'CREDENTIAL',
+    'TOKEN', 'SECRET', 'PASSWORD', 'PASSWD', 'PASSPHRASE', 'CREDENTIALS?',
     'API_?KEY', 'ACCESS_KEY', 'PRIVATE_KEY', 'BEARER', 'COOKIE', 'WEBHOOK',
     'JWT', 'HMAC', 'OAUTH', 'AUTHORI[SZ]ATION', 'CONN(?:ECTION)?_?STR(?:ING)?',
     '(?:^|_)AUTH(?:_|$)', '(?:^|_)KEYS?(?:_|$)', '_PWD(?:_|$)',
-    '(?:^|_)PAT(?:_|$)', '(?:^|_)PASS(?:_|$)', '(?:^|_)DSN(?:_|$)',
+    '(?:^|_)PAT(?:_|$)', '(?:^|_)PASS(?:_|$)', '(?:^|_)DSN(?:_|$)', '(?:^|_)CREDS(?:_|$)',
   ].join('|'),
   'i',
 );
@@ -88,7 +88,9 @@ export function isSensitiveEnvName(name: string): boolean {
 // a URL carrying a password in its userinfo (DATABASE_URL, REDIS_URL,
 // MONGO_URI, SENTRY_DSN), PEM blocks, JWTs, HTTP Authorization header values
 // (Bearer/Basic), and the fixed prefixes vendors stamp on their tokens so
-// scanners can recognise them.
+// scanners can recognise them (GitHub, GitLab, OpenAI, Stripe, Slack, AWS,
+// Google, npm, Vault, Hugging Face, PyPI, DigitalOcean, Linear, Shopify,
+// SendGrid, Databricks, Grafana).
 const SENSITIVE_ENV_VALUE_PATTERN = new RegExp(
   [
     '^[a-z][a-z0-9+.-]*://[^/\\s:@]*:[^/\\s@]+@',
@@ -104,6 +106,15 @@ const SENSITIVE_ENV_VALUE_PATTERN = new RegExp(
     '^AIza[\\w-]{35}$',
     '^npm_[A-Za-z0-9]{36}$',
     '^hvs\\.[\\w-]{20,}',
+    '^hf_[A-Za-z0-9]{30,}',
+    '^pypi-AgEI[\\w-]{20,}',
+    '^dop_v1_[a-f0-9]{60,}',
+    '^lin_api_[A-Za-z0-9]{20,}',
+    '^shp(?:at|ss|ca|pa)_[a-f0-9]{30,}',
+    '^SG\\.[\\w-]{20,}\\.[\\w-]{20,}',
+    '^dapi[a-f0-9]{30,}',
+    '^glc_[A-Za-z0-9+/=]{30,}',
+    '^ya29\\.[\\w-]{20,}',
   ].join('|'),
   'i',
 );

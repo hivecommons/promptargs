@@ -173,6 +173,7 @@ describe('isSensitiveEnvName', () => {
       'PAT', 'GIT_PASS', 'SSH_PASSPHRASE', 'SLACK_WEBHOOK_URL', 'DISCORD_WEBHOOK', 'SENTRY_DSN',
       'DB_CONNECTION_STRING', 'AZURE_CONN_STR', 'JWT_SIGNING', 'HMAC_VALUE', 'OAUTH_CLIENT_ID',
       'AUTHORIZATION', 'HTTP_AUTHORIZATION', 'AUTHORIZATION_HEADER', 'authorisation',
+      'AWS_CREDS', 'GCP_CREDS', 'CREDS_FILE', 'creds', 'CREDENTIALS',
     ]) {
       assert.strictEqual(isSensitiveEnvName(name), true, `should flag ${name}`);
     }
@@ -182,6 +183,7 @@ describe('isSensitiveEnvName', () => {
     for (const name of [
       'EDITOR', 'PATH', 'GOPATH', 'AUTHOR', 'AUTHORIZED_USERS_FILE', 'branch', 'KEYBOARD',
       'PWD', 'OLDPWD', 'PATTERN', 'PATCH_LEVEL', 'PASSENGER_COUNT', 'MONKEY', 'DSNAME', 'COMPASS',
+      'INCREDIBLE',
     ]) {
       assert.strictEqual(isSensitiveEnvName(name), false, `should not flag ${name}`);
     }
@@ -206,6 +208,15 @@ describe('isSensitiveEnvValue', () => {
       'AIza' + 'a'.repeat(35),
       'npm_' + 'a'.repeat(36),
       'hvs.' + 'a'.repeat(24),
+      'hf_' + 'a'.repeat(34),
+      'pypi-AgEI' + 'a'.repeat(40),
+      'dop_v1_' + 'a'.repeat(64),
+      'lin_api_' + 'a'.repeat(40),
+      'shpat_' + 'a'.repeat(32),
+      'SG.' + 'a'.repeat(22) + '.' + 'b'.repeat(43),
+      'dapi' + 'a'.repeat(32),
+      'glc_' + 'A'.repeat(40),
+      'ya29.' + 'a'.repeat(40),
       'Bearer ' + 'a'.repeat(40),
       'Basic dXNlcjpwYXNz',
     ]) {
@@ -219,6 +230,7 @@ describe('isSensitiveEnvValue', () => {
       'postgres://db.internal/app', 'https://user@example.com/path', 'user@example.com',
       'skills', 'sk-short', 'eyJ-not-a-jwt', 'AKIA-nope', 'Hello, world', '42',
       'Bearer', 'Basic', 'Bearer-Token-Co', 'basically fine',
+      'hf_home', 'SG.short',
     ]) {
       assert.strictEqual(isSensitiveEnvValue(value), false, `should not flag ${value}`);
     }
