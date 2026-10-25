@@ -71,14 +71,35 @@ function segmentToRegExp(segment: string): RegExp {
   return new RegExp(`^${escaped}$`);
 }
 
+function descendantDirs(base: string): string[] {
+  const out: string[] = [];
+  let entries;
+  try {
+    entries = readdirSync(base === '' ? '.' : base, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || !entry.isDirectory()) continue;
+    const p = base === '' ? entry.name : join(base, entry.name);
+    out.push(p, ...descendantDirs(p));
+  }
+  return out;
+}
+
 function expandGlob(pattern: string): string[] {
   const absolute = pattern.startsWith('/');
   const segments = pattern.split('/').filter(Boolean);
   let bases: string[] = [absolute ? '/' : ''];
 
-  for (const segment of segments) {
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
     const next: string[] = [];
-    if (!segment.includes('*') && !segment.includes('?')) {
+    if (segment === '**') {
+      // Consecutive ** segments behave as one
+      if (segments[i + 1] === '**') continue;
+      for (const base of bases) next.push(base, ...descendantDirs(base));
+    } else if (!segment.includes('*') && !segment.includes('?')) {
       for (const base of bases) {
         const p = base === '' ? segment : join(base, segment);
         if (existsSync(p)) next.push(p);
@@ -103,7 +124,7 @@ function expandGlob(pattern: string): string[] {
     if (bases.length === 0) break;
   }
 
-  return bases.sort();
+  return [...new Set(bases)].sort();
 }
 
 export async function resolve(

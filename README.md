@@ -228,6 +228,7 @@ Status lines showing iteration progress go to stderr:
 |--------|-------------|
 | `--file=a.go,b.go,c.go` | Comma-separated list |
 | `--file="src/*.go"` | Glob pattern (expands to matching files) |
+| `--file="src/**/*.go"` | Recursive glob (`**` matches any depth) |
 | `--file=@list.txt` | Reads one value per line from a file |
 
 ### Multiple arrays: zip vs cross-product

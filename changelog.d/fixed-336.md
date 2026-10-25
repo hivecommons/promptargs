@@ -1,0 +1,1 @@
+- `**` in a glob value (`--file="src/**/*.go"`) now matches any number of directory levels instead of exactly one, so files at the top level and deeper levels are included. (#336)
