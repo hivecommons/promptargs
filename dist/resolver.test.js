@@ -147,14 +147,12 @@ describe('resolve glob expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: `${dir}/**/*.go` }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'a.go'), join(dir, 'x', 'b.go'), join(dir, 'x', 'y', 'c.go')]);
     });
-
     it('trailing ** matches every descendant directory', async () => {
         const dir = join(tmp, 'starstar-end');
         mkdirSync(join(dir, 'x', 'y'), { recursive: true });
         const r = await resolve([v('pa_f')], { pa_f: `${dir}/**` }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [dir, join(dir, 'x'), join(dir, 'x', 'y')]);
     });
-
     it('** skips dot-directories', async () => {
         const dir = join(tmp, 'starstar-dot');
         mkdirSync(join(dir, '.hidden'), { recursive: true });
@@ -164,7 +162,6 @@ describe('resolve glob expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: `${dir}/**/*.go` }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [join(dir, 'x', 'v.go')]);
     });
-
     it('keeps a non-matching ** pattern literal', async () => {
         const dir = join(tmp, 'starstar-none');
         mkdirSync(dir);
@@ -172,7 +169,6 @@ describe('resolve glob expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: pattern }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), [pattern]);
     });
-
     it('expands globs inside a comma-separated value, keeping piece order', async () => {
         // The .md piece is listed first but sorts after the .ts files, so a
         // global re-sort of the whole expansion would fail this assertion:
