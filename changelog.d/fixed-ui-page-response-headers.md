@@ -1,0 +1,1 @@
+`promptargs ui` now serves the builder page with `Cache-Control: no-store`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`, so the environment data it embeds is not kept in the browser's disk cache and the tokened page URL is never sent as a Referer.

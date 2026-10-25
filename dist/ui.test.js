@@ -7,7 +7,7 @@ import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSy
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { buildUIHtml, collectEnvVars, requestCarriesToken, shouldSkipEnv, startUI, truncateValue, } from './ui.js';
+import { buildUIHtml, collectEnvVars, PAGE_HEADERS, requestCarriesToken, shouldSkipEnv, startUI, truncateValue, } from './ui.js';
 test('shouldSkipEnv filters noisy shell and tooling variables', () => {
     assert.equal(shouldSkipEnv('HOME'), true);
     assert.equal(shouldSkipEnv('npm_config_cache'), true);
@@ -165,6 +165,26 @@ test('startUI serves the env-bearing page only to a client presenting the per-ru
         console.error = origError;
         if (server.listening)
             await closeServer(server);
+    }
+});
+test('startUI serves the env-bearing page with no-store, no-referrer and nosniff headers', async () => {
+    // The page embeds environment data behind a tokened URL: without these the
+    // browser may keep a copy in its disk cache after the server has exited,
+    // and would send the tokened URL as the Referer on the page's outbound links.
+    const { server, port, page } = await launch();
+    try {
+        const allowed = await request(port, `localhost:${port}`, page);
+        assert.equal(allowed.statusCode, 200);
+        assert.equal(allowed.headers['cache-control'], 'no-store');
+        assert.equal(allowed.headers['referrer-policy'], 'no-referrer');
+        assert.equal(allowed.headers['x-content-type-options'], 'nosniff');
+        assert.equal(allowed.contentType, 'text/html; charset=utf-8');
+        for (const [name, value] of Object.entries(PAGE_HEADERS)) {
+            assert.equal(allowed.headers[name.toLowerCase()], value, name);
+        }
+    }
+    finally {
+        await closeServer(server);
     }
 });
 test('requestCarriesToken compares the t query parameter exactly', () => {
@@ -358,6 +378,7 @@ function request(port, host, path = '/') {
                 statusCode: res.statusCode ?? 0,
                 body,
                 contentType: res.headers['content-type'],
+                headers: res.headers,
             }));
         });
         req.on('error', reject);

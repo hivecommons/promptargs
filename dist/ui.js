@@ -67,6 +67,15 @@ const STATIC_JS_ROUTES = {
 // Query parameter carrying the per-run access token (see startUI).
 export const UI_TOKEN_PARAM = 't';
 const UI_TOKEN_BYTES = 16;
+// The page embeds environment data and is reached through a tokened URL, so
+// the browser must not keep a copy on disk after the server exits, and must
+// not send that URL as the Referer when the page's outbound links are followed.
+export const PAGE_HEADERS = Object.freeze({
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Referrer-Policy': 'no-referrer',
+    'X-Content-Type-Options': 'nosniff',
+});
 export function requestCarriesToken(url, token) {
     if (!url)
         return false;
@@ -143,7 +152,7 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
             res.end('Forbidden');
             return;
         }
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.writeHead(200, PAGE_HEADERS);
         res.end(html);
     });
     // Bind loopback only: the page embeds environment variables and must never

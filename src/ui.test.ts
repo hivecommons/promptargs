@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { get } from 'node:http';
+import type { IncomingHttpHeaders } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { execSync, spawnSync } from 'node:child_process';
 import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -11,6 +12,7 @@ import type { AddressInfo } from 'node:net';
 import {
   buildUIHtml,
   collectEnvVars,
+  PAGE_HEADERS,
   requestCarriesToken,
   shouldSkipEnv,
   startUI,
@@ -183,6 +185,26 @@ test('startUI serves the env-bearing page only to a client presenting the per-ru
   } finally {
     console.error = origError;
     if (server.listening) await closeServer(server);
+  }
+});
+
+test('startUI serves the env-bearing page with no-store, no-referrer and nosniff headers', async () => {
+  // The page embeds environment data behind a tokened URL: without these the
+  // browser may keep a copy in its disk cache after the server has exited,
+  // and would send the tokened URL as the Referer on the page's outbound links.
+  const { server, port, page } = await launch();
+  try {
+    const allowed = await request(port, `localhost:${port}`, page);
+    assert.equal(allowed.statusCode, 200);
+    assert.equal(allowed.headers['cache-control'], 'no-store');
+    assert.equal(allowed.headers['referrer-policy'], 'no-referrer');
+    assert.equal(allowed.headers['x-content-type-options'], 'nosniff');
+    assert.equal(allowed.contentType, 'text/html; charset=utf-8');
+    for (const [name, value] of Object.entries(PAGE_HEADERS)) {
+      assert.equal(allowed.headers[name.toLowerCase()], value, name);
+    }
+  } finally {
+    await closeServer(server);
   }
 });
 
@@ -366,7 +388,7 @@ function closeServer(server: ReturnType<typeof startUI>): Promise<void> {
   });
 }
 
-function request(port: number, host: string, path = '/'): Promise<{ statusCode: number; body: string; contentType?: string }> {
+function request(port: number, host: string, path = '/'): Promise<{ statusCode: number; body: string; contentType?: string; headers: IncomingHttpHeaders }> {
   return new Promise((resolve, reject) => {
     const req = get({
       hostname: '127.0.0.1',
@@ -381,6 +403,7 @@ function request(port: number, host: string, path = '/'): Promise<{ statusCode: 
         statusCode: res.statusCode ?? 0,
         body,
         contentType: res.headers['content-type'],
+        headers: res.headers,
       }));
     });
     req.on('error', reject);

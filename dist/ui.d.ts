@@ -11,5 +11,6 @@ export interface StartUIOptions {
 }
 export declare function buildUIHtml(rawHtml: string, envVars: EnvData): string;
 export declare const UI_TOKEN_PARAM = "t";
+export declare const PAGE_HEADERS: Readonly<Record<string, string>>;
 export declare function requestCarriesToken(url: string | undefined, token: string): boolean;
 export declare function startUI(port?: number, options?: StartUIOptions): Server;

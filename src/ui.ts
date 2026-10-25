@@ -87,6 +87,16 @@ const STATIC_JS_ROUTES: Record<string, string> = {
 export const UI_TOKEN_PARAM = 't';
 const UI_TOKEN_BYTES = 16;
 
+// The page embeds environment data and is reached through a tokened URL, so
+// the browser must not keep a copy on disk after the server exits, and must
+// not send that URL as the Referer when the page's outbound links are followed.
+export const PAGE_HEADERS: Readonly<Record<string, string>> = Object.freeze({
+  'Content-Type': 'text/html; charset=utf-8',
+  'Cache-Control': 'no-store',
+  'Referrer-Policy': 'no-referrer',
+  'X-Content-Type-Options': 'nosniff',
+});
+
 export function requestCarriesToken(url: string | undefined, token: string): boolean {
   if (!url) return false;
   let supplied: string | null;
@@ -170,7 +180,7 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
       return;
     }
 
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, PAGE_HEADERS);
     res.end(html);
   });
 
