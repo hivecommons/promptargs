@@ -1,0 +1,1 @@
+- `{{ name = value }}` (whitespace around `=`) is now recognised as a blank with default `value`, instead of silently rendering empty. Padding around `=` is no longer part of the default, so `{{file= main.go}}` defaults to `main.go`. (#334)

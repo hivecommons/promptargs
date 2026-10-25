@@ -41,6 +41,19 @@ describe('parseVars', () => {
         assert.strictEqual(vars[0].defaultValue, 'junior developer');
     });
 });
+describe('parseVars padding around =', () => {
+    it('accepts padding on either side of =', () => {
+        for (const tag of ['{{ a = b }}', '{{a =b}}', '{{a= b}}']) {
+            const vars = parseVars(tag);
+            assert.strictEqual(vars.length, 1, tag);
+            assert.strictEqual(vars[0].name, 'a', tag);
+            assert.strictEqual(vars[0].defaultValue, 'b', tag);
+        }
+    });
+    it('keeps interior whitespace in a padded default', () => {
+        assert.strictEqual(parseVars('{{ a = b c }}')[0].defaultValue, 'b c');
+    });
+});
 describe('expand', () => {
     it('substitutes values', () => {
         const result = expand('Hello {{name}}!', { name: 'World' });
@@ -78,6 +91,10 @@ describe('expand', () => {
         // Before padding was recognised, Mustache rendered {{ name }} as "".
         const result = expand('Hello {{ name }}, see {{file}}', { file: 'x' });
         assert.strictEqual(result, 'Hello {{name}}, see x');
+    });
+    it('fills and preserves tags with padded defaults', () => {
+        assert.strictEqual(expand('Hi {{ name = world }}', {}), 'Hi world');
+        assert.strictEqual(expand('Hi {{ name = world }}', { name: 'x' }), 'Hi x');
     });
     it('does not mutate the shared Mustache.escape global', () => {
         // `expand` must disable escaping for its own render only, via the

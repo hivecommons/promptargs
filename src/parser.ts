@@ -28,10 +28,11 @@ export interface TemplateVar {
 // recognize would still be handed to Mustache as a variable, which renders it
 // as an empty string — the blank silently vanished instead of being asked for,
 // filled from --flags, highlighted by `show`, or preserved as {{name}}.
-// Trailing padding after a default is not part of the default.
+// Padding around the = and trailing padding after a default are not part of
+// the default ({{ name = value }} has the default "value").
 // Ampersand tags ({{&name}}) are Mustache's unescaped-variable alias and are
 // the same blank as {{name}}.
-export const VAR_PATTERN = /\{\{\s*(?:&\s*)?([\w-]+)(?:=([^}]*?))?\s*\}\}/g;
+export const VAR_PATTERN = /\{\{\s*(?:&\s*)?([\w-]+)(?:\s*=\s*([^}]*?))?\s*\}\}/g;
 
 // Dotted names ({{repo.owner}}) are Mustache context paths, which promptargs
 // never fills; they would silently render empty, so they are rejected.

@@ -142,7 +142,7 @@ A blank looks like this: `{{name}}`
 
 A blank with a default looks like this: `{{name=hello}}` (promptargs extension)
 
-Padding inside the braces is fine too — `{{ name }}` and `{{ name=hello }}` mean the same thing.
+Padding inside the braces is fine too — `{{ name }}` and `{{ name=hello }}` mean the same thing, and so does `{{ name = hello }}` (padding around `=` is not part of the default).
 
 Names may use letters, digits, `_` and `-` (`{{file-name}}`). Dotted names such as `{{repo.owner}}` are rejected with an error — use `{{repo_owner}}`; the switch names `no-interactive`, `cross`, `json`, `status` and `help` are also rejected, as they are reserved for CLI switches. Likewise, the template file names `help`, `env`, `ui`, `init`, `list` and `show` are reserved for the subcommands of the same name; such a template is listed as unreachable by `promptargs list` (and `show` warns), because the subcommand always wins.
 
