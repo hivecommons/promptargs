@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 const CATEGORIES = [
   ['added', 'Added'],
   ['changed', 'Changed'],
+  ['stricter', 'Stricter parsing'],
   ['fixed', 'Fixed'],
 ];
 

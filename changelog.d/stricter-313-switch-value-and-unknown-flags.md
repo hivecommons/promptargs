@@ -1,0 +1,1 @@
+Template runs given a switch with a value (`--json=false`, `--cross=0`) or a flag that names no blank (`--fiel=main.go`). Old: the switch was enabled whatever the value and the unknown flag was silently dropped, exit 0. New: exit 1 with `Invalid --<switch>: --<switch> takes no value` or `Unknown flag --<name>: ...`. (#313)

@@ -1,0 +1,1 @@
+A template run with `--no-interactive` (or piped stdin) where a blank has no flag, autodetected value or default. Old: printed the literal `{{name}}` placeholder and exited 0. New: exit 1 with `Missing value for {{name}}: ...`. (#322)

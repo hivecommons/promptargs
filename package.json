@@ -1,6 +1,6 @@
 {
   "name": "@hivecommons/promptargs",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Template arguments for AI prompts — variable substitution for Claude Code, Copilot, Goose, Bob, and more",
   "type": "module",
   "main": "dist/index.js",

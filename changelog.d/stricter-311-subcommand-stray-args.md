@@ -1,0 +1,1 @@
+`promptargs list`, `init`, `env` and `show` with trailing arguments or flags (`list --json`, `init --force`, `env extra`). Old: silently ignored, exit 0. New: exit 1 with `Unexpected argument: <arg>`. (#311)

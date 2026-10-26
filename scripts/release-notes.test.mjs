@@ -18,6 +18,16 @@ test('groups fragments by category and normalises bullets', () => {
   );
 });
 
+test('renders stricter fragments under a Stricter parsing heading', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'notes-'));
+  writeFileSync(join(dir, 'stricter-s.md'), 'Old: ignored. New: rejected. (#5)\n');
+  writeFileSync(join(dir, 'fixed-b.md'), 'Fixed b (#2)\n');
+  assert.equal(
+    renderReleaseNotes(dir),
+    '### Stricter parsing\n\n- Old: ignored. New: rejected. (#5)\n\n### Fixed\n\n- Fixed b (#2)\n',
+  );
+});
+
 test('returns an empty string when there are no fragments', () => {
   assert.equal(renderReleaseNotes(mkdtempSync(join(tmpdir(), 'notes-'))), '');
 });
