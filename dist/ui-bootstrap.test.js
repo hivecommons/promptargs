@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { assertNoReservedVars } from './flags.js';
 import { compileInlineScript } from './ui-harness.js';
 /**
  * Behavior tests for the top-level wiring of ui.html's inline script: the
@@ -229,9 +230,9 @@ function loadPage(env) {
     const window = env === undefined ? {} : { __PROMPTARGS_ENV__: env };
     const run = compileInlineScript('ui-bootstrap', [
         'document', 'window', 'navigator',
-        'parseVars', 'sharedExpand', 'VAR_PATTERN', 'sharedCartesian', 'sharedZip',
+        'parseVars', 'sharedExpand', 'VAR_PATTERN', 'sharedCartesian', 'sharedZip', 'assertNoReservedVars',
     ], iifeBody);
-    run(document, window, navigator, parseVars, expand, VAR_PATTERN, cartesian, zip);
+    run(document, window, navigator, parseVars, expand, VAR_PATTERN, cartesian, zip, assertNoReservedVars);
     return {
         tmpl, varBody, addBtn, presetGrid, previewBody, previewCount, cliText, copyBtn, modeDesc, modeButtons,
         envSection, envGit, envTerminal, envGitGroup, envTerminalGroup, envToggle, cheatsheet, cheatsheetToggle,

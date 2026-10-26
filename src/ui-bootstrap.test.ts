@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { assertNoReservedVars } from './flags.js';
 import { compileInlineScript } from './ui-harness.js';
 
 /**
@@ -267,9 +268,9 @@ function loadPage(env?: EnvPayload): Page {
 
   const run = compileInlineScript<void>('ui-bootstrap', [
     'document', 'window', 'navigator',
-    'parseVars', 'sharedExpand', 'VAR_PATTERN', 'sharedCartesian', 'sharedZip',
+    'parseVars', 'sharedExpand', 'VAR_PATTERN', 'sharedCartesian', 'sharedZip', 'assertNoReservedVars',
   ], iifeBody);
-  run(document, window, navigator, parseVars, expand, VAR_PATTERN, cartesian, zip);
+  run(document, window, navigator, parseVars, expand, VAR_PATTERN, cartesian, zip, assertNoReservedVars);
 
   return {
     tmpl, varBody, addBtn, presetGrid, previewBody, previewCount, cliText, copyBtn, modeDesc, modeButtons,
