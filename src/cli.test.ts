@@ -356,6 +356,17 @@ test('padded tags are filled from flags and reported in --status', () => {
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
+test('--status alone never prompts or errors on an unfilled blank', () => {
+  const { cwd, home } = makeDirs();
+  const res = runCli(['Review {{ file }}', '--status'], cwd, home);
+  assert.strictEqual(res.status, 0);
+  assert.match(res.stdout, /📋 inline: file=___/);
+  assert.doesNotMatch(res.stderr, /Missing value/);
+  // runCli pipes stdin, so this cannot allocate a TTY; the TTY path is
+  // covered by the `!statusOnly` term in the interactive condition.
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
 test('--status labels (default) by provenance, not by equality with the default', () => {
   const { cwd, home } = makeDirs();
   const tpl = 'Review {{ file }} for {{ focus=bugs }}';

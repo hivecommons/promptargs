@@ -112,10 +112,10 @@ async function main() {
   // Run a template
   const templateName = args[0];
   const flags = parseFlags(args.slice(1));
-  const interactive = !flags['no-interactive'] && process.stdin.isTTY === true;
   const cross = 'cross' in flags;
   const asJson = 'json' in flags;
   const statusOnly = 'status' in flags;
+  const interactive = !flags['no-interactive'] && !statusOnly && process.stdin.isTTY === true;
 
   // Check for inline template (quoted string with {{vars}})
   let content: string;

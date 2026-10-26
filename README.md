@@ -523,7 +523,7 @@ If you installed the skill (see [Install](#as-an-agent-skill)), use it directly 
 | `--no-interactive` | Skip questions, use defaults only |
 | `--cross` | Cross-product mode (all combinations) |
 | `--json` | Output as JSON |
-| `--status` | Output status line only |
+| `--status` | Output status line only (never prompts; implies `--no-interactive`) |
 | `... \| claude -p "do this"` | Pipe to Claude |
 | `... \| goose run` | Pipe to Goose |
 

@@ -77,7 +77,7 @@ Multiple arrays are zipped 1:1 by default; add `--cross` for every combination.
 
 - default: plain expanded text (progress goes to stderr)
 - `--json`: JSON output
-- `--status`: one status line showing which variables were filled or defaulted
+- `--status`: one status line showing which variables were filled or defaulted (never prompts; implies `--no-interactive`)
 
 ## Pipe to an AI tool
 
