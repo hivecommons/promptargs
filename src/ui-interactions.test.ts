@@ -1,3 +1,4 @@
+import { assertNoReservedVars } from './flags.js';
 import test from 'node:test';
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
@@ -253,7 +254,7 @@ function makeHarness(debounceMs = 1): Harness {
   const factory = compileInlineScript<Api>('ui-interactions', [
     'document', 'tmpl', 'varBody', 'presetGrid', 'modeDesc',
     'previewBody', 'previewCount', 'cliText', 'PRESETS', 'DEBOUNCE_MS',
-    'parseVars', 'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
+    'parseVars', 'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN', 'assertNoReservedVars',
   ], `let mode = 'zip';
      let debounceTimer = null;
      ${src}
@@ -265,7 +266,7 @@ function makeHarness(debounceMs = 1): Harness {
   const api = factory(
     document, tmpl, varBody, presetGrid, modeDesc,
     previewBody, previewCount, cliText, presets, debounceMs,
-    parseVars, cartesian, zip, expand, VAR_PATTERN,
+    parseVars, cartesian, zip, expand, VAR_PATTERN, assertNoReservedVars,
   );
 
   return {

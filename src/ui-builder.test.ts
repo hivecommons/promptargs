@@ -1,3 +1,4 @@
+import { assertNoReservedVars } from './flags.js';
 import test from 'node:test';
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
@@ -91,11 +92,11 @@ function makeHarness(mode: 'zip' | 'cross' = 'zip'): Harness {
     .join('\n');
   const factory = compileInlineScript<() => void>('ui-update', [
     'tmpl', 'varBody', 'previewBody', 'previewCount', 'cliText', 'mode',
-    'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
+    'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN', 'assertNoReservedVars', 'parseVars',
   ], `${src}\nreturn update;`);
   const update = factory(
     tmpl, varBody, previewBody, previewCount, cliText, mode,
-    cartesian, zip, expand, VAR_PATTERN,
+    cartesian, zip, expand, VAR_PATTERN, assertNoReservedVars, parseVars,
   );
 
   return {
@@ -233,6 +234,31 @@ test('update renders the parser error for a dotted variable and resets the comma
   assert.equal(h.cli(), 'promptargs');
   assert.equal(h.iterations(), 0);
 });
+
+for (const name of ['json', 'cross', 'status', 'no-interactive', 'help']) {
+  for (const blank of [`{{${name}}}`, `{{${name}=yaml}}`]) {
+    test(`update rejects reserved blank ${blank} with or without a value`, () => {
+      const h = makeHarness();
+      for (const values of ['yaml', '']) {
+        h.tmpl.value = `Summarize {{file}} as ${blank}`;
+        h.rows.splice(0, h.rows.length, { name, values });
+        h.update();
+        const kind = name === 'help' ? 'flag' : 'switch';
+        assert.equal(h.previewBody.innerHTML,
+          `<span class="preview-empty">Unsupported variable name "${name}": it is reserved for the --${name} ${kind}; rename the blank</span>`);
+        assert.equal(h.previewCount.textContent, 'error');
+        assert.equal(h.previewCount.className, 'preview-count empty');
+        assert.equal(h.cli(), 'promptargs');
+        assert.equal(h.iterations(), 0);
+      }
+      h.tmpl.value = 'Summarize {{format}}';
+      h.rows.splice(0, h.rows.length, { name: 'format', values: 'yaml' });
+      h.update();
+      assert.deepEqual(expandedTexts(h), ['Summarize yaml']);
+      assert.equal(h.previewCount.textContent, '1 result');
+    });
+  }
+}
 
 test('update HTML-escapes template text, values, and labels before rendering', () => {
   const h = makeHarness('zip');
