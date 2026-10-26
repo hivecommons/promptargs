@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { assertNoReservedVars } from './flags.js';
 import { compileInlineScript } from './ui-harness.js';
 
 /**
@@ -253,7 +254,7 @@ function makeHarness(debounceMs = 1): Harness {
   const factory = compileInlineScript<Api>('ui-interactions', [
     'document', 'tmpl', 'varBody', 'presetGrid', 'modeDesc',
     'previewBody', 'previewCount', 'cliText', 'PRESETS', 'DEBOUNCE_MS',
-    'parseVars', 'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
+    'parseVars', 'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN', 'assertNoReservedVars',
   ], `let mode = 'zip';
      let debounceTimer = null;
      ${src}
@@ -265,7 +266,7 @@ function makeHarness(debounceMs = 1): Harness {
   const api = factory(
     document, tmpl, varBody, presetGrid, modeDesc,
     previewBody, previewCount, cliText, presets, debounceMs,
-    parseVars, cartesian, zip, expand, VAR_PATTERN,
+    parseVars, cartesian, zip, expand, VAR_PATTERN, assertNoReservedVars,
   );
 
   return {

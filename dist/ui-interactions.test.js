@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { assertNoReservedVars } from './flags.js';
 import { compileInlineScript } from './ui-harness.js';
 /**
  * Behavior tests for ui.html's variable-table and preset wiring:
@@ -215,7 +216,7 @@ function makeHarness(debounceMs = 1) {
     const factory = compileInlineScript('ui-interactions', [
         'document', 'tmpl', 'varBody', 'presetGrid', 'modeDesc',
         'previewBody', 'previewCount', 'cliText', 'PRESETS', 'DEBOUNCE_MS',
-        'parseVars', 'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
+        'parseVars', 'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN', 'assertNoReservedVars',
     ], `let mode = 'zip';
      let debounceTimer = null;
      ${src}
@@ -224,7 +225,7 @@ function makeHarness(debounceMs = 1) {
        syncVarsFromTemplate, addVarRow, insertAtCursor, loadPreset,
        renderPresets, renderEnvChips, scheduleUpdate,
      };`);
-    const api = factory(document, tmpl, varBody, presetGrid, modeDesc, previewBody, previewCount, cliText, presets, debounceMs, parseVars, cartesian, zip, expand, VAR_PATTERN);
+    const api = factory(document, tmpl, varBody, presetGrid, modeDesc, previewBody, previewCount, cliText, presets, debounceMs, parseVars, cartesian, zip, expand, VAR_PATTERN, assertNoReservedVars);
     return {
         tmpl, varBody, presetGrid, modeDesc, modeButtons, previewBody, previewCount, cliText,
         mode: () => api.mode,

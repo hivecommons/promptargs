@@ -4,8 +4,9 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { VAR_PATTERN, expand } from './parser.js';
+import { VAR_PATTERN, expand, parseVars } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { assertNoReservedVars } from './flags.js';
 import { compileInlineScript } from './ui-harness.js';
 
 /**
@@ -50,8 +51,12 @@ function commandFor(template: string, rows: Row[]): string {
   const factory = compileInlineScript<() => void>('ui-update', [
     'tmpl', 'varBody', 'previewBody', 'previewCount', 'cliText', 'mode',
     'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
+    'parseVars', 'assertNoReservedVars',
   ], `${src}\nreturn update;`);
-  const update = factory({ value: template }, varBody, node(), node(), cliText, 'zip', cartesian, zip, expand, VAR_PATTERN);
+  const update = factory(
+    { value: template }, varBody, node(), node(), cliText, 'zip', cartesian, zip, expand, VAR_PATTERN,
+    parseVars, assertNoReservedVars,
+  );
   update();
   return cliText.innerHTML
     .replace(/^<span class="dollar">\$<\/span>/, '')
