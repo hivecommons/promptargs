@@ -61,6 +61,7 @@ export function buildUIHtml(rawHtml, envVars) {
 // exact compiled files means the browser runs the same code the CLI does.
 const STATIC_JS_ROUTES = {
     '/parser.js': 'parser.js',
+    '/flags.js': 'flags.js',
     '/iterate.js': 'iterate.js',
     '/mustache.mjs': 'mustache.mjs',
 };

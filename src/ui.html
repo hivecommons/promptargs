@@ -661,6 +661,7 @@
 // browser-only concerns (no glob/file access, HTML escaping) with no CLI
 // counterpart to drift from.
 import { parseVars, expand as sharedExpand, VAR_PATTERN } from './parser.js';
+import { assertNoReservedVars } from './flags.js';
 import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
 
 (function () {
@@ -857,6 +858,7 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
 
     const results = [];
     try {
+      assertNoReservedVars(parseVars(text));
       for (const combo of combos) {
         const vals = Object.assign(Object.create(null), scalarValues);
         arrayVars.forEach((v, i) => { vals[v.name] = combo[i]; });

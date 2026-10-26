@@ -275,7 +275,7 @@ test('startUI emits one ui_request JSON line per request when PROMPTARGS_LOG=jso
   }
 });
 
-test('startUI serves the parser/iterate/mustache modules the browser imports', async () => {
+test('startUI serves the parser/flags/iterate/mustache modules the browser imports', async () => {
   const { server, port, token } = await launch();
 
   try {
@@ -284,6 +284,11 @@ test('startUI serves the parser/iterate/mustache modules the browser imports', a
     assert.match(parser.contentType ?? '', /text\/javascript/);
     assert.match(parser.body, /export function parseVars/);
     assert.match(parser.body, /export const VAR_PATTERN/);
+
+    const flags = await request(port, `127.0.0.1:${port}`, '/flags.js');
+    assert.equal(flags.statusCode, 200);
+    assert.match(flags.contentType ?? '', /text\/javascript/);
+    assert.match(flags.body, /export function assertNoReservedVars/);
 
     const iterate = await request(port, `127.0.0.1:${port}`, '/iterate.js');
     assert.equal(iterate.statusCode, 200);

@@ -1,3 +1,4 @@
+import { assertNoReservedVars } from './flags.js';
 import test, { mock } from 'node:test';
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
@@ -267,9 +268,9 @@ function loadPage(env?: EnvPayload): Page {
 
   const run = compileInlineScript<void>('ui-bootstrap', [
     'document', 'window', 'navigator',
-    'parseVars', 'sharedExpand', 'VAR_PATTERN', 'sharedCartesian', 'sharedZip',
+    'parseVars', 'sharedExpand', 'VAR_PATTERN', 'sharedCartesian', 'sharedZip', 'assertNoReservedVars',
   ], iifeBody);
-  run(document, window, navigator, parseVars, expand, VAR_PATTERN, cartesian, zip);
+  run(document, window, navigator, parseVars, expand, VAR_PATTERN, cartesian, zip, assertNoReservedVars);
 
   return {
     tmpl, varBody, addBtn, presetGrid, previewBody, previewCount, cliText, copyBtn, modeDesc, modeButtons,
