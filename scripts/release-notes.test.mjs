@@ -71,7 +71,7 @@ test('every committed changelog.d fragment is rendered', () => {
   assert.ok(names.length > 0, 'expected at least one fragment');
   const rendered = renderReleaseNotes(dir);
   for (const name of names) {
-    assert.match(name, /^(added|changed|fixed)-[a-z0-9][a-z0-9-]*\.md$/, name);
+    assert.match(name, /^(added|changed|stricter|fixed)-[a-z0-9][a-z0-9-]*\.md$/, name);
     const lines = readFileSync(join(dir, name), 'utf8').trim().split('\n');
     assert.equal(lines.length, 1, `${name} must hold a single line`);
     const text = lines[0].replace(/^[-*]\s+/, '');

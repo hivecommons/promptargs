@@ -14,6 +14,6 @@ See [CONTRIBUTING.md](https://github.com/hivecommons/promptargs/blob/main/CONTRI
 
 - [ ] `npm run lint`, `npm run build` and `npm test` pass locally
 - [ ] If `src/` changed: the rebuilt `dist/` is committed (CI fails when `dist/` is out of sync)
-- [ ] If the change is user-visible: a `changelog.d/<added|changed|fixed>-<slug>.md` fragment is included
+- [ ] If the change is user-visible: a `changelog.d/<added|changed|stricter|fixed>-<slug>.md` fragment is included
 - [ ] Behavior changes include tests or verification notes
 - [ ] Commits are signed off (`git commit -s`)
