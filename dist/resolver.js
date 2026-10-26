@@ -95,10 +95,15 @@ function expandGlob(pattern) {
             const trailing = i === segments.length - 1;
             for (const base of bases) {
                 const dirs = [base, ...descendantDirs(base)];
-                next.push(...dirs);
-                if (trailing)
+                if (trailing) {
+                    // The relative cwd base ('' or '.') is not itself a value
+                    next.push(...dirs.filter(d => d !== '' && d !== '.'));
                     for (const d of dirs)
                         next.push(...filesIn(d));
+                }
+                else {
+                    next.push(...dirs);
+                }
             }
         }
         else if (!segment.includes('*') && !segment.includes('?')) {

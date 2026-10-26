@@ -1,0 +1,1 @@
+Fixed a bare `**` (or `**/**`, `./**`) glob value yielding an empty-string (or `.`) first value; the current-directory base is no longer emitted, and a `**` conformance test now pins resolver behavior against `fs.globSync`. (#350)

@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, globSync, realpathSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -422,5 +422,98 @@ describe('resolve default provenance', () => {
         assert.strictEqual(r.iterations.length, 2);
         assert.deepStrictEqual([...r.defaulted], ['pa_d']);
     });
+});
+describe('resolve ** glob conformance against fs.globSync', () => {
+    let fixture;
+    const originalCwd = process.cwd();
+    before(() => {
+        fixture = realpathSync(mkdtempSync(join(tmpdir(), 'pa-glob-')));
+        for (const d of ['sub/.dot', 'sub/deep', 'a/x/b', 'a/b']) {
+            mkdirSync(join(fixture, d), { recursive: true });
+        }
+        for (const f of [
+            'a.txt', '.hidden', 'sub/b.ext', 'sub/.dot/c.ext', 'sub/.h.ext',
+            'sub/deep/d.ext', 'a/x/b/e.ext', 'a/b/f.ext', 'a/g.ext',
+        ]) {
+            writeFileSync(join(fixture, f), '');
+        }
+    });
+    after(() => {
+        rmSync(fixture, { recursive: true, force: true });
+    });
+    async function expand(pattern) {
+        process.chdir(fixture);
+        try {
+            const r = await resolve([v('pa_glob')], { pa_glob: pattern }, false);
+            return r.iterations.map(i => i.pa_glob).sort();
+        }
+        finally {
+            process.chdir(originalCwd);
+        }
+    }
+    // Allowed deltas between the resolver and fs.globSync(pattern, { cwd }),
+    // applied to the globSync side. Anything else must match exactly:
+    //  1. A trailing slash is ignored by the resolver (it does not restrict
+    //     matches to directories), so the slash is stripped from the pattern.
+    //  2. The relative cwd base ('.' / '') is never a value, even for a
+    //     trailing `**` (the base directory is otherwise included: `a/**`
+    //     yields `a`, absolute `<dir>/**` yields `<dir>`).
+    //  3. Hidden entries are skipped unless the pattern names a dot segment.
+    function expected(pattern) {
+        const stripped = pattern.replace(/\/+$/, '');
+        let out = globSync(stripped, { cwd: fixture });
+        out = out.filter(e => e !== '' && e !== '.');
+        const dotPattern = stripped.split('/').some(seg => seg.startsWith('.') && seg !== '.');
+        if (!dotPattern) {
+            out = out.filter(e => e
+                .split('/')
+                .every(seg => !seg.startsWith('.')));
+        }
+        return out.sort();
+    }
+    const relative = [
+        '**',
+        '**/**',
+        './**',
+        'a/**',
+        './a/**',
+        '**/b',
+        'a/**/b',
+        '**/*.ext',
+        'a/**/b/*.ext',
+        '*/',
+        'a/**/',
+        '**/',
+        '*',
+        '.*',
+        './.*',
+        '**/.*',
+        'sub/.*/*.ext',
+        'sub/**/*.ext',
+    ];
+    for (const pattern of relative) {
+        it(`matches globSync for ${JSON.stringify(pattern)}`, async () => {
+            const got = await expand(pattern);
+            assert.deepStrictEqual(got, expected(pattern));
+            assert.ok(!got.includes(''), 'empty-string value leaked');
+            assert.ok(!got.includes('.'), 'cwd base leaked');
+        });
+    }
+    const absolute = ['/**', '/a/**', '/a/**/', '/**/*.ext', '/a/**/b', '/.*', '/**/.*'];
+    for (const suffix of absolute) {
+        it(`matches globSync for absolute <fixture>${suffix}`, async () => {
+            const pattern = fixture + suffix;
+            const got = await expand(pattern);
+            const want = globSync(pattern.replace(/\/+$/, ''));
+            const dotPattern = suffix.split('/').some(seg => seg.startsWith('.'));
+            const filtered = dotPattern
+                ? want
+                : want.filter(e => e
+                    .slice(fixture.length)
+                    .split('/')
+                    .every(seg => !seg.startsWith('.')));
+            assert.deepStrictEqual(got, filtered.sort());
+        });
+    }
 });
 //# sourceMappingURL=resolver.test.js.map
