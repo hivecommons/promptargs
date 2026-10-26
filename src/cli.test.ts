@@ -28,6 +28,24 @@ function runCli(args: string[], cwd: string, home: string): RunResult {
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
+// Spawning cannot allocate a pty portably, so cli.js only ever sees a piped
+// stdin here. This preloads a one-line module that reports stdin as a TTY, so
+// the `interactive` condition in cli.ts is reached with isTTY === true and
+// the asked-vs-not-asked decision becomes observable: with stdin at EOF, the
+// ask path fails fast with the "stdin is closed" diagnostic.
+const TTY_SHIM = 'data:text/javascript,Object.defineProperty(process.stdin,"isTTY",{value:true})';
+
+function runCliAsTTY(args: string[], cwd: string, home: string): RunResult {
+  const result = spawnSync(process.execPath, ['--import', TTY_SHIM, CLI, ...args], {
+    cwd,
+    encoding: 'utf-8',
+    env: { ...process.env, HOME: home, USERPROFILE: home },
+    input: '',
+    timeout: 30_000,
+  });
+  return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+}
+
 // Each test gets an isolated cwd and HOME so ~/.prompts and ./.prompts
 // from the host machine never leak into template resolution.
 function makeDirs(): { cwd: string; home: string } {
@@ -362,8 +380,22 @@ test('--status alone never prompts or errors on an unfilled blank', () => {
   assert.strictEqual(res.status, 0);
   assert.match(res.stdout, /📋 inline: file=___/);
   assert.doesNotMatch(res.stderr, /Missing value/);
-  // runCli pipes stdin, so this cannot allocate a TTY; the TTY path is
-  // covered by the `!statusOnly` term in the interactive condition.
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
+
+test('--status never asks even when stdin is a TTY', () => {
+  const { cwd, home } = makeDirs();
+  // Positive control: the same shim without --status must take the ask path,
+  // otherwise the assertion below would pass with the `!statusOnly` term
+  // removed from the interactive condition (as it did before this test).
+  const asked = runCliAsTTY(['Review {{ file }}'], cwd, home);
+  assert.strictEqual(asked.status, 1);
+  assert.match(asked.stderr, /Variable "file" has no value and stdin is closed/);
+
+  const res = runCliAsTTY(['Review {{ file }}', '--status'], cwd, home);
+  assert.strictEqual(res.status, 0, res.stderr);
+  assert.match(res.stdout, /📋 inline: file=___/);
+  assert.doesNotMatch(res.stderr, /has no value|Missing value/);
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
 
