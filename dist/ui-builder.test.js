@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expand, parseVars, VAR_PATTERN } from './parser.js';
 import { cartesian, zip } from './iterate.js';
+import { assertNoReservedVars } from './flags.js';
 import { compileInlineScript } from './ui-harness.js';
 /**
  * Behavior tests for ui.html's builder logic: `update()` (preview rendering
@@ -66,8 +67,9 @@ function makeHarness(mode = 'zip') {
     const factory = compileInlineScript('ui-update', [
         'tmpl', 'varBody', 'previewBody', 'previewCount', 'cliText', 'mode',
         'sharedCartesian', 'sharedZip', 'sharedExpand', 'VAR_PATTERN',
+        'parseVars', 'assertNoReservedVars',
     ], `${src}\nreturn update;`);
-    const update = factory(tmpl, varBody, previewBody, previewCount, cliText, mode, cartesian, zip, expand, VAR_PATTERN);
+    const update = factory(tmpl, varBody, previewBody, previewCount, cliText, mode, cartesian, zip, expand, VAR_PATTERN, parseVars, assertNoReservedVars);
     return {
         update,
         tmpl,
@@ -176,6 +178,15 @@ test('update highlights variables that remain unfilled after expansion', () => {
     h.rows.push({ name: 'file', values: 'main.go' });
     h.update();
     assert.deepEqual(expandedTexts(h), ['Fix <span class="unfilled">{{issue}}</span> in main.go']);
+});
+test('update reports a blank named after a reserved switch instead of building a command the CLI rejects', () => {
+    const h = makeHarness();
+    h.tmpl.value = 'Output {{json}}';
+    h.rows.push({ name: 'json', values: 'yaml' });
+    h.update();
+    assert.match(h.previewBody.innerHTML, /reserved for the --json switch/);
+    assert.equal(h.previewCount.textContent, 'error');
+    assert.equal(h.cli(), 'promptargs');
 });
 test('update renders the parser error for a dotted variable and resets the command', () => {
     const h = makeHarness();

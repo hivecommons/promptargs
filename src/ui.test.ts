@@ -290,6 +290,10 @@ test('startUI serves the parser/iterate/mustache modules the browser imports', a
     assert.match(iterate.body, /export function cartesian/);
     assert.match(iterate.body, /export function zip/);
 
+    const flags = await request(port, `127.0.0.1:${port}`, '/flags.js');
+    assert.equal(flags.statusCode, 200);
+    assert.match(flags.body, /export function assertNoReservedVars/);
+
     const mustache = await request(port, `127.0.0.1:${port}`, '/mustache.mjs');
     assert.equal(mustache.statusCode, 200);
     assert.match(mustache.body, /export default mustache/);

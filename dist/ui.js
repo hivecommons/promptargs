@@ -62,6 +62,7 @@ export function buildUIHtml(rawHtml, envVars) {
 const STATIC_JS_ROUTES = {
     '/parser.js': 'parser.js',
     '/iterate.js': 'iterate.js',
+    '/flags.js': 'flags.js',
     '/mustache.mjs': 'mustache.mjs',
 };
 // Query parameter carrying the per-run access token (see startUI).
