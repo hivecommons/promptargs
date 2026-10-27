@@ -74,6 +74,24 @@ describe('resolve array expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: `@${listFile}` }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['x,y', 'z']);
     });
+    it('treats \\\\, as a literal backslash followed by a separator', async () => {
+        const r = await resolve([v('pa_f')], { pa_f: 'C:\\dir\\\\,D:\\x' }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['C:\\dir\\', 'D:\\x']);
+    });
+    it('reads backslash runs before a comma in pairs', async () => {
+        const r = await resolve([v('pa_f')], { pa_f: 'a\\\\\\,b,c\\\\\\\\,d' }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['a\\,b', 'c\\\\', 'd']);
+    });
+    it('keeps backslashes that are not before a comma', async () => {
+        const r = await resolve([v('pa_f')], { pa_f: 'C:\\a\\\\b,x\\' }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['C:\\a\\\\b', 'x\\']);
+    });
+    it('unescapes \\\\, in @file lines to a backslash and comma', async () => {
+        const listFile = join(tmp, 'escaped-backslash.txt');
+        writeFileSync(listFile, 'x\\\\,y\nz\n');
+        const r = await resolve([v('pa_f')], { pa_f: `@${listFile}` }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['x\\,y', 'z']);
+    });
     it('reads @file values one per line', async () => {
         const listFile = join(tmp, 'list.txt');
         writeFileSync(listFile, 'one\n two \n\nthree\n');

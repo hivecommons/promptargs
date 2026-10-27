@@ -19,13 +19,33 @@ function expandPiece(piece) {
     }
     return [piece];
 }
-// Split on commas not preceded by a backslash, then turn `\,` into a literal comma.
+// A run of backslashes right before a comma is read in pairs: each `\\` is a
+// literal backslash, and an odd one left over makes the comma literal. So
+// `a\,b` is one value `a,b`, while `a\\,b` is `a\` then `b`. Backslashes
+// elsewhere are kept as-is.
+const BACKSLASHES_BEFORE_COMMA = /(\\*),/g;
+function unescapeCommas(raw) {
+    return raw.replace(BACKSLASHES_BEFORE_COMMA, (_, bs) => '\\'.repeat(bs.length >> 1) + ',');
+}
+// Split on unescaped commas, then unescape what is left (see above).
 function splitUnescaped(raw) {
-    return raw
-        .split(/(?<!\\),/)
-        .map(s => s.trim())
-        .filter(Boolean)
-        .map(s => s.replace(/\\,/g, ','));
+    const pieces = [];
+    let piece = '';
+    let last = 0;
+    for (const m of raw.matchAll(BACKSLASHES_BEFORE_COMMA)) {
+        const bs = m[1].length;
+        piece += raw.slice(last, m.index) + '\\'.repeat(bs >> 1);
+        last = m.index + m[0].length;
+        if (bs % 2 === 1) {
+            piece += ',';
+        }
+        else {
+            pieces.push(piece);
+            piece = '';
+        }
+    }
+    pieces.push(piece + raw.slice(last));
+    return pieces.map(s => s.trim()).filter(Boolean);
 }
 function expandArrayValue(raw, varName) {
     // @file — read lines from file
@@ -36,7 +56,7 @@ function expandArrayValue(raw, varName) {
                 .split('\n')
                 .map((l) => l.trim())
                 .filter(Boolean)
-                .map((l) => l.replace(/\\,/g, ','))
+                .map(unescapeCommas)
                 .flatMap(expandPiece);
         }
         catch (err) {

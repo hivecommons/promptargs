@@ -67,6 +67,9 @@ test('ui splitValues mirrors CLI comma-separated handling', () => {
   assert.deepEqual(uiSplitValues('a.go, b.go ,c.go', 'manual'), ['a.go', 'b.go', 'c.go']);
   assert.deepEqual(uiSplitValues('a,,b,', 'manual'), ['a', 'b']);
   assert.deepEqual(uiSplitValues('', 'manual'), []);
+  assert.deepEqual(uiSplitValues('a\\,b,c', 'manual'), ['a,b', 'c']);
+  assert.deepEqual(uiSplitValues('C:\\dir\\\\,D:\\x', 'manual'), ['C:\\dir\\', 'D:\\x']);
+  assert.deepEqual(uiSplitValues('a\\\\\\,b,c\\\\\\\\,d', 'manual'), ['a\\,b', 'c\\\\', 'd']);
   // @file values are opaque single entries in the UI (server has no file access)
   assert.deepEqual(uiSplitValues('one,two', 'file'), ['one,two']);
 });

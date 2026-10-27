@@ -228,6 +228,7 @@ Status lines showing iteration progress go to stderr:
 |--------|-------------|
 | `--file=a.go,b.go,c.go` | Comma-separated list |
 | `--expected="returns 200\, not 500"` | `\,` is a literal comma: one value, no fan-out |
+| `--dir='C:\out\\,D:\out'` | `\\,` is a literal backslash then a separator: two values `C:\out\` and `D:\out` |
 | `--file="src/*.go"` | Glob pattern (expands to matching files) |
 | `--file="src/**/*.go"` | Recursive glob (`**` matches any depth) |
 | `--file=@list.txt` | Reads one value per line from a file |

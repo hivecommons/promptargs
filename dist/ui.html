@@ -815,7 +815,24 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
   function splitValues(raw, source) {
     if (!raw) return [];
     if (source === 'file') return [raw];
-    return raw.split(/(?<!\\),/).map(s => s.trim()).filter(Boolean).map(s => s.replace(/\\,/g, ','));
+    // Mirrors splitUnescaped in resolver.ts: `\,` is a literal comma, `\\,` a
+    // literal backslash followed by a separator.
+    const pieces = [];
+    let piece = '';
+    let last = 0;
+    for (const m of raw.matchAll(/(\\*),/g)) {
+      const bs = m[1].length;
+      piece += raw.slice(last, m.index) + '\\'.repeat(bs >> 1);
+      last = m.index + m[0].length;
+      if (bs % 2 === 1) {
+        piece += ',';
+      } else {
+        pieces.push(piece);
+        piece = '';
+      }
+    }
+    pieces.push(piece + raw.slice(last));
+    return pieces.map(s => s.trim()).filter(Boolean);
   }
 
   function highlightUnfilled(html) {

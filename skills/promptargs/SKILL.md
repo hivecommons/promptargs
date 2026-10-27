@@ -71,7 +71,7 @@ promptargs review --file="src/*.go" --no-interactive
 promptargs review --file=@list.txt --no-interactive
 ```
 
-To pass a single value that contains a comma, escape it as `\,` (`--expected="returns 200\, not 500"`); this also applies to interactive answers and `@file` lines.
+To pass a single value that contains a comma, escape it as `\,` (`--expected="returns 200\, not 500"`); this also applies to interactive answers and `@file` lines. To end a value with a backslash before a separator comma, double it: `\\,` (`--dir='C:\out\\,D:\out'` gives `C:\out\` and `D:\out`).
 
 Multiple arrays are zipped 1:1 by default; add `--cross` for every combination.
 

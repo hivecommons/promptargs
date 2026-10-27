@@ -29,13 +29,34 @@ function expandPiece(piece: string): string[] {
   return [piece];
 }
 
-// Split on commas not preceded by a backslash, then turn `\,` into a literal comma.
+// A run of backslashes right before a comma is read in pairs: each `\\` is a
+// literal backslash, and an odd one left over makes the comma literal. So
+// `a\,b` is one value `a,b`, while `a\\,b` is `a\` then `b`. Backslashes
+// elsewhere are kept as-is.
+const BACKSLASHES_BEFORE_COMMA = /(\\*),/g;
+
+function unescapeCommas(raw: string): string {
+  return raw.replace(BACKSLASHES_BEFORE_COMMA, (_, bs: string) => '\\'.repeat(bs.length >> 1) + ',');
+}
+
+// Split on unescaped commas, then unescape what is left (see above).
 function splitUnescaped(raw: string): string[] {
-  return raw
-    .split(/(?<!\\),/)
-    .map(s => s.trim())
-    .filter(Boolean)
-    .map(s => s.replace(/\\,/g, ','));
+  const pieces: string[] = [];
+  let piece = '';
+  let last = 0;
+  for (const m of raw.matchAll(BACKSLASHES_BEFORE_COMMA)) {
+    const bs = m[1].length;
+    piece += raw.slice(last, m.index) + '\\'.repeat(bs >> 1);
+    last = m.index + m[0].length;
+    if (bs % 2 === 1) {
+      piece += ',';
+    } else {
+      pieces.push(piece);
+      piece = '';
+    }
+  }
+  pieces.push(piece + raw.slice(last));
+  return pieces.map(s => s.trim()).filter(Boolean);
 }
 
 function expandArrayValue(raw: string, varName?: string): string[] {
@@ -47,7 +68,7 @@ function expandArrayValue(raw: string, varName?: string): string[] {
         .split('\n')
         .map((l: string) => l.trim())
         .filter(Boolean)
-        .map((l: string) => l.replace(/\\,/g, ','))
+        .map(unescapeCommas)
         .flatMap(expandPiece);
     } catch (err) {
       const e = err as NodeJS.ErrnoException;
