@@ -815,7 +815,7 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
   function splitValues(raw, source) {
     if (!raw) return [];
     if (source === 'file') return [raw];
-    return raw.split(',').map(s => s.trim()).filter(Boolean);
+    return raw.split(/(?<!\\),/).map(s => s.trim()).filter(Boolean).map(s => s.replace(/\\,/g, ','));
   }
 
   function highlightUnfilled(html) {

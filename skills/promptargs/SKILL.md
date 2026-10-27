@@ -71,6 +71,8 @@ promptargs review --file="src/*.go" --no-interactive
 promptargs review --file=@list.txt --no-interactive
 ```
 
+To pass a single value that contains a comma, escape it as `\,` (`--expected="returns 200\, not 500"`); this also applies to interactive answers and `@file` lines.
+
 Multiple arrays are zipped 1:1 by default; add `--cross` for every combination.
 
 ## Output formats

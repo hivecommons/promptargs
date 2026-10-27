@@ -59,6 +59,21 @@ describe('resolve array expansion', () => {
         const r = await resolve([v('pa_f')], { pa_f: 'a.go, b.go,c.go' }, false);
         assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['a.go', 'b.go', 'c.go']);
     });
+    it('treats \\, as a literal comma in flag values', async () => {
+        const r = await resolve([v('pa_f')], { pa_f: 'returns 200\\, not 500' }, false);
+        assert.strictEqual(r.values.pa_f, 'returns 200, not 500');
+        assert.strictEqual(r.iterations.length, 1);
+    });
+    it('splits only on unescaped commas', async () => {
+        const r = await resolve([v('pa_f')], { pa_f: 'a\\,b,c' }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['a,b', 'c']);
+    });
+    it('unescapes \\, in @file lines', async () => {
+        const listFile = join(tmp, 'escaped.txt');
+        writeFileSync(listFile, 'x\\,y\nz\n');
+        const r = await resolve([v('pa_f')], { pa_f: `@${listFile}` }, false);
+        assert.deepStrictEqual(r.iterations.map(i => i.pa_f), ['x,y', 'z']);
+    });
     it('reads @file values one per line', async () => {
         const listFile = join(tmp, 'list.txt');
         writeFileSync(listFile, 'one\n two \n\nthree\n');
@@ -320,6 +335,11 @@ describe('resolve interactive prompting', () => {
             Object.defineProperty(process, 'stdin', desc);
         }
     }
+    it('treats \\, in an interactive answer as a literal comma', async () => {
+        const r = await withStdin('returns 200\\, not 500\n', () => resolve([v('pa_ask')], {}, true));
+        assert.strictEqual(r.values.pa_ask, 'returns 200, not 500');
+        assert.strictEqual(r.iterations.length, 1);
+    });
     it('asks for missing values and trims the answer', async () => {
         const r = await withStdin('  spaced answer  \n', () => resolve([v('pa_ask')], {}, true));
         assert.strictEqual(r.values.pa_ask, 'spaced answer');

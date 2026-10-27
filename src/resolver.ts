@@ -29,6 +29,15 @@ function expandPiece(piece: string): string[] {
   return [piece];
 }
 
+// Split on commas not preceded by a backslash, then turn `\,` into a literal comma.
+function splitUnescaped(raw: string): string[] {
+  return raw
+    .split(/(?<!\\),/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(s => s.replace(/\\,/g, ','));
+}
+
 function expandArrayValue(raw: string, varName?: string): string[] {
   // @file — read lines from file
   if (raw.startsWith('@') && existsSync(raw.slice(1))) {
@@ -38,6 +47,7 @@ function expandArrayValue(raw: string, varName?: string): string[] {
         .split('\n')
         .map((l: string) => l.trim())
         .filter(Boolean)
+        .map((l: string) => l.replace(/\\,/g, ','))
         .flatMap(expandPiece);
     } catch (err) {
       const e = err as NodeJS.ErrnoException;
@@ -57,7 +67,7 @@ function expandArrayValue(raw: string, varName?: string): string[] {
 
   // Comma-separated: split first so each piece can be a glob
   if (raw.includes(',')) {
-    return raw.split(',').map(s => s.trim()).filter(Boolean).flatMap(expandPiece);
+    return splitUnescaped(raw).flatMap(expandPiece);
   }
 
   return expandPiece(raw);
