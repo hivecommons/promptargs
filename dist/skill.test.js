@@ -206,6 +206,15 @@ test('README install snippets point at skill files that exist in the repository'
         assert.ok(existsSync(join(ROOT, rel)), `README curls ${rel}, which does not exist in the repository`);
     }
 });
+test('README documents copying the skill into each user skills directory', () => {
+    // ~/.agents/skills is the shared Agent Skills path read by Codex and
+    // Gemini CLI; the other two are tool-specific.
+    const readme = readFileSync(README, 'utf-8');
+    for (const dir of ['~/.copilot/skills', '~/.claude/skills', '~/.agents/skills']) {
+        assert.ok(readme.includes(`mkdir -p ${dir}\n`), `README should create ${dir}`);
+        assert.ok(readme.includes(`cp -r skills/promptargs ${dir}/\n`), `README should copy the skill into ${dir}`);
+    }
+});
 test('the slash-command skill files agree with SKILL.md on the always-on switch', () => {
     // Each tool-specific copy under .claude/, .goose/ and .bob/ is hand
     // maintained; all of them must still tell the agent to pass
