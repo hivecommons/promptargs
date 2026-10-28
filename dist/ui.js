@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -77,6 +77,34 @@ export const PAGE_HEADERS = Object.freeze({
     'Referrer-Policy': 'no-referrer',
     'X-Content-Type-Options': 'nosniff',
 });
+const INLINE_SCRIPT_PATTERN = /<script\b[^>]*>([\s\S]*?)<\/script>/g;
+// The page only ever runs its own inline blocks and the module routes above,
+// and never talks to the network, so the policy pins exactly those: inline
+// scripts by hash (the env block differs per run, so hashes are computed
+// from the served HTML rather than written into ui.html), modules from
+// 'self', and no connect/img/font/frame sources that could carry the
+// embedded environment off the machine. Inline <style> and style="" stay
+// allowed: with every network source closed, CSS has nowhere to send data.
+export function buildContentSecurityPolicy(html) {
+    const hashes = [];
+    for (const match of html.matchAll(INLINE_SCRIPT_PATTERN)) {
+        if (match[1].trim() === '')
+            continue;
+        hashes.push(`'sha256-${createHash('sha256').update(match[1], 'utf8').digest('base64')}'`);
+    }
+    return [
+        "default-src 'none'",
+        `script-src 'self'${hashes.length ? ' ' + hashes.join(' ') : ''}`,
+        "style-src 'unsafe-inline'",
+        "img-src data:",
+        "base-uri 'none'",
+        "form-action 'none'",
+        "frame-ancestors 'none'",
+    ].join('; ');
+}
+export function buildPageHeaders(html) {
+    return { ...PAGE_HEADERS, 'Content-Security-Policy': buildContentSecurityPolicy(html) };
+}
 export function requestCarriesToken(url, token) {
     if (!url)
         return false;
@@ -105,6 +133,7 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
         process.exit(1);
     }
     const html = buildUIHtml(rawHtml, collectEnvVars());
+    const pageHeaders = buildPageHeaders(html);
     // Filled once the server is bound, because port 0 means the OS picks one.
     const ALLOWED_HOSTS = new Set();
     // Loopback is shared by every account on the machine, so the Host check
@@ -153,7 +182,7 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
             res.end('Forbidden');
             return;
         }
-        res.writeHead(200, PAGE_HEADERS);
+        res.writeHead(200, pageHeaders);
         res.end(html);
     });
     // Bind loopback only: the page embeds environment variables and must never
