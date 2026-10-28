@@ -1,0 +1,1 @@
+`promptargs ui` now serves the builder page with a `Content-Security-Policy` that hash-pins the page's own inline scripts and allows no network sources, so the environment snapshot it embeds cannot be sent off the machine even if a markup-escaping regression were ever introduced. (#361)

@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -98,6 +98,36 @@ export const PAGE_HEADERS: Readonly<Record<string, string>> = Object.freeze({
   'X-Content-Type-Options': 'nosniff',
 });
 
+const INLINE_SCRIPT_PATTERN = /<script\b[^>]*>([\s\S]*?)<\/script>/g;
+
+// The page only ever runs its own inline blocks and the module routes above,
+// and never talks to the network, so the policy pins exactly those: inline
+// scripts by hash (the env block differs per run, so hashes are computed
+// from the served HTML rather than written into ui.html), modules from
+// 'self', and no connect/img/font/frame sources that could carry the
+// embedded environment off the machine. Inline <style> and style="" stay
+// allowed: with every network source closed, CSS has nowhere to send data.
+export function buildContentSecurityPolicy(html: string): string {
+  const hashes: string[] = [];
+  for (const match of html.matchAll(INLINE_SCRIPT_PATTERN)) {
+    if (match[1].trim() === '') continue;
+    hashes.push(`'sha256-${createHash('sha256').update(match[1], 'utf8').digest('base64')}'`);
+  }
+  return [
+    "default-src 'none'",
+    `script-src 'self'${hashes.length ? ' ' + hashes.join(' ') : ''}`,
+    "style-src 'unsafe-inline'",
+    "img-src data:",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+  ].join('; ');
+}
+
+export function buildPageHeaders(html: string): Record<string, string> {
+  return { ...PAGE_HEADERS, 'Content-Security-Policy': buildContentSecurityPolicy(html) };
+}
+
 export function requestCarriesToken(url: string | undefined, token: string): boolean {
   if (!url) return false;
   let supplied: string | null;
@@ -125,6 +155,7 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
   }
 
   const html = buildUIHtml(rawHtml, collectEnvVars());
+  const pageHeaders = buildPageHeaders(html);
 
   // Filled once the server is bound, because port 0 means the OS picks one.
   const ALLOWED_HOSTS = new Set<string>();
@@ -181,7 +212,7 @@ export function startUI(port = DEFAULT_PORT, options: StartUIOptions = {}): Serv
       return;
     }
 
-    res.writeHead(200, PAGE_HEADERS);
+    res.writeHead(200, pageHeaders);
     res.end(html);
   });
 

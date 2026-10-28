@@ -4,12 +4,15 @@ import { get } from 'node:http';
 import type { IncomingHttpHeaders } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { execSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AddressInfo } from 'node:net';
 import {
+  buildContentSecurityPolicy,
+  buildPageHeaders,
   buildUIHtml,
   collectEnvVars,
   PAGE_HEADERS,
@@ -371,6 +374,82 @@ function onceListening(server: ReturnType<typeof startUI>): Promise<void> {
 
 // Starts the UI on an ephemeral port and recovers the per-run access token
 // from the URL it prints, the same way a user would.
+const UI_HTML = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'ui.html'), 'utf-8');
+
+function sha256Source(source: string): string {
+  return `'sha256-${createHash('sha256').update(source, 'utf8').digest('base64')}'`;
+}
+
+test('buildContentSecurityPolicy hashes every inline script of the served page and closes all network sources', () => {
+  const html = buildUIHtml(UI_HTML, { git: { branch: 'main' }, terminal: { EDITOR: 'vi' } });
+  const csp = buildContentSecurityPolicy(html);
+  const directives = new Map(csp.split('; ').map(d => {
+    const [name, ...rest] = d.split(' ');
+    return [name, rest.join(' ')] as const;
+  }));
+
+  // Nothing but the page's own modules and the hashed inline blocks may run,
+  // and nothing may be fetched, framed or posted anywhere.
+  assert.equal(directives.get('default-src'), "'none'");
+  assert.equal(directives.get('base-uri'), "'none'");
+  assert.equal(directives.get('form-action'), "'none'");
+  assert.equal(directives.get('frame-ancestors'), "'none'");
+  assert.equal(directives.get('img-src'), 'data:');
+  assert.equal(directives.get('connect-src'), undefined, 'connect-src inherits none from default-src');
+  assert.doesNotMatch(csp, /'unsafe-eval'|'strict-dynamic'|https?:/);
+
+  const scriptSrc = directives.get('script-src') ?? '';
+  assert.ok(!scriptSrc.includes("'unsafe-inline'"), scriptSrc);
+  assert.ok(scriptSrc.startsWith("'self' "), scriptSrc);
+  const inline = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  // env block + importmap + module
+  assert.equal(inline.length, 3, 'inline script count');
+  for (const source of inline) {
+    assert.ok(scriptSrc.includes(sha256Source(source)), `missing hash for inline block starting ${JSON.stringify(source.slice(0, 40))}`);
+  }
+  assert.equal(scriptSrc.split(' ').length, 1 + inline.length, 'no extra script sources');
+});
+
+test('buildContentSecurityPolicy skips empty inline scripts and stays well-formed without any', () => {
+  const withEmpty = buildContentSecurityPolicy('<script></script><script>1</script>');
+  assert.equal(withEmpty.match(/'sha256-/g)?.length, 1);
+  assert.ok(withEmpty.includes(sha256Source('1')));
+  const none = buildContentSecurityPolicy('<p>no scripts</p>');
+  assert.ok(none.includes("; script-src 'self'; "), none);
+});
+
+test('buildContentSecurityPolicy changes with the embedded environment', () => {
+  const a = buildContentSecurityPolicy(buildUIHtml(UI_HTML, { git: {}, terminal: { EDITOR: 'vi' } }));
+  const b = buildContentSecurityPolicy(buildUIHtml(UI_HTML, { git: {}, terminal: { EDITOR: 'nano' } }));
+  assert.notEqual(a, b);
+});
+
+test('buildPageHeaders keeps the baseline headers and adds the policy', () => {
+  const html = buildUIHtml(UI_HTML, { git: {}, terminal: {} });
+  const headers = buildPageHeaders(html);
+  for (const [name, value] of Object.entries(PAGE_HEADERS)) {
+    assert.equal(headers[name], value, name);
+  }
+  assert.equal(headers['Content-Security-Policy'], buildContentSecurityPolicy(html));
+});
+
+test('startUI serves the page with a Content-Security-Policy whose hashes match the served HTML', async () => {
+  const { server, port, page } = await launch();
+  try {
+    const allowed = await request(port, `localhost:${port}`, page);
+    assert.equal(allowed.statusCode, 200);
+    const csp = allowed.headers['content-security-policy'];
+    assert.ok(typeof csp === 'string' && csp.length > 0, 'Content-Security-Policy header missing');
+    assert.equal(csp, buildContentSecurityPolicy(allowed.body));
+    // The module routes carry no environment data and are plain JS; only the page is policed.
+    const parser = await request(port, `localhost:${port}`, '/parser.js');
+    assert.equal(parser.statusCode, 200);
+    assert.equal(parser.headers['content-security-policy'], undefined);
+  } finally {
+    await closeServer(server);
+  }
+});
+
 async function launch(): Promise<{ server: ReturnType<typeof startUI>; port: number; token: string; page: string }> {
   const origLog = console.log;
   let out = '';
