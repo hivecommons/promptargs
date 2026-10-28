@@ -378,6 +378,25 @@ test('buildContentSecurityPolicy hashes every inline script of the served page a
     }
     assert.equal(scriptSrc.split(' ').length, 1 + inline.length, 'no extra script sources');
 });
+test('buildContentSecurityPolicy matches browser-normalized script text for CRLF and CR line endings', () => {
+    const source = '\n  const greeting = "café";\n  console.log(greeting);\n';
+    const expectedHash = sha256Source(source);
+    for (const eol of ['\n', '\r\n', '\r']) {
+        const csp = buildContentSecurityPolicy(`<script>${source.replace(/\n/g, eol)}</script>`);
+        assert.ok(csp.includes(expectedHash), JSON.stringify(eol));
+        assert.equal(csp.match(/'sha256-/g)?.length, 1);
+    }
+    const mixed = '<script>\r\n  const greeting = "café";\r  console.log(greeting);\n</script>';
+    assert.ok(buildContentSecurityPolicy(mixed).includes(expectedHash));
+});
+test('buildPageHeaders pins the same inline scripts in LF and CRLF UI checkouts', () => {
+    const lf = UI_HTML.replace(/\r\n?/g, '\n');
+    const env = { git: { branch: 'main' }, terminal: { EDITOR: 'vi' } };
+    const lfHtml = buildUIHtml(lf, env);
+    const crlfHtml = buildUIHtml(lf.replace(/\n/g, '\r\n'), env);
+    assert.notEqual(lfHtml, crlfHtml);
+    assert.deepStrictEqual(buildPageHeaders(crlfHtml), buildPageHeaders(lfHtml));
+});
 test('buildContentSecurityPolicy skips empty inline scripts and stays well-formed without any', () => {
     const withEmpty = buildContentSecurityPolicy('<script></script><script>1</script>');
     assert.equal(withEmpty.match(/'sha256-/g)?.length, 1);

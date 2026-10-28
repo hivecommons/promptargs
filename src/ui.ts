@@ -111,7 +111,10 @@ export function buildContentSecurityPolicy(html: string): string {
   const hashes: string[] = [];
   for (const match of html.matchAll(INLINE_SCRIPT_PATTERN)) {
     if (match[1].trim() === '') continue;
-    hashes.push(`'sha256-${createHash('sha256').update(match[1], 'utf8').digest('base64')}'`);
+    // HTML parsing normalizes CRLF and lone CR to LF before CSP hashes the
+    // script text. Match that normalization even in Windows source checkouts.
+    const source = match[1].replace(/\r\n?/g, '\n');
+    hashes.push(`'sha256-${createHash('sha256').update(source, 'utf8').digest('base64')}'`);
   }
   return [
     "default-src 'none'",
