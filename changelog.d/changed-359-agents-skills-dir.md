@@ -1,0 +1,1 @@
+README documents installing the Agent Skill for OpenAI Codex and Gemini CLI by copying it into the shared `~/.agents/skills` (or project `.agents/skills`) directory, and how to invoke it in each. (#359)

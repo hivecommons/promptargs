@@ -22,7 +22,7 @@ Review src/app.ts for security issues.
 
 That's it. That's the whole idea.
 
-Works as a **CLI** and as a **skill** in Claude Code, Copilot, Goose, and Bob.
+Works as a **CLI** and as a **skill** in Claude Code, Copilot, Codex, Gemini CLI, Goose, and Bob.
 
 ---
 
@@ -44,7 +44,7 @@ npx @hivecommons/promptargs help
 
 ### As an Agent Skill
 
-promptargs ships an [Agent Skill](https://agentskills.io/specification) at [`skills/promptargs/SKILL.md`](skills/promptargs/SKILL.md), loaded by GitHub Copilot (CLI, cloud agent, VS Code agent mode) and Claude Code.
+promptargs ships an [Agent Skill](https://agentskills.io/specification) at [`skills/promptargs/SKILL.md`](skills/promptargs/SKILL.md), loaded by GitHub Copilot (CLI, cloud agent, VS Code agent mode), Claude Code, OpenAI Codex, and Gemini CLI.
 
 **With the GitHub CLI** (2.90.0 or later):
 ```bash
@@ -60,9 +60,13 @@ cp -r skills/promptargs ~/.copilot/skills/
 # Claude Code
 mkdir -p ~/.claude/skills
 cp -r skills/promptargs ~/.claude/skills/
+
+# Codex and Gemini CLI (both read the shared ~/.agents/skills directory)
+mkdir -p ~/.agents/skills
+cp -r skills/promptargs ~/.agents/skills/
 ```
 
-Use `.github/skills/` or `.claude/skills/` inside a project instead to share it with your team.
+Use `.github/skills/`, `.claude/skills/` or `.agents/skills/` inside a project instead to share it with your team.
 
 ### As a Slash Command (other tools)
 
@@ -507,6 +511,10 @@ If you installed the skill (see [Install](#as-an-agent-skill)), use it directly 
 **Goose / Bob:** The skill is automatically available after install — ask your agent to "use promptargs" or run a template.
 
 **Copilot:** Installed skills load automatically; ask Copilot to use promptargs.
+
+**Codex:** Type `$promptargs` (or pick it from `/skills`), or ask Codex to use promptargs.
+
+**Gemini CLI:** Ask Gemini to use promptargs; it activates the skill after you approve the consent prompt. `/skills list` shows it is installed.
 
 ---
 
