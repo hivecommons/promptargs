@@ -111,6 +111,11 @@ async function main() {
 
   // Run a template
   const templateName = args[0];
+  if (templateName.startsWith('--')) {
+    throw new UsageError(
+      'Missing template: the template name must come before any flags (promptargs <template> --var=value)',
+    );
+  }
   const flags = parseFlags(args.slice(1));
   const cross = 'cross' in flags;
   const asJson = 'json' in flags;

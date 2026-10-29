@@ -427,6 +427,27 @@ test('ui subcommand rejects unknown flags before starting the server', () => {
         rmSync(dirname(cwd), { recursive: true, force: true });
     }
 });
+test('flags before the template report the required argument order', () => {
+    const { cwd, home } = makeDirs();
+    try {
+        for (const args of [
+            ['--json', 'review'],
+            ['--json', 'review', '--file=src/main.ts'],
+            ['--no-interactive', 'review'],
+            ['--json', 'Fix {{file}}'],
+            ['--file', 'review'],
+            ['--json'],
+        ]) {
+            const res = runCli(args, cwd, home);
+            assert.strictEqual(res.status, 1, args.join(' '));
+            assert.ok(res.stderr.includes('Missing template: the template name must come before any flags (promptargs <template> --var=value)'), res.stderr);
+            assert.strictEqual(res.stdout, '', args.join(' '));
+        }
+    }
+    finally {
+        rmSync(dirname(cwd), { recursive: true, force: true });
+    }
+});
 test('extra positional arguments are rejected instead of ignored', () => {
     const { cwd, home } = makeDirs();
     for (const args of [['review', 'no-interactive'], ['ui', 'extra'], ['list', '--json'], ['show', 'review', '--json'], ['init', '--force'], ['env', 'extra']]) {
