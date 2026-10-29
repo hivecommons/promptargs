@@ -104,6 +104,7 @@ test('help subcommand and --help flag print usage', () => {
     const res = runCli([arg], cwd, home);
     assert.strictEqual(res.status, 0, `exit code for ${arg}`);
     assert.match(res.stdout, /Usage:/);
+    assert.match(res.stdout, /Flags \(place after the template name; -h\/--help works anywhere\):/);
   }
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
