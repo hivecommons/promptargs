@@ -22,7 +22,8 @@ Review src/app.ts for security issues.
 
 That's it. That's the whole idea.
 
-Works as a **CLI** and as a **skill** in Claude Code, Copilot, Codex, Gemini CLI, Goose, and Bob.
+Works as a **CLI** (a command you run in a terminal) and as a **skill**
+(instructions your coding agent loads) in Claude Code, Copilot, Codex, Gemini CLI, Goose, and Bob.
 
 ---
 
@@ -51,7 +52,16 @@ promptargs ships an [Agent Skill](https://agentskills.io/specification) at [`ski
 gh skill install hivecommons/promptargs promptargs
 ```
 
-**Manually** (copy the `skills/promptargs/` directory):
+**Manually:** first obtain a checkout, then run the copy command for your agent
+from its top-level folder, where `skills/promptargs/` exists:
+
+```bash
+git clone https://github.com/hivecommons/promptargs.git
+cd promptargs
+```
+
+Choose the relevant destination below (Codex and Gemini share a destination):
+
 ```bash
 # Copilot
 mkdir -p ~/.copilot/skills
@@ -95,6 +105,10 @@ curl -o ~/.bob/skills/promptargs.md \
 
 ## Quick Start (3 steps)
 
+Open a terminal in the project folder where you want `.prompts/` to live.
+These commands produce prompt text; they do not execute a code review or send
+the text to an agent. Inspect the result, then choose whether to pass it to one.
+
 ### Step 1: Make some templates
 
 ```bash
@@ -136,6 +150,12 @@ Focus on real bugs, not style nitpicks.
 
 Variables with `=something` already have a default. Variables without one will ask you to fill them in.
 
+For later reference, see [template locations and file restrictions](#where-templates-live),
+[detected variables](#auto-magic-variables-), and
+[privacy and diagnostics](#privacy--diagnostics). None is needed to expand this
+first template, but review the privacy rules before using environment values
+or sharing diagnostic output.
+
 ---
 
 ## How Blanks Work
@@ -148,13 +168,21 @@ A blank with a default looks like this: `{{name=hello}}` (promptargs extension)
 
 Padding inside the braces is fine too — `{{ name }}` and `{{ name=hello }}` mean the same thing, and so does `{{ name = hello }}` (padding around `=` is not part of the default).
 
-Names may use letters, digits, `_` and `-` (`{{file-name}}`). Dotted names such as `{{repo.owner}}` are rejected with an error — use `{{repo_owner}}`; the switch names `no-interactive`, `cross`, `json`, `status` and `help` are also rejected, as they are reserved for CLI switches. Likewise, the template file names `help`, `env`, `ui`, `init`, `list` and `show` are reserved for the subcommands of the same name; such a template is listed as unreachable by `promptargs list` (and `show` warns), because the subcommand always wins.
+Names may use letters, digits, `_` and `-` (`{{file-name}}`).
+For a first template, stick to plain blanks and comments.
+
+<details>
+<summary>Advanced reference: reserved names and unsupported Mustache features</summary>
+
+Dotted names such as `{{repo.owner}}` are rejected with an error — use `{{repo_owner}}`; the switch names `no-interactive`, `cross`, `json`, `status` and `help` are also rejected, as they are reserved for CLI switches. Likewise, the template file names `help`, `env`, `ui`, `init`, `list` and `show` are reserved for the subcommands of the same name; such a template is listed as unreachable by `promptargs list` (and `show` warns), because the subcommand always wins.
 
 A default may appear on any occurrence of a blank (`{{name}} … {{name=hello}}`); if two occurrences give different defaults, the first one wins.
 
 That's the basics. Mustache comments (`{{! ignore me}}`) work as documented and are safe to use.
 
 Mustache **sections** (`{{#flag}}...{{/flag}}`) and **partials** (`{{>name}}`) are parsed too, but aren't practically usable yet: promptargs only resolves plain `{{name}}` / `{{name=default}}` tags from `--flag=value`, auto-detected context, defaults, or interactive fill — a section's condition name is never filled this way (so its content is always dropped, or always kept for an inverted `{{^name}}` section), and partial content is never supplied, so `{{>name}}` always expands to nothing. Stick to plain blanks and comments; avoid sections and partials for now.
+
+</details>
 
 ### Red means "you need to fill this in"
 
