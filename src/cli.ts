@@ -155,7 +155,10 @@ async function main() {
   const { iterations, defaulted } = await resolve(vars, flags, interactive, cross);
 
   if (statusOnly) {
-    const status = renderStatus(name, vars, iterations[0], undefined, defaulted);
+    const iteration = iterations.length > 1
+      ? { current: 1, total: iterations.length }
+      : undefined;
+    const status = renderStatus(name, vars, iterations[0], iteration, defaulted);
     console.log(status);
     return;
   }

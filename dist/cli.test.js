@@ -176,6 +176,18 @@ test('template without variables honours --status', () => {
     assert.doesNotMatch(res.stdout, /No variables here/);
     rmSync(dirname(cwd), { recursive: true, force: true });
 });
+test('--status shows the [1/N] iteration marker when a value fans out', () => {
+    const { cwd, home } = makeDirs();
+    mkdirSync(join(cwd, '.prompts'));
+    writeFileSync(join(cwd, '.prompts', 'review.md'), 'Review {{file}}');
+    const multiRes = runCli(['review', '--file=a.go,b.go,c.go', '--status', '--no-interactive'], cwd, home);
+    assert.strictEqual(multiRes.status, 0);
+    assert.match(multiRes.stdout, /\[1\/3\]/);
+    const scalarRes = runCli(['review', '--file=a.go', '--status', '--no-interactive'], cwd, home);
+    assert.strictEqual(scalarRes.status, 0);
+    assert.doesNotMatch(scalarRes.stdout, /\[1\//);
+    rmSync(dirname(cwd), { recursive: true, force: true });
+});
 test('unknown template exits 1 with guidance', () => {
     const { cwd, home } = makeDirs();
     const res = runCli(['nope', '--no-interactive'], cwd, home);
