@@ -423,6 +423,16 @@ promptargs review --file=main.go --status
 ✅ review: file=main.go  focus=correctness(default)  tone=concise(default)
 ```
 
+When a value expands to multiple iterations:
+
+```bash
+promptargs review --file=a.go,b.go,c.go --status
+```
+
+```
+✅ review [1/3]: file=a.go  focus=correctness(default)  tone=concise(default)
+```
+
 ---
 
 ## Builder UI
