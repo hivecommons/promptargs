@@ -156,7 +156,10 @@ async function main() {
 
   if (statusOnly) {
     const iteration = iterations.length > 1
-      ? { current: 1, total: iterations.length }
+      ? {
+          current: 1,
+          total: iterations.length,
+        }
       : undefined;
     const status = renderStatus(name, vars, iterations[0], iteration, defaulted);
     console.log(status);
