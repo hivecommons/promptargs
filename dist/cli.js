@@ -28,7 +28,7 @@ Usage:
   promptargs init                      Create .prompts/ with examples
   promptargs show <template>           Preview a template
   promptargs env                       Show auto-detected variable values
-  promptargs ui                        Open the builder UI in your browser
+  promptargs ui [--port=N]             Open the builder UI in your browser
   promptargs help                      Show this help
 
 Flags (place after the template name; -h/--help works anywhere):
@@ -38,6 +38,7 @@ Flags (place after the template name; -h/--help works anywhere):
   --status            Print status line only (for IDE integration)
   -h, --help          Show this help
   --var value         Same as --var=value (switches above take no value)
+  --port=N            Port for "promptargs ui" (default 3700)
 
 Array values:
   --file=a.go,b.go    Comma-separated → one run per value
