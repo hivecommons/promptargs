@@ -207,9 +207,9 @@ promptargs review --file=main.go --focus=security --tone=detailed
 ```bash
 promptargs review
   file: main.go
-  focus: (correctness)     ← press Enter to keep default
-  tone: detailed
 ```
+
+Only `file` is asked for: `focus` and `tone` already have defaults, so they are filled in silently (override them with `--focus=...` / `--tone=...`).
 
 ### Inline (no template file needed)
 
