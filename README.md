@@ -533,6 +533,12 @@ promptargs review --file=src/main.ts --no-interactive | claude -p "do this revie
 # Goose
 promptargs review --file=src/main.ts --no-interactive | goose run
 
+# Codex (piped text is context, the argument is the instruction)
+promptargs review --file=src/main.ts --no-interactive | codex exec "do this review"
+
+# Gemini CLI
+promptargs review --file=src/main.ts --no-interactive | gemini -p "do this review"
+
 # Copilot CLI (needs the standalone `copilot` CLI, installed and signed in)
 copilot -p "$(promptargs review --file=src/main.ts --no-interactive)"
 ```
@@ -574,6 +580,8 @@ If you installed the skill (see [Install](#as-an-agent-skill)), use it directly 
 | `--status` | Output status line only (never prompts; implies `--no-interactive`) |
 | `... \| claude -p "do this"` | Pipe to Claude |
 | `... \| goose run` | Pipe to Goose |
+| `... \| codex exec "do this"` | Pipe to Codex |
+| `... \| gemini -p "do this"` | Pipe to Gemini CLI |
 
 The switch names `no-interactive`, `cross`, `json`, `status` and `help` are reserved and cannot be used as template variable names. Switches take no value: `--json=false` is rejected with a usage error. A flag that names no blank in the template (e.g. a typo like `--fiel=x`) is also an error. So is a blank left unfilled under `--no-interactive` or piped stdin: `promptargs` exits 1 with `Missing value for {{name}}: ...` rather than printing the raw placeholder.
 
