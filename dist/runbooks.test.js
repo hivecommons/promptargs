@@ -162,4 +162,18 @@ test('rollback runbook dispatches release.yml with exactly its declared, require
         }
     }
 });
+test('ui runbook names only events ui.ts emits, with error classes log.ts defines, and CONTRIBUTING links it', () => {
+    const runbook = readFileSync(join(RUNBOOKS, 'ui-wont-start.md'), 'utf-8');
+    const uiSource = readFileSync(join(ROOT, 'src', 'ui.ts'), 'utf-8');
+    const events = [...runbook.matchAll(/`(ui_[a-z_]+)`/g)].map((x) => x[1]);
+    assert.ok(events.length >= 5, 'ui runbook names fewer than five events');
+    for (const e of events)
+        assert.ok(uiSource.includes(`'${e}'`), `ui runbook names an event ui.ts never emits: ${e}`);
+    const classes = errorClassesFromSource();
+    for (const m of runbook.matchAll(/`error_class` `([a-z_]+)`/g)) {
+        assert.ok(classes.has(m[1]), `ui runbook names an unknown error_class: ${m[1]}`);
+    }
+    const contributing = readFileSync(join(ROOT, 'CONTRIBUTING.md'), 'utf-8');
+    assert.ok(contributing.includes('runbooks/ui-wont-start.md'), 'CONTRIBUTING.md no longer points at runbooks/ui-wont-start.md');
+});
 //# sourceMappingURL=runbooks.test.js.map
