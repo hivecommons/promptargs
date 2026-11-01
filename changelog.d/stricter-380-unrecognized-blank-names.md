@@ -1,0 +1,1 @@
+Tags that Mustache reads as variables but whose names are not letters, digits, `_` or `-` (`{{code block}}`, `{{why?}}`, `{{größe}}`) were silently rendered as empty text; they are now rejected with an error naming the tag and suggesting an underscore form. (#380)

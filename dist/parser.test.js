@@ -165,4 +165,35 @@ describe('variable name grammar and repeated blanks', () => {
         assert.equal(expand('{{n=a}} {{n=b}}', {}), 'a a');
     });
 });
+describe('unrecognized variable tags', () => {
+    it('rejects tags Mustache would render empty', () => {
+        for (const tpl of ['{{code block}}', '{{why?}}', '{{file name=x}}', '{{größe}}', '{{& bad name}}', '{{}}', 'a {{file}} {{code block}}',
+            '{{a}b}}', '{{a=x}y}}', 'x {{file}} {{a}b}}']) {
+            assert.throws(() => parseVars(tpl), (err) => err.name === 'UsageError', tpl);
+        }
+    });
+    it('names the sanitized tag and suggests an underscore form', () => {
+        assert.throws(() => parseVars('Wrap it in a {{code block}} for {{file}}'), (err) => err.name === 'UsageError' &&
+            err.message ===
+                'Unsupported variable name "code block": blank names may only use letters, digits, _ and -; use {{code_block}}');
+    });
+    it('omits the suggestion when none is possible and strips raw bytes', () => {
+        assert.throws(() => parseVars('{{\x1b]0;hi\x07 ??}}'), (err) => err.name === 'UsageError' && !err.message.includes('\x1b') && !err.message.includes('\x07'));
+        assert.throws(() => parseVars('{{}}'), (err) => err.name === 'UsageError' && !/use \{\{/.test(err.message));
+    });
+    it('truncates long names', () => {
+        assert.throws(() => parseVars(`{{${'a '.repeat(100)}}}`), (err) => err.name === 'UsageError' && err.message.length < 150 && !/use \{\{/.test(err.message));
+    });
+    it('keeps the dotted-name message first', () => {
+        assert.throws(() => parseVars('{{code block}} {{repo.owner}}'), (err) => /dotted names are not supported; use \{\{repo_owner\}\}/.test(err.message));
+    });
+    it('accepts valid blanks, comments, sections, partials and triple-mustache', () => {
+        for (const tpl of ['{{ name }}', '{{ name = default }}', '{{&name}}', '{{file-name}}', '{{name=a b c}}', '{{name=why?!}}',
+            '{{! a comment here }}', '{{#x}}y{{/x}}', '{{^x}}y{{/x}}', '{{>part}}', '{{=<% %>=}}', '{{{raw stuff}}}',
+            'x {{ ! padded comment }} {{file}}', '{{ # f }}y{{ / f }} {{file}}', '{{ ^ f }}y{{ / f }}', '{{ > part }}', '{{ = <% %> = }}']) {
+            assert.doesNotThrow(() => parseVars(tpl), tpl);
+        }
+        assert.strictEqual(parseVars('{{ name = a b }}')[0].defaultValue, 'a b');
+    });
+});
 //# sourceMappingURL=parser.test.js.map
