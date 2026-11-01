@@ -254,11 +254,26 @@ describe('unrecognized variable tags', () => {
 
   it('reports a default containing } as an unsupported default, not an unsupported name', () => {
     assert.throws(
-      () => parseVars('Use {{config={}}} here'),
+      () => parseVars('x {{name=a}b}} y'),
       (err: Error) =>
         err.name === 'UsageError' &&
-        /Unsupported default for \{\{config\}\}/.test(err.message) &&
+        /Unsupported default for \{\{name\}\}/.test(err.message) &&
         !/variable name/.test(err.message),
+    );
+  });
+
+  it('blames the default for an ampersand blank whose default contains }', () => {
+    assert.throws(
+      () => parseVars('{{&name=a}b}}'),
+      (err: Error) => err.name === 'UsageError' && /Unsupported default for \{\{name\}\}/.test(err.message),
+    );
+  });
+
+  it('falls back to the truncated name message when the name exceeds 40 characters', () => {
+    assert.throws(
+      () => parseVars(`{{${'a'.repeat(50)}=a}b}}`),
+      (err: Error) =>
+        err.name === 'UsageError' && /Unsupported variable name "a{40}"/.test(err.message) && err.message.length < 200,
     );
   });
 

@@ -44,9 +44,11 @@ function checkUnrecognizedTags(template) {
             continue;
         const tagContent = match[1];
         const name = tagContent.split('=')[0].trim();
-        // If the name is valid but the tag contains a default with }, blame the default instead
-        if (/^[\w-]+$/.test(name) && tagContent.includes('=')) {
-            throw usageError(`Unsupported default for {{${name}}}: a default value may not contain "}"`);
+        // A valid name (optionally &-prefixed) with a default containing } is a
+        // default problem, not a name problem; the name is capped like `shown`.
+        const bareName = name.replace(/^&\s*/, '');
+        if (/^[\w-]+$/.test(bareName) && bareName.length <= 40 && tagContent.includes('=')) {
+            throw usageError(`Unsupported default for {{${bareName}}}: a default value may not contain "}"`);
         }
         const shown = name.replace(/[^\w .?!,:;'"()[\]-]/g, '').trim().slice(0, 40);
         const suggestion = name.replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '');
