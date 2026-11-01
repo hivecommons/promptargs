@@ -29,6 +29,24 @@ export const VAR_PATTERN = /\{\{\s*(?:&\s*)?([\w-]+)(?:\s*=\s*([^}]*?))?\s*\}\}/
 // The lookbehind skips triple-mustache tags; sigil tags ({{#x}}, {{!c}}) do
 // not start with a name character and never match.
 const DOTTED_PATTERN = /(?<!\{)\{\{\s*(?:&\s*)?([\w-]+\.[\w.-]*)\s*(?:=[^}]*)?\}\}/;
+// Any {{...}} tag Mustache reads as a variable: not triple-mustache and not a
+// sigil tag (section, inverted, close, comment, partial, set-delimiter).
+const VARIABLE_TAG_PATTERN = /(?<!\{)\{\{(?![#^/!>{=])([^}]*)\}\}/g;
+const VAR_TAG_EXACT = new RegExp(`^${VAR_PATTERN.source}$`);
+// Mustache would render a variable tag that VAR_PATTERN does not recognize as an
+// empty string, so it is rejected. The message shows only a sanitized, truncated
+// slice of the name so raw template bytes never reach the terminal.
+function checkUnrecognizedTags(template) {
+    for (const match of template.matchAll(VARIABLE_TAG_PATTERN)) {
+        if (VAR_TAG_EXACT.test(match[0]))
+            continue;
+        const name = match[1].split('=')[0];
+        const shown = name.replace(/[^\w .?!,:;'"()[\]-]/g, '').trim().slice(0, 40);
+        const suggestion = name.trim().replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '');
+        const hint = /^[\w-]+$/.test(suggestion) ? `; use {{${suggestion}}}` : '';
+        throw usageError(`Unsupported variable name "${shown}": blank names may only use letters, digits, _ and -${hint}`);
+    }
+}
 export function parseVars(template) {
     const vars = [];
     // The first offending tag aborts; the message is built from the name only
@@ -38,6 +56,7 @@ export function parseVars(template) {
         const name = dotted[1];
         throw usageError(`Unsupported variable name "${name}": dotted names are not supported; use {{${name.replace(/\./g, '_')}}}`);
     }
+    checkUnrecognizedTags(template);
     for (const match of template.matchAll(VAR_PATTERN)) {
         const name = match[1];
         const existing = vars.find((v) => v.name === name);

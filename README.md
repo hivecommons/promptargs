@@ -174,7 +174,7 @@ For a first template, stick to plain blanks and comments.
 <details>
 <summary>Advanced reference: reserved names and unsupported Mustache features</summary>
 
-Dotted names such as `{{repo.owner}}` are rejected with an error — use `{{repo_owner}}`; the switch names `no-interactive`, `cross`, `json`, `status` and `help` are also rejected, as they are reserved for CLI switches. Likewise, the template file names `help`, `env`, `ui`, `init`, `list` and `show` are reserved for the subcommands of the same name; such a template is listed as unreachable by `promptargs list` (and `show` warns), because the subcommand always wins.
+Dotted names such as `{{repo.owner}}` are rejected with an error — use `{{repo_owner}}`; likewise any other tag Mustache would read as a variable whose name is not letters, digits, `_` and `-` (e.g. `{{code block}}`, `{{why?}}`) is rejected the same way instead of rendering empty (comments, sections, partials and triple-mustache tags are not affected); the switch names `no-interactive`, `cross`, `json`, `status` and `help` are also rejected, as they are reserved for CLI switches. Likewise, the template file names `help`, `env`, `ui`, `init`, `list` and `show` are reserved for the subcommands of the same name; such a template is listed as unreachable by `promptargs list` (and `show` warns), because the subcommand always wins.
 
 A default may appear on any occurrence of a blank (`{{name}} … {{name=hello}}`); if two occurrences give different defaults, the first one wins.
 
