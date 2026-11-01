@@ -172,35 +172,19 @@ describe('unrecognized variable tags', () => {
         }
     });
     it('names the sanitized tag and suggests an underscore form', () => {
-        assert.throws(
-            () => parseVars('Wrap it in a {{code block}} for {{file}}'),
-            (err) =>
-                err.name === 'UsageError' &&
-                err.message ===
-                    'Unsupported variable name "code block": blank names may only use letters, digits, _ and -; use {{code_block}}',
-        );
+        assert.throws(() => parseVars('Wrap it in a {{code block}} for {{file}}'), (err) => err.name === 'UsageError' &&
+            err.message ===
+                'Unsupported variable name "code block": blank names may only use letters, digits, _ and -; use {{code_block}}');
     });
     it('omits the suggestion when none is possible and strips raw bytes', () => {
-        assert.throws(
-            () => parseVars('{{\x1b]0;hi\x07 ??}}'),
-            (err) => err.name === 'UsageError' && !err.message.includes('\x1b') && !err.message.includes('\x07'),
-        );
-        assert.throws(
-            () => parseVars('{{}}'),
-            (err) => err.name === 'UsageError' && !/use \{\{/.test(err.message),
-        );
+        assert.throws(() => parseVars('{{\x1b]0;hi\x07 ??}}'), (err) => err.name === 'UsageError' && !err.message.includes('\x1b') && !err.message.includes('\x07'));
+        assert.throws(() => parseVars('{{}}'), (err) => err.name === 'UsageError' && !/use \{\{/.test(err.message));
     });
     it('truncates long names', () => {
-        assert.throws(
-            () => parseVars(`{{${'a '.repeat(100)}}}`),
-            (err) => err.name === 'UsageError' && err.message.length < 150,
-        );
+        assert.throws(() => parseVars(`{{${'a '.repeat(100)}}}`), (err) => err.name === 'UsageError' && err.message.length < 150);
     });
     it('keeps the dotted-name message first', () => {
-        assert.throws(
-            () => parseVars('{{code block}} {{repo.owner}}'),
-            (err) => /dotted names are not supported; use \{\{repo_owner\}\}/.test(err.message),
-        );
+        assert.throws(() => parseVars('{{code block}} {{repo.owner}}'), (err) => /dotted names are not supported; use \{\{repo_owner\}\}/.test(err.message));
     });
     it('accepts valid blanks, comments, sections, partials and triple-mustache', () => {
         for (const tpl of ['{{ name }}', '{{ name = default }}', '{{&name}}', '{{file-name}}', '{{name=a b c}}', '{{name=why?!}}',
