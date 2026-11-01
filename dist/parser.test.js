@@ -187,6 +187,21 @@ describe('unrecognized variable tags', () => {
     it('keeps the dotted-name message first', () => {
         assert.throws(() => parseVars('{{code block}} {{repo.owner}}'), (err) => /dotted names are not supported; use \{\{repo_owner\}\}/.test(err.message));
     });
+    it('reports a default containing } as an unsupported default, not an unsupported name', () => {
+        assert.throws(() => parseVars('x {{name=a}b}} y'), (err) => err.name === 'UsageError' &&
+            /Unsupported default for \{\{name\}\}/.test(err.message) &&
+            !/variable name/.test(err.message));
+    });
+    it('blames the default for an ampersand blank whose default contains }', () => {
+        assert.throws(() => parseVars('{{&name=a}b}}'), (err) => err.name === 'UsageError' && /Unsupported default for \{\{name\}\}/.test(err.message));
+    });
+    it('falls back to the truncated name message when the name exceeds 40 characters', () => {
+        assert.throws(() => parseVars(`{{${'a'.repeat(50)}=a}b}}`), (err) => err.name === 'UsageError' && /Unsupported variable name "a{40}"/.test(err.message) && err.message.length < 200);
+    });
+    it('keeps the name message for truly invalid names like {{name:dflt}}', () => {
+        assert.throws(() => parseVars('{{name:dflt}}'), (err) => err.name === 'UsageError' &&
+            /Unsupported variable name/.test(err.message));
+    });
     it('accepts valid blanks, comments, sections, partials and triple-mustache', () => {
         for (const tpl of ['{{ name }}', '{{ name = default }}', '{{&name}}', '{{file-name}}', '{{name=a b c}}', '{{name=why?!}}',
             '{{! a comment here }}', '{{#x}}y{{/x}}', '{{^x}}y{{/x}}', '{{>part}}', '{{=<% %>=}}', '{{{raw stuff}}}',

@@ -42,9 +42,16 @@ function checkUnrecognizedTags(template) {
     for (const match of template.matchAll(VARIABLE_TAG_PATTERN)) {
         if (VAR_TAG_EXACT.test(match[0]))
             continue;
-        const name = match[1].split('=')[0];
+        const tagContent = match[1];
+        const name = tagContent.split('=')[0].trim();
+        // A valid name (optionally &-prefixed) with a default containing } is a
+        // default problem, not a name problem; the name is capped like `shown`.
+        const bareName = name.replace(/^&\s*/, '');
+        if (/^[\w-]+$/.test(bareName) && bareName.length <= 40 && tagContent.includes('=')) {
+            throw usageError(`Unsupported default for {{${bareName}}}: a default value may not contain "}"`);
+        }
         const shown = name.replace(/[^\w .?!,:;'"()[\]-]/g, '').trim().slice(0, 40);
-        const suggestion = name.trim().replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '');
+        const suggestion = name.replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '');
         const hint = suggestion.length <= 40 && /^[\w-]+$/.test(suggestion) ? `; use {{${suggestion}}}` : '';
         throw usageError(`Unsupported variable name "${shown}": blank names may only use letters, digits, _ and -${hint}`);
     }
