@@ -53,9 +53,14 @@ const VAR_TAG_EXACT = new RegExp(`^${VAR_PATTERN.source}$`);
 function checkUnrecognizedTags(template: string): void {
   for (const match of template.matchAll(VARIABLE_TAG_PATTERN)) {
     if (VAR_TAG_EXACT.test(match[0])) continue;
-    const name = match[1].split('=')[0];
+    const tagContent = match[1];
+    const name = tagContent.split('=')[0].trim();
+    // If the name is valid but the tag contains a default with }, blame the default instead
+    if (/^[\w-]+$/.test(name) && tagContent.includes('=')) {
+      throw usageError(`Unsupported default for {{${name}}}: a default value may not contain "}"`);
+    }
     const shown = name.replace(/[^\w .?!,:;'"()[\]-]/g, '').trim().slice(0, 40);
-    const suggestion = name.trim().replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '');
+    const suggestion = name.replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '');
     const hint = suggestion.length <= 40 && /^[\w-]+$/.test(suggestion) ? `; use {{${suggestion}}}` : '';
     throw usageError(
       `Unsupported variable name "${shown}": blank names may only use letters, digits, _ and -${hint}`,
