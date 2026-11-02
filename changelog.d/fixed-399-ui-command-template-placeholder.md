@@ -1,0 +1,1 @@
+Fixed the builder UI's generated command dropping the template for multi-line or 200+ character templates: it now emits a `<template>` placeholder (the CLI rejects flags before a template name) and shows a hint to save the template as `.prompts/<template>.md`. (#399)

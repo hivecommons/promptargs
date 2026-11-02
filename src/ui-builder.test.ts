@@ -279,19 +279,22 @@ test('update inlines the template in the command only when it is short and singl
   inline.rows.push({ name: 'name', values: 'World' });
   inline.update();
   assert.equal(inline.cli(), 'promptargs "Say \\"hi\\" to {{name}}" --name=World');
+  assert.ok(!inline.cliText.innerHTML.includes('cli-hint'));
 
   const multiline = makeHarness();
   multiline.tmpl.value = 'Line one {{name}}\nLine two';
   multiline.rows.push({ name: 'name', values: 'World' });
   multiline.update();
-  assert.equal(multiline.cli(), 'promptargs --name=World');
+  assert.equal(multiline.cli().split('\n')[0], 'promptargs &lt;template&gt; --name=World');
+  assert.match(multiline.cliText.innerHTML, /class="cli-hint">.*\.prompts\/&lt;template&gt;\.md/);
   assert.deepEqual(expandedTexts(multiline), ['Line one World\nLine two']);
 
   const long = makeHarness();
   long.tmpl.value = `${'x'.repeat(200)} {{name}}`;
   long.rows.push({ name: 'name', values: 'World' });
   long.update();
-  assert.equal(long.cli(), 'promptargs --name=World');
+  assert.equal(long.cli().split('\n')[0], 'promptargs &lt;template&gt; --name=World');
+  assert.match(long.cliText.innerHTML, /class="cli-hint">.*\.prompts\/&lt;template&gt;\.md/);
 });
 
 test('update ignores rows without a name', () => {
