@@ -1,0 +1,1 @@
+`--status` and the per-iteration status line now keep multi-line values such as `{{diff}}` on one line, collapsing newlines and truncating long values with `...` instead of printing the whole diff (#390)

@@ -53,5 +53,23 @@ describe('renderStatus with prototype-named variables', () => {
             assert.strictEqual(renderStatus('t', [v(name, 'dflt')], values), `✅ t: ${name}=dflt(default)`);
         });
     }
+    it('collapses newlines in a value onto one line with a marker', () => {
+        const out = renderStatus('t', [v('diff')], { diff: 'a\nb\r\nc' });
+        assert.strictEqual(out, '✅ t: diff=a⏎b⏎c');
+        assert.ok(!/[\r\n]/.test(out));
+    });
+    it('truncates values longer than the cap with ...', () => {
+        const out = renderStatus('t', [v('diff')], { diff: 'x'.repeat(100) });
+        assert.strictEqual(out, `✅ t: diff=${'x'.repeat(60)}...`);
+    });
+    it('leaves a short single-line value unchanged', () => {
+        const out = renderStatus('t', [v('file')], { file: 'x'.repeat(60) });
+        assert.strictEqual(out, `✅ t: file=${'x'.repeat(60)}`);
+    });
+    it('keeps the (default) suffix after truncation', () => {
+        const long = 'y'.repeat(100);
+        const out = renderStatus('t', [v('tone', long)], { tone: long }, undefined, new Set(['tone']));
+        assert.strictEqual(out, `✅ t: tone=${'y'.repeat(60)}...(default)`);
+    });
 });
 //# sourceMappingURL=status.test.js.map
