@@ -15,4 +15,14 @@ test('does not split a surrogate pair at the boundary', () => {
 test('counts an astral character as one character', () => {
     assert.strictEqual(truncateValue('😀😀😀', 3), '😀😀😀');
 });
+test('truncates a very long astral string to max code points', () => {
+    const out = truncateValue('😀'.repeat(2_000_000), 60);
+    assert.strictEqual(out, '😀'.repeat(60) + '...');
+});
+test('handles the exact-max and max+1 boundaries', () => {
+    assert.strictEqual(truncateValue('😀😀', 2), '😀😀');
+    assert.strictEqual(truncateValue('😀😀a', 2), '😀😀...');
+    assert.strictEqual(truncateValue('', 0), '');
+    assert.strictEqual(truncateValue('a', 0), '...');
+});
 //# sourceMappingURL=truncate.test.js.map
