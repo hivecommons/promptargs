@@ -333,7 +333,7 @@ test('startUI answers 404 for a static route whose backing file is missing', () 
   const __dirnameUi = dirname(fileURLToPath(import.meta.url));
   const dir = mkdtempSync(join(tmpdir(), 'promptargs-ui-static-'));
   try {
-    for (const f of ['ui.js', 'ui.html', 'autodetect.js', 'log.js']) {
+    for (const f of ['ui.js', 'ui.html', 'autodetect.js', 'log.js', 'truncate.js']) {
       copyFileSync(join(__dirnameUi, f), join(dir, f));
     }
     writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
@@ -554,6 +554,7 @@ test('startUI exits 1 with a reinstall hint when ui.html is missing', () => {
     copyFileSync(join(__dirname, 'ui.js'), join(dir, 'ui.js'));
     copyFileSync(join(__dirname, 'autodetect.js'), join(dir, 'autodetect.js'));
     copyFileSync(join(__dirname, 'log.js'), join(dir, 'log.js'));
+    copyFileSync(join(__dirname, 'truncate.js'), join(dir, 'truncate.js'));
     // Node 18 has no ESM syntax detection; mark the temp dir as ESM.
     writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
     const res = runStartUI(join(dir, 'ui.js'), 0);

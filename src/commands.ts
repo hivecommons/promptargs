@@ -4,6 +4,7 @@ import { parseVars, VAR_PATTERN } from './parser.js';
 import { findTemplate, loadTemplates } from './loader.js';
 import { autodetect, AUTODETECT_VARS } from './autodetect.js';
 import { sanitizeForTerminal } from './sanitize.js';
+import { truncateValue, PREVIEW_MAX_CHARS } from './truncate.js';
 import { diag } from './log.js';
 import { UsageError, assertNoReservedVars, subcommandCollision } from './flags.js';
 
@@ -137,17 +138,12 @@ export function doShow(templateName?: string) {
   console.log('\n\x1b[31mred\x1b[0m = required  \x1b[33myellow\x1b[0m = has default');
 }
 
-const DIFF_PREVIEW_MAX_CHARS = 60;
-
 export function printEnv() {
   console.log('Auto-detected variables:\n');
   for (const name of AUTODETECT_VARS) {
     const value = autodetect(name);
     if (value !== undefined) {
-      let display = value;
-      if (name === 'diff' && display.length > DIFF_PREVIEW_MAX_CHARS) {
-        display = display.slice(0, DIFF_PREVIEW_MAX_CHARS) + '...';
-      }
+      const display = name === 'diff' ? truncateValue(value, PREVIEW_MAX_CHARS) : value;
       console.log(`  \x1b[32m{{${name}}}\x1b[0m = ${sanitizeForTerminal(display)}`);
     } else {
       console.log(`  \x1b[90m{{${name}}}\x1b[0m = (not detected)`);

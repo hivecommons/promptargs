@@ -1,6 +1,7 @@
 import { type Server } from 'node:http';
+import { truncateValue } from './truncate.js';
 export declare function shouldSkipEnv(key: string): boolean;
-export declare function truncateValue(val: string, max: number): string;
+export { truncateValue };
 export interface EnvData {
     git: Record<string, string>;
     terminal: Record<string, string>;

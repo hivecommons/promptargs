@@ -1,0 +1,1 @@
+Value previews (`--status`, `env`, and the UI) now truncate by Unicode code point, so an emoji or other astral character at the cut is no longer split into a lone surrogate; the three duplicated truncation copies share one `src/truncate.ts` (#392, #393)

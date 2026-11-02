@@ -3,12 +3,12 @@
  * Shows current template state: filled vars, unfilled vars, progress.
  */
 import { sanitizeForTerminal } from './sanitize.js';
-const STATUS_VALUE_MAX_CHARS = 60;
+import { truncateValue, PREVIEW_MAX_CHARS } from './truncate.js';
 // Newlines become a visible marker (not a space) so a multi-line value such as
 // {{diff}} stays on one line yet is still recognisably multi-line.
 function previewValue(val) {
     const flat = val.replace(/\r\n|\r|\n/g, '⏎');
-    return flat.length > STATUS_VALUE_MAX_CHARS ? flat.slice(0, STATUS_VALUE_MAX_CHARS) + '...' : flat;
+    return truncateValue(flat, PREVIEW_MAX_CHARS);
 }
 export function renderStatus(templateName, vars, values, iteration, defaulted) {
     const parts = [];
