@@ -48,6 +48,9 @@ function splitUnescaped(raw) {
     return pieces.map(s => s.trim()).filter(Boolean);
 }
 function expandArrayValue(raw, varName) {
+    // An empty value expands to nothing, like a separator-only or empty @file value
+    if (raw === '')
+        return [];
     // @file — read lines from file
     if (raw.startsWith('@') && existsSync(raw.slice(1))) {
         const filePath = raw.slice(1);

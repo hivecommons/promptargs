@@ -131,6 +131,17 @@ describe('resolve array expansion', () => {
     assert.strictEqual(r.values.pa_f, 'dflt');
   });
 
+  it('falls through to the default for an empty flag value', async () => {
+    const r = await resolve([v('pa_f', 'dflt')], { pa_f: '' }, false);
+    assert.strictEqual(r.values.pa_f, 'dflt');
+    assert.deepStrictEqual([...r.defaulted], ['pa_f']);
+  });
+
+  it('leaves the variable absent for an empty flag value with no default', async () => {
+    const r = await resolve([v('pa_f')], { pa_f: '' }, false);
+    assert.strictEqual(Object.hasOwn(r.values, 'pa_f'), false);
+  });
+
   it('leaves the variable absent for a separator-only flag with no default', async () => {
     const r = await resolve([v('pa_f')], { pa_f: ',' }, false);
     assert.strictEqual(Object.hasOwn(r.values, 'pa_f'), false);
