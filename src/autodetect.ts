@@ -43,7 +43,9 @@ const DETECTORS: Record<string, () => string | undefined> = {
     const match = remote.match(/[/:]([\w.-]+)\/[\w.-]+?(?:\.git)?$/);
     return match?.[1];
   },
-  diff: () => git('diff --staged') || git('diff'),
+  // `color.ui=always` and `diff.external` are honoured even when stdout is a
+  // pipe, so force a plain unified diff (#386).
+  diff: () => git('diff --no-color --no-ext-diff --staged') || git('diff --no-color --no-ext-diff'),
   pr: () => {
     try {
       const out = execSync('gh pr view --json number --jq .number', {
