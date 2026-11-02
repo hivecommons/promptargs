@@ -71,6 +71,19 @@ describe('git detectors', () => {
             execSync('git checkout -q -- tracked.txt', { stdio: 'pipe', timeout: 10_000 });
         }
     });
+    it('returns a plain diff with no ANSI escapes when color.ui=always (#386)', () => {
+        execSync('git config color.ui always', { stdio: 'pipe', timeout: 10_000 });
+        writeFileSync(join(repo, 'tracked.txt'), 'three\n');
+        try {
+            const diff = autodetect('diff') ?? '';
+            assert.match(diff, /^diff --git /);
+            assert.doesNotMatch(diff, /\x1b\[/);
+        }
+        finally {
+            execSync('git checkout -q -- tracked.txt', { stdio: 'pipe', timeout: 10_000 });
+            execSync('git config --unset color.ui', { stdio: 'pipe', timeout: 10_000 });
+        }
+    });
     it('returns a staged diff larger than execSync default maxBuffer (1 MiB) instead of dropping it (#281)', () => {
         // Each line is unique so git cannot compress the diff below the threshold.
         const lines = [];
