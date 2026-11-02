@@ -41,9 +41,10 @@ const DETECTORS = {
         const match = remote.match(/[/:]([\w.-]+)\/[\w.-]+?(?:\.git)?$/);
         return match?.[1];
     },
-    // `color.ui=always` and `diff.external` are honoured even when stdout is a
-    // pipe, so force a plain unified diff (#386).
-    diff: () => git('diff --no-color --no-ext-diff --staged') || git('diff --no-color --no-ext-diff'),
+    // `color.ui=always`, `diff.external`, and `diff.<driver>.textconv` are
+    // honoured even when stdout is a pipe, so force a plain unified diff (#386,
+    // #388).
+    diff: () => git('diff --no-color --no-ext-diff --no-textconv --staged') || git('diff --no-color --no-ext-diff --no-textconv'),
     pr: () => {
         try {
             const out = execSync('gh pr view --json number --jq .number', {
