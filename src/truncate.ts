@@ -7,6 +7,12 @@ export const PREVIEW_MAX_CHARS = 60;
 
 // Counts and slices by Unicode code point so a surrogate pair is never split.
 export function truncateValue(val: string, max: number): string {
-  const chars = Array.from(val);
-  return chars.length > max ? chars.slice(0, max).join('') + '...' : val;
+  let count = 0;
+  let end = 0;
+  for (const ch of val) {
+    if (count === max) return val.slice(0, end) + '...';
+    end += ch.length;
+    count++;
+  }
+  return val;
 }
