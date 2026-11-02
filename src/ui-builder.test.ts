@@ -151,6 +151,26 @@ test('update zips arrays 1:1 and labels each iteration', () => {
   assert.equal(h.cli(), 'promptargs "{{file}}:{{focus}}" --file=a.go,b.go --focus=x,y');
 });
 
+test('update splits values only on unescaped commas, mirroring the CLI resolver', () => {
+  const h = makeHarness('zip');
+  h.tmpl.value = '{{v}}';
+  h.rows.push({ name: 'v', values: 'a\\,b,c' });
+  h.update();
+  assert.equal(h.previewCount.textContent, '2 results');
+  assert.deepEqual(expandedTexts(h), ['a,b', 'c']);
+  // The command keeps the escape so the CLI splits it the same way.
+  assert.equal(h.cli(), `promptargs "{{v}}" --v='a\\,b,c'`);
+});
+
+test('update treats \\\\, as a literal backslash before a separator', () => {
+  const h = makeHarness('zip');
+  h.tmpl.value = '{{v}}';
+  h.rows.push({ name: 'v', values: 'a\\\\,b' });
+  h.update();
+  assert.equal(h.previewCount.textContent, '2 results');
+  assert.deepEqual(expandedTexts(h), ['a\\', 'b']);
+});
+
 test('update in cross mode renders every combination and appends --cross', () => {
   const h = makeHarness('cross');
   h.tmpl.value = '{{file}}:{{focus}}';
