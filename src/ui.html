@@ -910,14 +910,17 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
     // a bare word is left as-is, anything else is single-quoted (the only
     // quoting under which $, backtick, backslash and whitespace are all
     // literal). The inlined template stays double-quoted but also escapes
-    // the characters the shell expands inside double quotes.
+    // the characters the shell expands inside double quotes. A template
+    // containing ! is single-quoted instead: an interactive bash/zsh still
+    // history-expands ! inside double quotes (backslash does not help), and
+    // only single quotes make it literal.
     const bareWord = /^[A-Za-z0-9_@%+=:,.\/-]+$/;
     const shellQuote = s => bareWord.test(s) ? s : `'${s.replace(/'/g, `'\\''`)}'`;
     const dquote = s => `"${s.replace(/[\\"$`]/g, '\\$&')}"`;
     let cli = 'promptargs';
     const hasInline = !text.includes('\n') && text.length < 200;
     if (hasInline) {
-      cli += ` ${dquote(text)}`;
+      cli += ` ${text.includes('!') ? shellQuote(text) : dquote(text)}`;
     }
     for (const row of rows) {
       if (!row.values) continue;

@@ -93,4 +93,10 @@ test('a glob value keeps its double quotes but shell-expandable characters insid
     assert.equal(cmd, 'promptargs "{{src}}" --src="src/\\$HOME/\\`x\\`/\\"q\\"/*.go"');
     assert.deepEqual(shellWords(cmd), ['{{src}}', '--src=src/$HOME/`x`/"q"/*.go']);
 });
+test('a template containing ! is single-quoted so interactive-shell history expansion cannot fire', () => {
+    const cmd = commandFor('Fix it!{{file}}', [{ name: 'file', values: 'x.go' }]);
+    assert.equal(cmd, `promptargs 'Fix it!{{file}}' --file=x.go`);
+    assert.deepEqual(shellWords(cmd), ['Fix it!{{file}}', '--file=x.go']);
+    assert.equal(commandFor('Fix it {{file}}', [{ name: 'file', values: 'x.go' }]), 'promptargs "Fix it {{file}}" --file=x.go');
+});
 //# sourceMappingURL=ui-command-quoting.test.js.map
