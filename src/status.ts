@@ -6,6 +6,15 @@
 import type { TemplateVar } from './parser.js';
 import { sanitizeForTerminal } from './sanitize.js';
 
+const STATUS_VALUE_MAX_CHARS = 60;
+
+// Newlines become a visible marker (not a space) so a multi-line value such as
+// {{diff}} stays on one line yet is still recognisably multi-line.
+function previewValue(val: string): string {
+  const flat = val.replace(/\r\n|\r|\n/g, '⏎');
+  return flat.length > STATUS_VALUE_MAX_CHARS ? flat.slice(0, STATUS_VALUE_MAX_CHARS) + '...' : flat;
+}
+
 export function renderStatus(
   templateName: string,
   vars: TemplateVar[],
@@ -20,7 +29,7 @@ export function renderStatus(
     if (val !== undefined) {
       const isDefault = defaulted ? defaulted.has(v.name) : v.defaultValue === val;
       const source = isDefault ? '(default)' : '';
-      parts.push(`${v.name}=${val}${source}`);
+      parts.push(`${v.name}=${previewValue(val)}${source}`);
     } else {
       parts.push(`${v.name}=___`);
     }
