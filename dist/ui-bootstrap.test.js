@@ -392,13 +392,18 @@ test('mode buttons switch mode, active class, description and re-render immediat
     assert.equal(p.previewCount.textContent, '2 results');
 });
 // --- copy button -------------------------------------------------------------
-test('Copy writes the command without the "$ " prompt and shows "Copied" for 1.5s', async () => {
+test('Copy writes the command without the "$ " prompt or the save-template hint and shows "Copied" for 1.5s', async () => {
     const p = loadPage();
     p.copyBtn.fire('click');
     await Promise.resolve();
-    assert.deepEqual(p.clipboard, [p.cliText.textContent.replace(/^\$\s*/, '')]);
+    // The default template cannot be inlined, so the rendered command carries a
+    // "# Save the template ..." hint on a second line that Copy must drop.
+    const rendered = p.cliText.textContent.replace(/^\$\s*/, '');
+    assert.ok(rendered.includes('\n# Save the template as .prompts/<template>.md'), rendered);
+    assert.deepEqual(p.clipboard, [rendered.split('\n# ')[0]]);
     assert.ok(p.clipboard[0].startsWith('promptargs '));
     assert.ok(!p.clipboard[0].startsWith('$'));
+    assert.ok(!p.clipboard[0].includes('\n'), p.clipboard[0]);
     assert.equal(p.copyBtn.textContent, 'Copied');
     assert.ok(p.copyBtn.classList.contains('copied'));
     mock.timers.tick(COPIED_REVERT_MS - 1);
