@@ -60,6 +60,9 @@ function splitUnescaped(raw: string): string[] {
 }
 
 function expandArrayValue(raw: string, varName?: string): string[] {
+  // An empty value expands to nothing, like a separator-only or empty @file value
+  if (raw === '') return [];
+
   // @file — read lines from file
   if (raw.startsWith('@') && existsSync(raw.slice(1))) {
     const filePath = raw.slice(1);
