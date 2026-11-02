@@ -92,6 +92,26 @@ describe('git detectors', () => {
     }
   });
 
+  it('returns plain diff unaffected by textconv drivers (#388)', () => {
+    writeFileSync(join(repo, '.gitattributes'), '*.txt diff=upper\n');
+    execSync('git add .gitattributes && git commit -q -m "add gitattributes"', { stdio: 'pipe', timeout: 10_000 });
+    execSync(`git config diff.upper.textconv "node -e \\"process.stdout.write(require('fs').readFileSync(0, 'utf8').toUpperCase())\\"`, { stdio: 'pipe', timeout: 10_000 });
+    writeFileSync(join(repo, 'tracked.txt'), 'four\n');
+    execSync('git add tracked.txt && git commit -q -m "add tracked.txt"', { stdio: 'pipe', timeout: 10_000 });
+    writeFileSync(join(repo, 'tracked.txt'), 'five\n');
+    try {
+      const diff = autodetect('diff') ?? '';
+      assert.match(diff, /^diff --git /);
+      assert.match(diff, /^-four$/m, 'diff should have original content, not textconv-transformed');
+      assert.match(diff, /^\+five$/m, 'diff should have original content, not textconv-transformed');
+      assert.doesNotMatch(diff, /FOUR/, 'diff should not be rewritten by textconv driver');
+      assert.doesNotMatch(diff, /FIVE/, 'diff should not be rewritten by textconv driver');
+    } finally {
+      execSync('git checkout -q -- tracked.txt', { stdio: 'pipe', timeout: 10_000 });
+      execSync('git config --unset diff.upper.textconv', { stdio: 'pipe', timeout: 10_000 });
+    }
+  });
+
   it('returns a staged diff larger than execSync default maxBuffer (1 MiB) instead of dropping it (#281)', () => {
     // Each line is unique so git cannot compress the diff below the threshold.
     const lines: string[] = [];
