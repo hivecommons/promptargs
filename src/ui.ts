@@ -5,11 +5,11 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { autodetect, isSensitiveEnvName, isSensitiveEnvValue, AUTODETECT_VARS } from './autodetect.js';
+import { truncateValue, PREVIEW_MAX_CHARS } from './truncate.js';
 import { diag, classifyError, jsonLogEnabled, logRequest } from './log.js';
 
 const DEFAULT_PORT = 3700;
 const OPEN_DELAY_MS = 500;
-const DIFF_PREVIEW_MAX_CHARS = 60;
 const ENV_VAL_PREVIEW_MAX_CHARS = 80;
 
 const SKIP_ENV_PREFIXES = [
@@ -30,9 +30,7 @@ export function shouldSkipEnv(key: string): boolean {
   return SKIP_ENV_PREFIXES.some(p => key.startsWith(p));
 }
 
-export function truncateValue(val: string, max: number): string {
-  return val.length > max ? val.slice(0, max) + '...' : val;
-}
+export { truncateValue };
 
 export interface EnvData {
   git: Record<string, string>;
@@ -45,7 +43,7 @@ export function collectEnvVars(): EnvData {
     const value = autodetect(name);
     if (value !== undefined) {
       git[name] = name === 'diff'
-        ? truncateValue(value, DIFF_PREVIEW_MAX_CHARS)
+        ? truncateValue(value, PREVIEW_MAX_CHARS)
         : value;
     }
   }
