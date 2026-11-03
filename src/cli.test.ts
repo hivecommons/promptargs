@@ -909,3 +909,16 @@ test('a declared flag together with a switch still works', () => {
   assert.strictEqual(res.stdout.trim(), '"Hi x"');
   rmSync(dirname(cwd), { recursive: true, force: true });
 });
+
+test('a set-delimiter tag is a usage error instead of silently dropping later blanks', () => {
+  const { cwd, home } = makeDirs();
+  const tpl = '{{=<% %>=}}Review <%file%> for {{focus}}';
+  const run = runCli([tpl, '--focus=security', '--no-interactive'], cwd, home);
+  assert.strictEqual(run.status, 1);
+  assert.strictEqual(run.stdout, '');
+  assert.match(run.stderr, /Unsupported tag \{\{=<% %>=\}\}: changing the Mustache delimiters is not supported/);
+  const status = runCli([tpl, '--focus=security', '--status'], cwd, home);
+  assert.strictEqual(status.status, 1);
+  assert.match(status.stderr, /Unsupported tag/);
+  rmSync(dirname(cwd), { recursive: true, force: true });
+});
