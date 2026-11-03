@@ -231,7 +231,7 @@ describe('unrecognized variable tags', () => {
         })();
         const shown = /^Unsupported tag \{\{=(.*)=\}\}: changing the Mustache delimiters/.exec(message);
         assert.ok(shown, message);
-        assert.doesNotMatch(message, /[\x00-\x1f\x7f-\x9f\u200b\u202e]/u);
+        assert.doesNotMatch(message, /[\x00-\x1f\x7f-\x9f]|\p{Cf}/u);
         assert.ok(shown[1].length <= 40, `shown slice is ${shown[1].length} chars: ${shown[1]}`);
         assert.strictEqual(shown[1], '[31m<% %>' + 'A'.repeat(31));
     });
