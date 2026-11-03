@@ -311,7 +311,7 @@ describe('unrecognized variable tags', () => {
   });
 
   it('shows the set-delimiter text sanitized and truncated so raw template bytes never reach the terminal', () => {
-    const hostile = '\x1b[31m<%\r\x07 \x00%>\x7f' + 'A'.repeat(60);
+    const hostile = '\x1b[31m<%\r\x07 \x00%>\x7f\x85\x9b\u200b\u202e' + 'A'.repeat(60);
     const tpl = `{{=${hostile}=}}{{focus}}`;
     const message = (() => {
       try {
@@ -323,7 +323,7 @@ describe('unrecognized variable tags', () => {
     })();
     const shown = /^Unsupported tag \{\{=(.*)=\}\}: changing the Mustache delimiters/.exec(message);
     assert.ok(shown, message);
-    assert.doesNotMatch(message, /[\x00-\x1f\x7f]/);
+    assert.doesNotMatch(message, /[\x00-\x1f\x7f-\x9f\u200b\u202e]/u);
     assert.ok(shown[1].length <= 40, `shown slice is ${shown[1].length} chars: ${shown[1]}`);
     assert.strictEqual(shown[1], '[31m<% %>' + 'A'.repeat(31));
   });
