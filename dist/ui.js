@@ -122,6 +122,9 @@ export function requestCarriesToken(url, token) {
     const b = Buffer.from(token, 'utf8');
     return a.length === b.length && timingSafeEqual(a, b);
 }
+export function portInUseHint(port) {
+    return `--port=${port + 1 > 65535 ? 0 : port + 1}`;
+}
 export function startUI(port = DEFAULT_PORT, options = {}) {
     const __dirname = dirname(fileURLToPath(import.meta.url));
     const htmlPath = join(__dirname, 'ui.html');
@@ -226,7 +229,11 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
     });
     server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
-            diag('ui_start_error', { error_class: 'port_in_use' }, `Port ${port} is in use. Try: promptargs ui --port=${port + 1}`);
+            diag('ui_start_error', { error_class: 'port_in_use' }, `Port ${port} is in use. Try: promptargs ui ${portInUseHint(port)}`);
+            process.exit(1);
+        }
+        if (err.code === 'EACCES') {
+            diag('ui_start_error', { error_class: classifyError(err) }, `Port ${port} needs elevated privileges (EACCES). Try: promptargs ui --port=${DEFAULT_PORT} or --port=0 to let the OS pick`);
             process.exit(1);
         }
         throw err;

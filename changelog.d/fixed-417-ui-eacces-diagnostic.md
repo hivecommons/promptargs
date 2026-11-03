@@ -1,0 +1,1 @@
+Fixed `promptargs ui --port=<privileged port>` crashing with a raw stack trace: it now prints a clean "needs elevated privileges (EACCES)" hint and emits a `ui_start_error` event, and the port-in-use hint suggests `--port=0` instead of an invalid port 65536. (#417)

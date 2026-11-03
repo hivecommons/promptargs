@@ -7,6 +7,7 @@ Ask the reporter to re-run with `PROMPTARGS_LOG=json` set. Each row names the `e
 | Symptom | `event` | Cause | Fix |
 | --- | --- | --- | --- |
 | `Port N is in use` and exit code 1 | `ui_start_error` (`error_class` `port_in_use`) | Another process, often an earlier `promptargs ui`, holds the port | Use `promptargs ui --port=N+1`, or `--port=0` to let the OS pick |
+| `Port N needs elevated privileges (EACCES)` and exit code 1 | `ui_start_error` (`error_class` `io`) | The port is below 1024 and the user has no privilege to bind it | Use `promptargs ui --port=3700`, or `--port=0` to let the OS pick |
 | `UI file not found. Reinstall @hivecommons/promptargs.` and exit code 1 | `ui_start_error` (`error_class` `not_found`) | `ui.html` is missing from the installed package | Reinstall; if a fresh install is also missing it, treat it as a broken release (see `incident-response.md`) |
 | `could not open a browser` | `ui_browser_open_failed` | No `xdg-open`, `open` or `start` on the machine (headless, container, SSH) | Open the printed URL manually; it already carries the token |
 | Page says `Forbidden` | `ui_token_rejected` | The URL was typed or bookmarked without the `?` token query | Copy the full URL printed at startup; the token changes on every run |

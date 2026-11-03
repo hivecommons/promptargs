@@ -16,4 +16,5 @@ export declare const PAGE_HEADERS: Readonly<Record<string, string>>;
 export declare function buildContentSecurityPolicy(html: string): string;
 export declare function buildPageHeaders(html: string): Record<string, string>;
 export declare function requestCarriesToken(url: string | undefined, token: string): boolean;
+export declare function portInUseHint(port: number): string;
 export declare function startUI(port?: number, options?: StartUIOptions): Server;
