@@ -519,7 +519,7 @@ function request(port: number, host: string, path = '/'): Promise<{ statusCode: 
 // exercised in a child node process rather than in-process.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function runStartUI(uiModulePath: string, port: number): { status: number | null; stderr: string } {
+function runStartUI(uiModulePath: string, port: number, env: NodeJS.ProcessEnv = process.env): { status: number | null; stderr: string } {
   const script = `
     import(${JSON.stringify(pathToFileURL(uiModulePath).href)})
       .then(m => m.startUI(${port}, { openBrowser: false }));
@@ -527,6 +527,7 @@ function runStartUI(uiModulePath: string, port: number): { status: number | null
   const res = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
     encoding: 'utf-8',
     timeout: 15000,
+    env,
   });
   return { status: res.status, stderr: res.stderr };
 }
@@ -657,7 +658,7 @@ test('missing opener logs a hint', { skip: process.platform === 'win32' && 'POSI
   assert.match(res.stderr, new RegExp(`promptargs: could not open a browser \\(.+\\); open http://localhost:${port}/\\?t=[0-9a-f]{32} manually`));
 });
 
-test('startUI rethrows non-EADDRINUSE server errors', async t => {
+test('startUI reports EACCES cleanly instead of crashing', async t => {
   // Only run where binding port 1 really fails with EACCES; containers with
   // ip_unprivileged_port_start=0 (or root) can bind it and would hang instead.
   const probeErr = await new Promise<NodeJS.ErrnoException | null>(resolve => {
@@ -670,7 +671,19 @@ test('startUI rethrows non-EADDRINUSE server errors', async t => {
     return;
   }
   const res = runStartUI(join(__dirname, 'ui.js'), 1);
-  assert.notStrictEqual(res.status, 0);
-  assert.match(res.stderr, /EACCES/);
+  assert.strictEqual(res.status, 1);
+  assert.match(res.stderr, /needs elevated privileges \(EACCES\)/);
   assert.doesNotMatch(res.stderr, /is in use/);
+  assert.doesNotMatch(res.stderr, /at Server\./);
+
+  const json = runStartUI(join(__dirname, 'ui.js'), 1, { ...process.env, PROMPTARGS_LOG: 'json' });
+  assert.strictEqual(json.status, 1);
+  assert.ok(json.stderr.split('\n').includes('{"event":"ui_start_error","error_class":"io"}'), json.stderr);
+});
+
+test('portInUseHint suggests --port=0 when port + 1 is out of range', async () => {
+  const { portInUseHint } = await import('./ui.js');
+  assert.strictEqual(portInUseHint(3700), '--port=3701');
+  assert.strictEqual(portInUseHint(65534), '--port=65535');
+  assert.strictEqual(portInUseHint(65535), '--port=0');
 });
