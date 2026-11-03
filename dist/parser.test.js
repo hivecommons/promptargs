@@ -204,11 +204,18 @@ describe('unrecognized variable tags', () => {
     });
     it('accepts valid blanks, comments, sections, partials and triple-mustache', () => {
         for (const tpl of ['{{ name }}', '{{ name = default }}', '{{&name}}', '{{file-name}}', '{{name=a b c}}', '{{name=why?!}}',
-            '{{! a comment here }}', '{{#x}}y{{/x}}', '{{^x}}y{{/x}}', '{{>part}}', '{{=<% %>=}}', '{{{raw stuff}}}',
-            'x {{ ! padded comment }} {{file}}', '{{ # f }}y{{ / f }} {{file}}', '{{ ^ f }}y{{ / f }}', '{{ > part }}', '{{ = <% %> = }}']) {
+            '{{! a comment here }}', '{{#x}}y{{/x}}', '{{^x}}y{{/x}}', '{{>part}}', '{{{raw stuff}}}',
+            'x {{ ! padded comment }} {{file}}', '{{ # f }}y{{ / f }} {{file}}', '{{ ^ f }}y{{ / f }}', '{{ > part }}']) {
             assert.doesNotThrow(() => parseVars(tpl), tpl);
         }
         assert.strictEqual(parseVars('{{ name = a b }}')[0].defaultValue, 'a b');
+    });
+    it('rejects set-delimiter tags because later blanks would silently vanish', () => {
+        for (const tpl of ['{{=<% %>=}}Review <%file%> for {{focus}}', '{{ = <% %> = }}{{focus}}']) {
+            assert.throws(() => parseVars(tpl), (err) => err.name === 'UsageError' &&
+                /^Unsupported tag \{\{=<% %>=\}\}: changing the Mustache delimiters is not supported; promptargs only fills \{\{name\}\} blanks$/.test(err.message), tpl);
+            assert.throws(() => expand(tpl, { focus: 'x' }), /Unsupported tag/);
+        }
     });
 });
 //# sourceMappingURL=parser.test.js.map

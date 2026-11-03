@@ -56,6 +56,17 @@ function checkUnrecognizedTags(template) {
         throw usageError(`Unsupported variable name "${shown}": blank names may only use letters, digits, _ and -${hint}`);
     }
 }
+// A set-delimiter tag ({{=<% %>=}}) changes how Mustache reads every later tag,
+// so later {{name}} blanks would render literally and <%name%> as empty.
+const SET_DELIMITER_PATTERN = /(?<!\{)\{\{\s*=((?:[^}]|\}(?!\}))*)\}\}/;
+// The message shows only a sanitized, truncated slice so raw template bytes never reach the terminal.
+function checkSetDelimiter(template) {
+    const match = SET_DELIMITER_PATTERN.exec(template);
+    if (!match)
+        return;
+    const shown = match[1].replace(/[^\w <>%[\]()|$#@*+!?:;,.'"/-]/g, '').replace(/=$/, '').trim().slice(0, 40);
+    throw usageError(`Unsupported tag {{=${shown}=}}: changing the Mustache delimiters is not supported; promptargs only fills {{name}} blanks`);
+}
 export function parseVars(template) {
     const vars = [];
     // The first offending tag aborts; the message is built from the name only
@@ -65,6 +76,7 @@ export function parseVars(template) {
         const name = dotted[1];
         throw usageError(`Unsupported variable name "${name}": dotted names are not supported; use {{${name.replace(/\./g, '_')}}}`);
     }
+    checkSetDelimiter(template);
     checkUnrecognizedTags(template);
     for (const match of template.matchAll(VAR_PATTERN)) {
         const name = match[1];

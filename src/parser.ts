@@ -70,6 +70,20 @@ function checkUnrecognizedTags(template: string): void {
   }
 }
 
+// A set-delimiter tag ({{=<% %>=}}) changes how Mustache reads every later tag,
+// so later {{name}} blanks would render literally and <%name%> as empty.
+const SET_DELIMITER_PATTERN = /(?<!\{)\{\{\s*=((?:[^}]|\}(?!\}))*)\}\}/;
+
+// The message shows only a sanitized, truncated slice so raw template bytes never reach the terminal.
+function checkSetDelimiter(template: string): void {
+  const match = SET_DELIMITER_PATTERN.exec(template);
+  if (!match) return;
+  const shown = match[1].replace(/[^\w <>%[\]()|$#@*+!?:;,.'"/-]/g, '').replace(/=$/, '').trim().slice(0, 40);
+  throw usageError(
+    `Unsupported tag {{=${shown}=}}: changing the Mustache delimiters is not supported; promptargs only fills {{name}} blanks`,
+  );
+}
+
 export function parseVars(template: string): TemplateVar[] {
   const vars: TemplateVar[] = [];
 
@@ -83,6 +97,7 @@ export function parseVars(template: string): TemplateVar[] {
     );
   }
 
+  checkSetDelimiter(template);
   checkUnrecognizedTags(template);
 
   for (const match of template.matchAll(VAR_PATTERN)) {
