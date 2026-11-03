@@ -78,7 +78,7 @@ const SET_DELIMITER_PATTERN = /(?<!\{)\{\{\s*=((?:[^}]|\}(?!\}))*)\}\}/;
 function checkSetDelimiter(template: string): void {
   const match = SET_DELIMITER_PATTERN.exec(template);
   if (!match) return;
-  const shown = match[1].replace(/[^\w <>%[\]()|$#@*+!?:;,.'"/-]/g, '').replace(/=$/, '').trim().slice(0, 40);
+  const shown = match[1].replace(/[^\w <>%[\]()|$#@*+!?:;,.'"/-]/g, '').trim().slice(0, 40);
   throw usageError(
     `Unsupported tag {{=${shown}=}}: changing the Mustache delimiters is not supported; promptargs only fills {{name}} blanks`,
   );
