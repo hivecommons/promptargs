@@ -71,6 +71,14 @@ describe('parsePort', () => {
             });
         }
     });
+    it('rejects non-decimal numeric literals', () => {
+        for (const port of ['1e3', '0x50', '80.0', '+80', ' 80']) {
+            assert.throws(() => parsePort({ port }), {
+                name: 'UsageError',
+                message: 'Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700',
+            });
+        }
+    });
 });
 describe('assertNoArgs', () => {
     it('accepts an empty list', () => {
