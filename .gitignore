@@ -11,3 +11,6 @@ node_modules/
 
 # Scratch copies of ui.html script fragments written by the test harness
 .test-scratch/
+
+# Stryker mutation-testing output
+reports/
