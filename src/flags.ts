@@ -105,8 +105,9 @@ export function parsePort(flags: Record<string, string>): number | undefined {
   if (!/^\d+$/.test(flags['port'])) {
     throw new UsageError('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
   }
+  // The regex above already rejects a leading '-', so only the upper bound needs checking.
   const port = Number(flags['port']);
-  if (port < 0 || port > 65535) {
+  if (port > 65535) {
     throw new UsageError('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
   }
   return port;
