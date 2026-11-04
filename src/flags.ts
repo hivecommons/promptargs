@@ -101,14 +101,15 @@ export function parseFlags(args: string[]): Record<string, string> {
 
 export function parsePort(flags: Record<string, string>): number | undefined {
   if (!('port' in flags)) return undefined;
+  const portError = 'Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700';
   // Only accept decimal digits; reject scientific notation (1e3), hex (0x50), decimals (80.0), signs (+80), and whitespace (' 80').
   if (!/^\d+$/.test(flags['port'])) {
-    throw new UsageError('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
+    throw new UsageError(portError);
   }
   // The regex above already rejects a leading '-', so only the upper bound needs checking.
   const port = Number(flags['port']);
   if (port > 65535) {
-    throw new UsageError('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
+    throw new UsageError(portError);
   }
   return port;
 }
