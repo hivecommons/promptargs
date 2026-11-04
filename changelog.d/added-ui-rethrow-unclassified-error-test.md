@@ -1,0 +1,1 @@
+Added a UI test asserting that `startUI` rethrows server errors that are neither `EADDRINUSE` nor `EACCES`, so the generic fallthrough keeps a regression test after the EACCES branch gained its own handler in #418.

@@ -681,6 +681,23 @@ test('startUI reports EACCES cleanly instead of crashing', async t => {
   assert.ok(json.stderr.split('\n').includes('{"event":"ui_start_error","error_class":"io"}'), json.stderr);
 });
 
+test('startUI rethrows server errors that are neither EADDRINUSE nor EACCES', async () => {
+  const { server } = await launch();
+  const lines: string[] = [];
+  const origError = console.error;
+  console.error = (...args: unknown[]) => { lines.push(args.join(' ')); };
+  try {
+    const err = Object.assign(new Error('synthetic bind failure'), { code: 'EPROTO' });
+    // The handler runs synchronously inside emit, so a rethrow surfaces here;
+    // a swallowed error would make emit return true instead.
+    assert.throws(() => server.emit('error', err), (thrown: unknown) => thrown === err);
+    assert.deepEqual(lines, [], 'unclassified errors are not reported as ui_start_error');
+  } finally {
+    console.error = origError;
+    await closeServer(server);
+  }
+});
+
 test('portInUseHint suggests --port=0 when port + 1 is out of range', async () => {
   const { portInUseHint } = await import('./ui.js');
   assert.strictEqual(portInUseHint(3700), '--port=3701');
