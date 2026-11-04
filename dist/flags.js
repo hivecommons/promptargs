@@ -91,9 +91,12 @@ export function parseFlags(args) {
 export function parsePort(flags) {
     if (!('port' in flags))
         return undefined;
-    // Number('') is 0, so an empty --port= must be rejected before the range check.
+    // Only accept decimal digits; reject scientific notation (1e3), hex (0x50), decimals (80.0), signs (+80), and whitespace (' 80').
+    if (!/^\d+$/.test(flags['port'])) {
+        throw new UsageError('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
+    }
     const port = Number(flags['port']);
-    if (flags['port'] === '' || !Number.isInteger(port) || port < 0 || port > 65535) {
+    if (port < 0 || port > 65535) {
         throw new UsageError('Invalid --port: expected an integer from 0 to 65535. Usage: promptargs ui --port=3700');
     }
     return port;
