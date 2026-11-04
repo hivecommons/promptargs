@@ -1,0 +1,31 @@
+# FOSSA CLI configuration for hivecommons/promptargs.
+# Reference: https://github.com/fossas/fossa-cli/blob/master/docs/references/files/fossa-yml.md
+version: 3
+
+project:
+  # Stable project name in the CNCF FOSSA org (the action's `project:` input
+  # mirrors this so UI and CI agree).
+  name: hivecommons/promptargs
+  # Team NAME in the CNCF FOSSA org (team id 207492). Only applied when the
+  # project is first created; later changes must be made in the FOSSA UI.
+  team: Hive Commons
+  url: https://github.com/hivecommons/promptargs
+
+# Single npm package at the repo root (@hivecommons/promptargs). FOSSA
+# auto-discovers every manifest; pin the shipped package explicitly so a future
+# re-layout does not silently drop it. dist/ is the committed build output of
+# the same package, so it carries no additional dependencies.
+targets:
+  only:
+    - type: npm
+      path: .
+
+paths:
+  exclude:
+    - docs
+    - examples
+    - scripts
+    - skills
+    - runbooks
+    - changelog.d
+    - dist
