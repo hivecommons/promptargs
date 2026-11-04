@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SUBCOMMANDS as CLI_SUBCOMMANDS } from './flags.js';
+import { SUBCOMMANDS as CLI_SUBCOMMANDS, SWITCHES as CLI_SWITCHES } from './flags.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const CLI = join(__dirname, 'cli.js');
@@ -24,8 +24,7 @@ const README = join(ROOT, 'README.md');
 // match the directory name; description is required and at most 1024 chars.
 const SPEC_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const SPEC_FIELDS = new Set(['name', 'description', 'license', 'compatibility', 'metadata', 'allowed-tools']);
-// Switches cli.ts accepts; every other --flag must be a template variable.
-const CLI_SWITCHES = new Set(['no-interactive', 'cross', 'json', 'status']);
+// Switches cli.ts accepts (shared with flags.ts); every other --flag must be a template variable.
 // The CLI's subcommand set is shared with the dispatch implementation.
 // Templates `promptargs init` writes, so `promptargs <name>` resolves.
 const INIT_TEMPLATES = new Set(['review', 'explain', 'fix']);
@@ -238,6 +237,21 @@ test('README.md and SKILL.md list exactly the reserved subcommand names', () => 
         assert.ok(m, `${file} should list the template names reserved for subcommands`);
         const names = [...m[1].matchAll(/`([^`]+)`/g)].map((x) => x[1]);
         assert.deepStrictEqual([...new Set(names)].sort(), expected, `${file}: reserved subcommand names drifted from SUBCOMMANDS`);
+    }
+});
+test('README.md and SKILL.md list exactly the reserved switch names', () => {
+    // Both docs enumerate the variable names the CLI reserves for its
+    // switches; `help` is reserved by wantsHelp/assertNoReservedVars rather
+    // than SWITCHES, so it is an explicit extra here.
+    const expected = [...CLI_SWITCHES, 'help'].sort();
+    for (const file of [README, SKILL_FILE]) {
+        const content = readFileSync(file, 'utf-8');
+        const matches = [...content.matchAll(/switch names (.*?) are (?:also )?(?:rejected|reserved)/g)];
+        assert.ok(matches.length > 0, `${file} should list the variable names reserved for CLI switches`);
+        for (const m of matches) {
+            const names = [...m[1].matchAll(/`([^`]+)`/g)].map((x) => x[1]);
+            assert.deepStrictEqual([...new Set(names)].sort(), expected, `${file}: reserved switch names drifted from SWITCHES`);
+        }
     }
 });
 //# sourceMappingURL=skill.test.js.map
