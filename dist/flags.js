@@ -28,7 +28,7 @@ export function wantsHelp(args) {
         const arg = args[i];
         if (arg === '--help' || arg === '-h')
             return true;
-        if (arg.startsWith('--') && !arg.includes('=') && !SWITCHES.has(arg.slice(2)) && i + 1 < args.length && !args[i + 1].startsWith('--')) {
+        if (arg.length > 2 && arg.startsWith('--') && !arg.includes('=') && !SWITCHES.has(arg.slice(2)) && i + 1 < args.length && !args[i + 1].startsWith('--')) {
             i++;
         }
     }
@@ -64,6 +64,9 @@ export function parseFlags(args) {
         const arg = args[i];
         if (!arg.startsWith('--')) {
             throw new UsageError(`Unexpected argument: ${arg}`);
+        }
+        if (arg === '--' || arg.startsWith('--=')) {
+            throw new UsageError(`Invalid argument "${arg}": a flag needs a name (--name=value)`);
         }
         const eq = arg.indexOf('=');
         if (eq > 0) {

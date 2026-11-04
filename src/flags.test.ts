@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { UsageError, assertKnownFlags, assertNoArgs, parseFlags, parsePort, assertOnlyFlags } from './flags.js';
+import { UsageError, assertKnownFlags, wantsHelp, assertNoArgs, parseFlags, parsePort, assertOnlyFlags } from './flags.js';
 
 describe('parseFlags', () => {
   it('parses --key=value', () => {
@@ -64,6 +64,19 @@ describe('parseFlags', () => {
       message: 'Invalid --file: --file requires a value: --file=<value>',
     });
     assert.throws(() => parseFlags(['--file', '--json']), UsageError);
+  });
+
+  it('rejects an empty flag name for bare -- and --=value', () => {
+    for (const args of [['--'], ['--', 'x'], ['--=x'], ['--=']]) {
+      assert.throws(() => parseFlags(args), {
+        name: 'UsageError',
+        message: `Invalid argument "${args[0]}": a flag needs a name (--name=value)`,
+      });
+    }
+  });
+
+  it('keeps -h detectable after a bare --', () => {
+    assert.strictEqual(wantsHelp(['--', '-h']), true);
   });
 });
 
