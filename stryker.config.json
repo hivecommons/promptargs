@@ -1,11 +1,12 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "testRunner": "command",
-  "commandRunner": { "command": "npm run build && npm test -- --no-coverage" },
+  "commandRunner": { "command": "npm run build && chmod +x dist/cli.js && npm test -- --no-coverage" },
   "checkers": ["typescript"],
   "tsconfigFile": "tsconfig.json",
   "coverageAnalysis": "off",
   "mutate": ["src/**/*.ts", "!src/**/*.test.ts"],
+  "ignorePatterns": [".test-scratch"],
   "incremental": true,
   "incrementalFile": "reports/stryker-incremental.json",
   "reporters": ["html", "clear-text", "progress", "json"],

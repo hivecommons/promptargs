@@ -1,0 +1,1 @@
+`npm run test:mutation` no longer aborts in Stryker's initial dry run: the sandbox copy skips `.test-scratch/` (Stryker rewrites copied `.js` files, which broke the ui-harness self-test) and restores the exec bit on `dist/cli.js` that the copy drops (which broke the packed-bin check). A `scripts/stryker-config.test.mjs` test pins both settings.
