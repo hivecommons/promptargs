@@ -32,6 +32,7 @@ test('stryker runs the suite without the coverage gate so only assertions kill m
 // package.json overrides them inside the Stryker subtree only. Pin the
 // overrides and the resolved versions so a later grouped dependency bump
 // cannot drop them without the suite noticing.
+const pkg = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
 const lock = JSON.parse(readFileSync(new URL('package-lock.json', root), 'utf8'));
 
 function atLeast(actual, minimum) {
