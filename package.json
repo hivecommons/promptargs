@@ -60,5 +60,13 @@
   },
   "dependencies": {
     "mustache": "^4.2.0"
+  },
+  "overrides": {
+    "@stryker-mutator/core": {
+      "minimatch": "^11.0.1",
+      "typed-rest-client": {
+        "qs": "^6.17.1"
+      }
+    }
   }
 }

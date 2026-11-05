@@ -25,3 +25,28 @@ test('stryker never copies the test harness scratch files into the sandbox', () 
 test('stryker runs the suite without the coverage gate so only assertions kill mutants', () => {
   assert.match(config.commandRunner?.command ?? '', /npm test -- --no-coverage/);
 });
+
+// Stryker pins minimatch ~10.2.x and typed-rest-client 2.3.1 hard-pins
+// qs 6.15.1; both carry published advisories whose fixes live in later
+// majors/minors that neither `npm audit fix` nor Dependabot can reach, so
+// package.json overrides them inside the Stryker subtree only. Pin the
+// overrides and the resolved versions so a later grouped dependency bump
+// cannot drop them without the suite noticing.
+const lock = JSON.parse(readFileSync(new URL('package-lock.json', root), 'utf8'));
+
+function atLeast(actual, minimum) {
+  const a = actual.split('.').map(Number);
+  const m = minimum.split('.').map(Number);
+  for (let i = 0; i < m.length; i++) {
+    if (a[i] !== m[i]) return a[i] > m[i];
+  }
+  return true;
+}
+
+test('stryker subtree overrides keep minimatch and qs on patched releases', () => {
+  const stryker = pkg.overrides?.['@stryker-mutator/core'] ?? {};
+  assert.equal(stryker.minimatch, '^11.0.1', 'override @stryker-mutator/core > minimatch to ^11.0.1 (GHSA-g3hv-75wg-m249)');
+  assert.equal(stryker['typed-rest-client']?.qs, '^6.17.1', 'override @stryker-mutator/core > typed-rest-client > qs to ^6.17.1');
+  assert.ok(atLeast(lock.packages['node_modules/minimatch'].version, '11.0.1'), 'lockfile must resolve minimatch >= 11.0.1');
+  assert.ok(atLeast(lock.packages['node_modules/qs'].version, '6.17.1'), 'lockfile must resolve qs >= 6.17.1');
+});
