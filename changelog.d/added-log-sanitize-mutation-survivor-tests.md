@@ -1,0 +1,1 @@
+Tests pinning three behaviours a local Stryker run found unasserted: `classifyError` keeps non-errno codes such as `ABORT_ERR` as `unknown`, `logRequest` reports `duration_ms` in milliseconds (not µs or ns), and `sanitizeForTerminal` strips an unterminated DCS/APC payload through to end of input.
