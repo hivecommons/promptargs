@@ -31,6 +31,8 @@ describe('classifyError', () => {
     assert.strictEqual(classifyError(Object.assign(new Error('x'), { code: 'ENOENT' })), 'not_found');
     assert.strictEqual(classifyError(Object.assign(new Error('x'), { code: 'EADDRINUSE' })), 'port_in_use');
     assert.strictEqual(classifyError(Object.assign(new Error('x'), { code: 'EACCES' })), 'io');
+    // Only errno-style E* codes are io; Node's non-errno codes stay unknown.
+    assert.strictEqual(classifyError(Object.assign(new Error('x'), { code: 'ABORT_ERR' })), 'unknown');
     assert.strictEqual(classifyError(new UsageError('secret-value')), 'usage');
     assert.strictEqual(classifyError(new Error('boom')), 'unknown');
     assert.strictEqual(classifyError(undefined), 'unknown');
@@ -78,5 +80,16 @@ describe('logRequest', () => {
     assert.strictEqual(parsed.event, 'ui_request');
     assert.strictEqual(parsed.status, 200);
     assert.ok(parsed.duration_ms >= 0);
+  });
+
+  it('reports the duration in milliseconds', () => {
+    process.env.PROMPTARGS_LOG = 'json';
+    const lines = capture();
+    // hrtime is in nanoseconds: a start 5ms ago must read as >= 5 and not
+    // as 5000 (microseconds) or 5e9 (nanoseconds).
+    logRequest(200, process.hrtime.bigint() - 5_000_000n);
+    const { duration_ms } = JSON.parse(lines[0]);
+    assert.ok(duration_ms >= 5, `expected >= 5ms, got ${duration_ms}`);
+    assert.ok(duration_ms < 1000, `expected a sub-second duration, got ${duration_ms}`);
   });
 });

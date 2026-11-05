@@ -31,6 +31,12 @@ test('strips DCS/SOS/PM/APC sequences', () => {
   assert.strictEqual(sanitizeForTerminal('\x1b_apc\x1b\\ok'), 'ok');
 });
 
+test('strips unterminated DCS/APC sequences through to the end of input', () => {
+  // Without a closing ST the payload is still the sequence, not text.
+  assert.strictEqual(sanitizeForTerminal('a\x1bPq payload'), 'a');
+  assert.strictEqual(sanitizeForTerminal('a\x1b_apc payload'), 'a');
+});
+
 test('strips single-character escapes', () => {
   assert.strictEqual(sanitizeForTerminal('a\x1bcb'), 'ab');
 });
