@@ -51,6 +51,16 @@ describe('git detectors', () => {
     }
   });
 
+  it('detects repo/org from URLs with trailing slashes', () => {
+    execSync('git remote set-url origin https://github.com/slash-org/slash-repo/', { stdio: 'pipe', timeout: 10_000 });
+    try {
+      assert.strictEqual(autodetect('repo'), 'slash-repo');
+      assert.strictEqual(autodetect('org'), 'slash-org');
+    } finally {
+      execSync('git remote set-url origin https://github.com/pa-test-org/pa-test-repo.git', { stdio: 'pipe', timeout: 10_000 });
+    }
+  });
+
   it('detects the git user name', () => {
     assert.strictEqual(autodetect('user'), 'PA Tester');
   });

@@ -1,0 +1,1 @@
+The `repo` and `org` detectors now strip trailing slashes from the remote URL before matching, so `{{repo}}`/`{{org}}` are correctly detected from URLs like `https://github.com/org/repo/` that git stores verbatim.

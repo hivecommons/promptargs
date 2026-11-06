@@ -28,14 +28,14 @@ function git(cmd) {
 const DETECTORS = {
     branch: () => git('branch --show-current'),
     repo: () => {
-        const remote = git('remote get-url origin');
+        const remote = git('remote get-url origin')?.replace(/\/+$/, '');
         if (!remote)
             return undefined;
         const match = remote.match(/\/([^/]+?)(?:\.git)?$/);
         return match?.[1];
     },
     org: () => {
-        const remote = git('remote get-url origin');
+        const remote = git('remote get-url origin')?.replace(/\/+$/, '');
         if (!remote)
             return undefined;
         const match = remote.match(/[/:]([\w.-]+)\/[\w.-]+?(?:\.git)?$/);
