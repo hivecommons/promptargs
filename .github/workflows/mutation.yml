@@ -1,0 +1,83 @@
+# Advisory mutation-testing report. Report-only: never fails CI on mutation
+# score (stryker thresholds.break is null) and is not a required check.
+# Pull requests mutate only the changed src files under a 20-minute budget;
+# the nightly run mutates the whole tree and refreshes the incremental file.
+name: Mutation (advisory)
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    continue-on-error: true
+    permissions:
+      contents: read
+    env:
+      INCREMENTAL_FILE: reports/stryker-incremental.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Restore Stryker incremental results
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ github.sha }}
+          restore-keys: |
+            stryker-incremental-
+
+      - name: Select files to mutate
+        id: files
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            files=$(git diff --name-only "origin/$BASE_REF...HEAD" -- 'src/*.ts' | { grep -v '\.test\.ts$' || true; } | paste -sd, -)
+          else
+            files="src/**/*.ts,!src/**/*.test.ts"
+          fi
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+          [ -n "$files" ] || echo "No changed src files; skipping mutation run."
+
+      - name: Stryker (pull request, changed files, 20 min budget)
+        if: github.event_name == 'pull_request' && steps.files.outputs.files != ''
+        timeout-minutes: 20
+        continue-on-error: true
+        env:
+          FILES: ${{ steps.files.outputs.files }}
+        run: npx stryker run --mutate "$FILES" --incrementalFile "$INCREMENTAL_FILE"
+
+      - name: Stryker (nightly, whole tree)
+        if: github.event_name != 'pull_request'
+        timeout-minutes: 110
+        continue-on-error: true
+        run: npx stryker run --incrementalFile "$INCREMENTAL_FILE"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: mutation-report
+          path: reports/mutation
+          if-no-files-found: ignore
