@@ -78,6 +78,18 @@ describe('parseFlags', () => {
   it('keeps -h detectable after a bare --', () => {
     assert.strictEqual(wantsHelp(['--', '-h']), true);
   });
+
+  // wantsHelp mirrors parseFlags: a switch never consumes the next token and a
+  // bare flag never consumes a following --token, so -h/--help there is help.
+  it('treats -h after a bare switch as the help flag', () => {
+    assert.strictEqual(wantsHelp(['--json', '-h']), true);
+    assert.strictEqual(wantsHelp(['--no-interactive', '--help']), true);
+  });
+
+  it('treats --help after a bare value flag as the help flag', () => {
+    assert.strictEqual(wantsHelp(['--name', '--help']), true);
+    assert.strictEqual(wantsHelp(['--name', '-h', 'x']), false);
+  });
 });
 
 describe('parsePort', () => {
@@ -177,6 +189,15 @@ describe('assertOnlyFlags', () => {
       (err: unknown) =>
         err instanceof UsageError &&
         err.message === 'Unknown flag --json: ui only accepts --port=<value>',
+    );
+  });
+
+  it('lists every allowed flag comma-separated in the error', () => {
+    assert.throws(
+      () => assertOnlyFlags({ prot: '3700' }, ['port', 'host'], 'ui'),
+      (err: unknown) =>
+        err instanceof UsageError &&
+        err.message === 'Unknown flag --prot: ui only accepts --port=<value>, --host=<value>',
     );
   });
 });

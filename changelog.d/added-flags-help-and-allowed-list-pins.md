@@ -1,0 +1,1 @@
+Added flags tests pinning that -h/--help after a bare switch or a bare value flag is still the help flag, and that the only-accepts usage error lists every allowed flag comma-separated (mutation survivors in wantsHelp and assertOnlyFlags)
