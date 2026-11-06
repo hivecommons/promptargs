@@ -32,13 +32,13 @@ function git(cmd: string): string | undefined {
 const DETECTORS: Record<string, () => string | undefined> = {
   branch: () => git('branch --show-current'),
   repo: () => {
-    const remote = git('remote get-url origin');
+    const remote = git('remote get-url origin')?.replace(/\/+$/, '');
     if (!remote) return undefined;
     const match = remote.match(/\/([^/]+?)(?:\.git)?$/);
     return match?.[1];
   },
   org: () => {
-    const remote = git('remote get-url origin');
+    const remote = git('remote get-url origin')?.replace(/\/+$/, '');
     if (!remote) return undefined;
     const match = remote.match(/[/:]([\w.-]+)\/[\w.-]+?(?:\.git)?$/);
     return match?.[1];
