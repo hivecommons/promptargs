@@ -22,6 +22,25 @@ test('stryker never copies the test harness scratch files into the sandbox', () 
   );
 });
 
+// The exec-bit restore may be spelled as POSIX `chmod +x <target>` or as the
+// portable `fs.chmodSync('<target>', ... | 0o111)`; either must name every bin
+// target and run before `npm test`, or package.test.ts fails the dry run.
+test('stryker restores the exec bit on every bin target before running the suite', () => {
+  const command = config.commandRunner?.command ?? '';
+  const testStep = command.indexOf('npm test');
+  assert.notEqual(testStep, -1, 'commandRunner.command must run npm test');
+  for (const [name, target] of Object.entries(pkg.bin)) {
+    const posix = command.indexOf(`chmod +x ${target}`);
+    const portable = command.indexOf(`'${target}'`);
+    const restore = posix !== -1 ? posix : portable;
+    assert.notEqual(restore, -1, `commandRunner.command must restore the exec bit on ${target} (bin "${name}"): the sandbox copy drops the mode git tracks`);
+    if (posix === -1) {
+      assert.match(command, /chmodSync\(.*0o111\)/, `commandRunner.command must chmodSync ${target} with 0o111`);
+    }
+    assert.ok(restore < testStep, `exec-bit restore for ${target} must run before npm test`);
+  }
+});
+
 test('stryker runs the suite without the coverage gate so only assertions kill mutants', () => {
   assert.match(config.commandRunner?.command ?? '', /npm test -- --no-coverage/);
 });
