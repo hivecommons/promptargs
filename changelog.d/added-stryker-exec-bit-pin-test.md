@@ -1,0 +1,1 @@
+Restored the stryker config test pinning that `commandRunner.command` restores the exec bit on every bin target before `npm test`, now accepting the portable `fs.chmodSync` form as well as `chmod +x` (#436)
