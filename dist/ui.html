@@ -605,9 +605,9 @@
             <tr><td>{{name}}</td><td>Variable (required)</td><td>{{file}} &rarr; main.go</td></tr>
             <tr><td>{{name=val}}</td><td>Variable with default</td><td>{{tone=concise}} &rarr; concise</td></tr>
             <tr><td>{{! text }}</td><td>Comment (ignored)</td><td>{{! TODO: add more }}</td></tr>
-            <tr><td>{{#list}}...{{/list}}</td><td>Section (repeat block)</td><td>{{#files}}Review {{.}}{{/files}}</td></tr>
-            <tr><td>{{^list}}...{{/list}}</td><td>Inverted section (if empty)</td><td>{{^files}}No files{{/files}}</td></tr>
-            <tr><td>{{> partial}}</td><td>Include another template</td><td>{{> header}}</td></tr>
+            <tr><td>{{#list}}...{{/list}}</td><td>Section — parsed, but promptargs never fills the condition, so the block is always dropped</td><td>(avoid for now)</td></tr>
+            <tr><td>{{^list}}...{{/list}}</td><td>Inverted section — parsed, but never filled, so the block is always kept</td><td>(avoid for now)</td></tr>
+            <tr><td>{{> partial}}</td><td>Partial — parsed, but no partials are supplied, so it always expands to nothing</td><td>(avoid for now)</td></tr>
             <tr><td>{{{name}}}</td><td>Unescaped output</td><td>{{{html}}} &rarr; raw HTML</td></tr>
             <tr><td>{{&amp;name}}</td><td>Unescaped (alt syntax)</td><td>Same as {{{name}}}</td></tr>
           </tbody>
