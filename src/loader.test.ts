@@ -137,6 +137,33 @@ describe('loadTemplates', () => {
       rmSync(root2, { recursive: true, force: true });
     }
   });
+
+  // readdirSync order is filesystem-specific (ext4 hash order, APFS sorted),
+  // so a layout cannot reliably reproduce an unsorted listing; reverse the
+  // builtin's result and re-sync the ESM binding loader.js imported.
+  it('returns templates sorted by name regardless of readdir order', (t) => {
+    const root = mkdtempSync(join(process.cwd(), '.pa-order-'));
+    const dir = join(root, '.prompts');
+    mkdirSync(dir);
+    for (const n of ['zeta', 'alpha', 'mid', 'beta']) {
+      writeFileSync(join(dir, `${n}.md`), `${n} {{x}}`);
+    }
+    const realReaddir = fs.readdirSync;
+    const readdir = t.mock.method(fs, 'readdirSync', ((p: fs.PathLike, ...rest: unknown[]) => {
+      const out = (realReaddir as (...a: unknown[]) => { name: string }[])(p, ...rest);
+      // Deterministic reverse-alphabetical order, whatever the filesystem returned.
+      return p === dir ? [...out].sort((a, b) => (a.name < b.name ? 1 : -1)) : out;
+    }) as typeof fs.readdirSync);
+    syncBuiltinESMExports();
+    try {
+      const names = loadTemplates(root).filter(x => x.source === 'project').map(x => x.name);
+      assert.deepStrictEqual(names, ['alpha', 'beta', 'mid', 'zeta']);
+    } finally {
+      readdir.mock.restore();
+      syncBuiltinESMExports();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('findTemplate', () => {
