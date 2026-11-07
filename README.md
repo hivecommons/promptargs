@@ -594,6 +594,7 @@ promptargs is part of [Hive Commons](https://hivecommons.dev), a family of tools
 - Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, and pull request guidelines.
 - Found a bug or have an idea? Open an [issue](https://github.com/hivecommons/promptargs/issues).
 - Have a question? Ask on [Discord](https://hivecommons.dev/discord), or watch the hive live on [Twitch](https://www.twitch.tv/hivecommons).
+- Want to talk to the maintainers live? Join the biweekly [Hive Commons community meeting](https://docs.hivecommons.dev/docs/community/meetings).
 - Reporting a security vulnerability? Follow [SECURITY.md](SECURITY.md) to report it privately, not through public issues.
 - Please follow the [Hive Commons Code of Conduct](https://github.com/hivecommons/.github/blob/main/CODE_OF_CONDUCT.md).
 
