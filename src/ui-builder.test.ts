@@ -255,6 +255,21 @@ test('update renders the parser error for a dotted variable and resets the comma
   assert.equal(h.iterations(), 0);
 });
 
+// parseVars accepts a template whose Mustache section is never closed (it only
+// matches {{name}} blanks), so the throw surfaces from the render inside the
+// results loop, not from the variable check that precedes it.
+test('update renders the render error for an unclosed Mustache section and resets the command', () => {
+  const h = makeHarness('cross');
+  h.tmpl.value = '{{#list}}Fix {{file}} in {{repo}}';
+  h.rows.push({ name: 'file', values: 'a.go,b.go' }, { name: 'repo', values: 'promptargs' });
+  h.update();
+  assert.match(h.previewBody.innerHTML, /^<span class="preview-empty">Unclosed section "list" at \d+<\/span>$/);
+  assert.equal(h.previewCount.textContent, 'error');
+  assert.equal(h.previewCount.className, 'preview-count empty');
+  assert.equal(h.cli(), 'promptargs');
+  assert.equal(h.iterations(), 0);
+});
+
 for (const name of ['json', 'cross', 'status', 'no-interactive', 'help']) {
   for (const blank of [`{{${name}}}`, `{{${name}=yaml}}`]) {
     test(`update rejects reserved blank ${blank} with or without a value`, () => {
