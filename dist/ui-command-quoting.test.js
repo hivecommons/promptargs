@@ -99,4 +99,12 @@ test('a template containing ! is single-quoted so interactive-shell history expa
     assert.deepEqual(shellWords(cmd), ['Fix it!{{file}}', '--file=x.go']);
     assert.equal(commandFor('Fix it {{file}}', [{ name: 'file', values: 'x.go' }]), 'promptargs "Fix it {{file}}" --file=x.go');
 });
+test('a row whose name is not a blank in the template adds no flag, so the CLI does not reject the command', () => {
+    const command = commandFor('Review {{path}} for bugs.', [
+        { name: 'file', values: 'src/main.ts' },
+        { name: 'path', values: 'src/main.ts' },
+    ]);
+    assert.ok(!command.includes('--file='), command);
+    assert.deepEqual(shellWords(command), ['Review {{path}} for bugs.', '--path=src/main.ts']);
+});
 //# sourceMappingURL=ui-command-quoting.test.js.map

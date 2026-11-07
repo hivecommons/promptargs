@@ -876,8 +876,11 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
     }
 
     const results = [];
+    let blanks = new Set();
     try {
-      assertNoReservedVars(parseVars(text));
+      const vars = parseVars(text);
+      assertNoReservedVars(vars);
+      blanks = new Set(vars.map(v => v.name));
       for (const combo of combos) {
         const vals = Object.assign(Object.create(null), scalarValues);
         arrayVars.forEach((v, i) => { vals[v.name] = combo[i]; });
@@ -927,7 +930,7 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
       cli += ' <template>';
     }
     for (const row of rows) {
-      if (!row.values) continue;
+      if (!row.values || !blanks.has(row.name)) continue;
       const prefix = row.source === 'file' ? '@' : '';
       // Globs keep their double quotes so the CLI, not the shell, expands them;
       // the same escaping as the template keeps the pattern itself literal.
