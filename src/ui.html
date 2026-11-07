@@ -854,10 +854,25 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
       return;
     }
 
+    let blanks;
+    try {
+      const vars = parseVars(text);
+      assertNoReservedVars(vars);
+      blanks = new Set(vars.map(v => v.name));
+    } catch (err) {
+      previewBody.innerHTML = `<span class="preview-empty">${escHtml(err instanceof Error ? err.message : String(err))}</span>`;
+      previewCount.textContent = 'error';
+      previewCount.className = 'preview-count empty';
+      cliText.innerHTML = '<span class="dollar">$</span>promptargs';
+      return;
+    }
+
     const arrayVars = [];
     const scalarValues = Object.create(null);
 
+    // Rows whose blank left the template must not affect the count or --cross.
     for (const row of rows) {
+      if (!blanks.has(row.name)) continue;
       const vals = splitValues(row.values, row.source);
       if (vals.length > 1) {
         arrayVars.push({ name: row.name, values: vals, source: row.source });
@@ -876,11 +891,7 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
     }
 
     const results = [];
-    let blanks = new Set();
     try {
-      const vars = parseVars(text);
-      assertNoReservedVars(vars);
-      blanks = new Set(vars.map(v => v.name));
       for (const combo of combos) {
         const vals = Object.assign(Object.create(null), scalarValues);
         arrayVars.forEach((v, i) => { vals[v.name] = combo[i]; });
