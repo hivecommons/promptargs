@@ -105,7 +105,9 @@ export function loadTemplates(cwd?: string): PromptTemplate[] {
   for (const t of userTemplates) byName.set(t.name, t);
   for (const t of projectTemplates) byName.set(t.name, t);
 
-  return Array.from(byName.values());
+  // readdirSync order is filesystem-specific (hash order on ext4), so sort
+  // by name to keep `list` output stable across machines.
+  return Array.from(byName.values()).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 }
 
 export function findTemplate(name: string, cwd?: string): PromptTemplate | undefined {
