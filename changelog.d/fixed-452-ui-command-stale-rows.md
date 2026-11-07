@@ -1,0 +1,1 @@
+The builder UI no longer adds a `--name=value` flag to the generated command for a variable row whose blank is not in the template, so the copied command runs instead of failing with "Unknown flag" (#452)
