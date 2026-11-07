@@ -125,6 +125,19 @@ export function requestCarriesToken(url, token) {
 export function portInUseHint(port) {
     return `--port=${port + 1 > 65535 ? 0 : port + 1}`;
 }
+export function allowedHostsFor(boundPort) {
+    const hosts = new Set();
+    hosts.add(`localhost:${boundPort}`);
+    hosts.add(`127.0.0.1:${boundPort}`);
+    hosts.add(`[::1]:${boundPort}`);
+    // Clients omit the port from Host when it is the scheme default (RFC 9110 §7.2).
+    if (boundPort === 80) {
+        hosts.add('localhost');
+        hosts.add('127.0.0.1');
+        hosts.add('[::1]');
+    }
+    return hosts;
+}
 export function startUI(port = DEFAULT_PORT, options = {}) {
     const __dirname = dirname(fileURLToPath(import.meta.url));
     const htmlPath = join(__dirname, 'ui.html');
@@ -193,9 +206,8 @@ export function startUI(port = DEFAULT_PORT, options = {}) {
     // be reachable from other machines on the network.
     server.listen(port, '127.0.0.1', () => {
         const boundPort = server.address().port;
-        ALLOWED_HOSTS.add(`localhost:${boundPort}`);
-        ALLOWED_HOSTS.add(`127.0.0.1:${boundPort}`);
-        ALLOWED_HOSTS.add(`[::1]:${boundPort}`);
+        for (const h of allowedHostsFor(boundPort))
+            ALLOWED_HOSTS.add(h);
         const url = `http://localhost:${boundPort}/?${UI_TOKEN_PARAM}=${token}`;
         console.log(`promptargs builder running at ${url}`);
         console.log('Press Ctrl+C to stop.\n');
