@@ -1,0 +1,1 @@
+- `promptargs ui --port=80` no longer rejects every request: the bare `localhost` / `127.0.0.1` / `[::1]` Host forms are accepted when the bound port is the HTTP default (#448).

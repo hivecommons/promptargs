@@ -8,7 +8,7 @@ import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSy
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { buildContentSecurityPolicy, buildPageHeaders, buildUIHtml, collectEnvVars, PAGE_HEADERS, requestCarriesToken, shouldSkipEnv, startUI, truncateValue, } from './ui.js';
+import { allowedHostsFor, buildContentSecurityPolicy, buildPageHeaders, buildUIHtml, collectEnvVars, PAGE_HEADERS, requestCarriesToken, shouldSkipEnv, startUI, truncateValue, } from './ui.js';
 test('shouldSkipEnv filters noisy shell and tooling variables', () => {
     assert.equal(shouldSkipEnv('HOME'), true);
     assert.equal(shouldSkipEnv('npm_config_cache'), true);
@@ -18,6 +18,24 @@ test('shouldSkipEnv filters noisy shell and tooling variables', () => {
 test('truncateValue shortens long values and leaves short values unchanged', () => {
     assert.equal(truncateValue('short', 10), 'short');
     assert.equal(truncateValue('abcdefghijklmnopqrstuvwxyz', 8), 'abcdefgh...');
+});
+test('allowedHostsFor returns host:port forms for non-80 ports; adds bare forms only for port 80', () => {
+    const nonDefault = allowedHostsFor(3700);
+    assert.equal(nonDefault.size, 3);
+    assert.ok(nonDefault.has('localhost:3700'));
+    assert.ok(nonDefault.has('127.0.0.1:3700'));
+    assert.ok(nonDefault.has('[::1]:3700'));
+    assert.ok(!nonDefault.has('localhost'));
+    assert.ok(!nonDefault.has('127.0.0.1'));
+    assert.ok(!nonDefault.has('[::1]'));
+    const defaultPort = allowedHostsFor(80);
+    assert.equal(defaultPort.size, 6);
+    assert.ok(defaultPort.has('localhost:80'));
+    assert.ok(defaultPort.has('127.0.0.1:80'));
+    assert.ok(defaultPort.has('[::1]:80'));
+    assert.ok(defaultPort.has('localhost'));
+    assert.ok(defaultPort.has('127.0.0.1'));
+    assert.ok(defaultPort.has('[::1]'));
 });
 test('collectEnvVars includes terminal env values without skipped keys', () => {
     const savedVisible = process.env['PROMPTARGS_TEST_VISIBLE'];
