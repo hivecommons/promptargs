@@ -109,10 +109,16 @@ test('every shipped runtime module has its .d.ts alongside', () => {
   assert.deepStrictEqual(missing, [], `modules shipped without types:\n${missing.join('\n')}`);
 });
 
-test('static routes the UI serves to the browser are all in the tarball', () => {
+test('static routes the UI serves to the browser are all in the tarball', (t) => {
   // Mirror STATIC_JS_ROUTES in src/ui.ts: if a route is added there without
   // the file reaching the tarball, the installed UI 404s on page load.
   const uiSource = readFileSync(join(__dirname, 'ui.js'), 'utf-8');
+  // Stryker rewrites the declaration to `stryMutAct_…("n") ? {} : (…, {` in
+  // its sandbox, so the literal scan below cannot see the object there and
+  // the dry run aborts before a single mutant is tested. The contract is
+  // about what npm ships, not about ui.ts logic; nothing is lost by not
+  // scanning instrumented code.
+  if (uiSource.includes('stryMutAct_')) return t.skip('dist/ui.js is Stryker-instrumented');
   const routeBlock = /STATIC_JS_ROUTES\s*=\s*\{([\s\S]*?)\};/.exec(uiSource);
   assert.ok(routeBlock, 'STATIC_JS_ROUTES not found in dist/ui.js');
   const targets = [...routeBlock[1].matchAll(/:\s*'([^']+)'/g)].map((m) => m[1]);
