@@ -1,0 +1,1 @@
+- Fixed the tarball static-route contract test aborting every Stryker run that mutates `ui.ts`, so the advisory mutation workflow can get past its dry run (#460)
