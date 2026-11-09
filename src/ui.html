@@ -817,8 +817,11 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
   function splitValues(raw, source) {
     if (!raw) return [];
     if (source === 'file') return [raw];
-    // Mirrors splitUnescaped in resolver.ts: `\,` is a literal comma, `\\,` a
-    // literal backslash followed by a separator.
+    // Mirrors expandArrayValue in resolver.ts: a comma-free value is kept
+    // verbatim (no trim). Otherwise it follows splitUnescaped: `\,` is a
+    // literal comma, `\\,` a literal backslash followed by a separator, and
+    // pieces are trimmed.
+    if (!raw.includes(',')) return [raw];
     const pieces = [];
     let piece = '';
     let last = 0;

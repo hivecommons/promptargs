@@ -1,0 +1,1 @@
+- Fixed the builder UI preview trimming single comma-free values, which the CLI keeps verbatim (#466)
