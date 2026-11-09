@@ -1,1 +1,1 @@
-- Fixed the builder UI preview trimming single comma-free values, which the CLI keeps verbatim (#466)
+- ui: the builder's `splitValues` now mirrors the resolver for comma-free values, keeping them verbatim instead of trimming; the rendered preview is unchanged because row values are already trimmed upstream, so this keeps the UI/CLI parity test honest (#466)
