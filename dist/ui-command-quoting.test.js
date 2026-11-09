@@ -99,6 +99,14 @@ test('a template containing ! is single-quoted so interactive-shell history expa
     assert.deepEqual(shellWords(cmd), ['Fix it!{{file}}', '--file=x.go']);
     assert.equal(commandFor('Fix it {{file}}', [{ name: 'file', values: 'x.go' }]), 'promptargs "Fix it {{file}}" --file=x.go');
 });
+test('a glob value containing ! is single-quoted so history expansion cannot fire, and !-free globs stay double-quoted', () => {
+    const cmd = commandFor('{{src}}', [{ name: 'src', values: 'notes!/*.md', source: 'glob' }]);
+    assert.equal(cmd, `promptargs "{{src}}" --src='notes!/*.md'`);
+    assert.deepEqual(shellWords(cmd), ['{{src}}', '--src=notes!/*.md']);
+    const cmd2 = commandFor('{{src}}', [{ name: 'src', values: 'src/*.go', source: 'glob' }]);
+    assert.equal(cmd2, `promptargs "{{src}}" --src="src/*.go"`);
+    assert.deepEqual(shellWords(cmd2), ['{{src}}', '--src=src/*.go']);
+});
 test('a row whose name is not a blank in the template adds no flag, so the CLI does not reject the command', () => {
     const command = commandFor('Review {{path}} for bugs.', [
         { name: 'file', values: 'src/main.ts' },
