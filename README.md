@@ -87,17 +87,20 @@ curl -o ~/.claude/commands/promptargs.md \
   https://raw.githubusercontent.com/hivecommons/promptargs/main/.claude/commands/promptargs.md
 ```
 
+Goose and Bob load a skill only from a `SKILL.md` inside its own folder, so
+these commands save the file as `promptargs/SKILL.md`:
+
 **Goose:**
 ```bash
-mkdir -p ~/.config/goose/skills
-curl -o ~/.config/goose/skills/promptargs.md \
+mkdir -p ~/.config/goose/skills/promptargs
+curl -o ~/.config/goose/skills/promptargs/SKILL.md \
   https://raw.githubusercontent.com/hivecommons/promptargs/main/.goose/agents/promptargs.md
 ```
 
 **Bob (IBM):**
 ```bash
-mkdir -p ~/.bob/skills
-curl -o ~/.bob/skills/promptargs.md \
+mkdir -p ~/.bob/skills/promptargs
+curl -o ~/.bob/skills/promptargs/SKILL.md \
   https://raw.githubusercontent.com/hivecommons/promptargs/main/.bob/skills/promptargs.md
 ```
 

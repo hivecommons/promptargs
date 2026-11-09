@@ -247,6 +247,20 @@ test('README documents copying the skill into each user skills directory', () =>
   }
 });
 
+test('README curls skill files into a promptargs/SKILL.md folder', () => {
+  // Goose and Bob only discover a skill as <skills dir>/<name>/SKILL.md; a
+  // loose promptargs.md in the skills directory is silently never loaded.
+  const readme = readFileSync(README, 'utf-8');
+  const dests = [...readme.matchAll(/curl -o (\S+)/g)]
+    .map((m) => m[1])
+    .filter((d) => /\/skills\//.test(d));
+  assert.ok(dests.length > 0, 'README should curl at least one skill into a skills directory');
+  for (const dest of dests) {
+    assert.match(dest, /\/skills\/promptargs\/SKILL\.md$/, `${dest} should be <skills dir>/promptargs/SKILL.md`);
+    assert.ok(readme.includes(`mkdir -p ${dirname(dest)}\n`), `README should create ${dirname(dest)} before curling into it`);
+  }
+});
+
 test('the slash-command skill files agree with SKILL.md on the always-on switch', () => {
   // Each tool-specific copy under .claude/, .goose/ and .bob/ is hand
   // maintained; all of them must still tell the agent to pass
