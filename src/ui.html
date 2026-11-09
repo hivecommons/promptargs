@@ -943,9 +943,12 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
     for (const row of rows) {
       if (!row.values || !blanks.has(row.name)) continue;
       const prefix = row.source === 'file' ? '@' : '';
-      // Globs keep their double quotes so the CLI, not the shell, expands them;
+      // Globs keep double quotes so the CLI, not the shell, expands them;
       // the same escaping as the template keeps the pattern itself literal.
-      const val = row.source === 'glob' ? dquote(row.values) : shellQuote(`${prefix}${row.values}`);
+      // A glob containing ! is single-quoted instead: interactive bash/zsh still
+      // history-expands ! inside double quotes (backslash does not help), and
+      // single quotes also suppress shell globbing so the CLI still receives the pattern.
+      const val = row.source === 'glob' ? (row.values.includes('!') ? shellQuote(row.values) : dquote(row.values)) : shellQuote(`${prefix}${row.values}`);
       cli += ` --${row.name}=${val}`;
     }
     if (mode === 'cross' && arrayVars.length > 1) {
