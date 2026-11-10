@@ -74,6 +74,14 @@ test('ui splitValues mirrors CLI comma-separated handling', () => {
   assert.deepEqual(uiSplitValues('one,two', 'file'), ['one,two']);
 });
 
+test('ui splitValues keeps comma-free values verbatim like the CLI', async () => {
+  for (const raw of [' hello ', '   ']) {
+    assert.deepEqual(uiSplitValues(raw, 'manual'), [raw]);
+    const res = await resolve([{ name: 'x', raw: '{{x}}' }], { x: raw }, false, true);
+    assert.deepEqual(res.iterations.map(it => it['x']), uiSplitValues(raw, 'manual'));
+  }
+});
+
 test('ui esc/escHtml escape injection-relevant characters', () => {
   // esc feeds attribute values built with innerHTML
   assert.equal(uiEsc('a&b "c" <d>'), 'a&amp;b &quot;c&quot; &lt;d>');
