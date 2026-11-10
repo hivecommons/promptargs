@@ -2,6 +2,12 @@
 
 Thank you for helping improve promptargs.
 
+## Finding something to work on
+
+- Issues labelled [`good first issue`](https://github.com/hivecommons/promptargs/labels/good%20first%20issue) are scoped for a first contribution; [`help wanted`](https://github.com/hivecommons/promptargs/labels/help%20wanted) issues are open to anyone.
+- Use promptargs with an AI coding tool it does not cover yet, or one where the skill misbehaves? Open an [AI tool integration request](https://github.com/hivecommons/promptargs/issues/new?template=integration_request.yml).
+- Not sure where to start? Ask on [Discord](https://hivecommons.dev/discord) or bring it to the biweekly [Hive Commons community meeting](https://docs.hivecommons.dev/docs/community/meetings).
+
 ## Local setup
 
 Use Node.js 22 or newer, then install dependencies:
