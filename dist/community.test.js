@@ -26,4 +26,20 @@ test('issue chooser config lists Discord, Twitch and community meeting contact l
     for (const url of LINKS)
         assert.match(config, new RegExp(`^\\s+url: ${url.replace(/[.]/g, '\\.')}$`, 'm'), `config.yml is missing ${url}`);
 });
+test('CONTRIBUTING.md points newcomers at starter issues, the integration form, Discord and the community meeting (hivecommons/promptargs#469)', () => {
+    const contributing = readFileSync(join(ROOT, 'CONTRIBUTING.md'), 'utf-8');
+    const start = contributing.indexOf('## Finding something to work on');
+    assert.notStrictEqual(start, -1, 'CONTRIBUTING.md lost its "Finding something to work on" section');
+    const end = contributing.indexOf('\n## ', start + 1);
+    const section = contributing.slice(start, end === -1 ? undefined : end);
+    const expected = [
+        'https://github.com/hivecommons/promptargs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22',
+        'https://github.com/hivecommons/promptargs/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22',
+        'https://github.com/hivecommons/promptargs/issues/new?template=integration_request.yml',
+        LINKS[0],
+        LINKS[2],
+    ];
+    for (const url of expected)
+        assert.ok(section.includes(`(${url})`), `CONTRIBUTING.md is missing ${url}`);
+});
 //# sourceMappingURL=community.test.js.map
