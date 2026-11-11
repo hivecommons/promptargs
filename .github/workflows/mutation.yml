@@ -1,7 +1,7 @@
 # Advisory mutation-testing report. Report-only: never fails CI on mutation
 # score (stryker thresholds.break is null) and is not a required check.
 # Pull requests mutate only the changed src files under a 20-minute budget;
-# the nightly run mutates the whole tree and refreshes the incremental file.
+# the nightly run (6h budget for cold start) mutates the whole tree and refreshes the incremental file.
 name: Mutation (advisory)
 
 on:
@@ -21,7 +21,7 @@ concurrency:
 jobs:
   mutation:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 350
     continue-on-error: true
     permissions:
       contents: read
@@ -71,9 +71,13 @@ jobs:
 
       - name: Stryker (nightly, whole tree)
         if: github.event_name != 'pull_request'
-        timeout-minutes: 110
+        timeout-minutes: 330
         continue-on-error: true
         run: npx stryker run --incrementalFile "$INCREMENTAL_FILE"
+
+      - name: Report missing nightly mutation report
+        if: github.event_name != 'pull_request' && hashFiles('reports/mutation/**') == ''
+        run: echo "::warning title=Mutation (advisory)::nightly Stryker run produced no report (timed out or crashed); incremental cache not refreshed"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
