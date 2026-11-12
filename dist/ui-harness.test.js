@@ -2,8 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, isAbsolute, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SCRATCH_DIR, compileInlineScript } from './ui-harness.js';
+test('SCRATCH_DIR sits beside dist/, not inside it', () => {
+    // The harness runs compiled from dist/; package.json "files" ships dist/
+    // wholesale (minus test globs), so a scratch dir under it would be
+    // published. Pin the one-level-up placement the module relies on.
+    const distDir = dirname(fileURLToPath(import.meta.url));
+    const fromDist = relative(distDir, SCRATCH_DIR);
+    assert.ok(fromDist.startsWith('..') && !isAbsolute(fromDist), `${SCRATCH_DIR} should resolve outside ${distDir}, got relative path ${fromDist}`);
+    assert.equal(SCRATCH_DIR, join(distDir, '..', '.test-scratch', 'ui-inline'));
+});
 test('compileInlineScript returns a callable bound to the given parameters', () => {
     const add = compileInlineScript('harness-self-test', ['a', 'b'], 'return a + b;');
     assert.equal(add(2, 3), 5);

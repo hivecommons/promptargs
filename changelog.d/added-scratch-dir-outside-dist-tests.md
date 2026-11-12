@@ -1,0 +1,1 @@
+Tests now pin the UI test harness scratch directory to the repository root, outside `dist/`, and the tarball guard rejects a `.test-scratch` directory at any depth, so harness output can never ride into `npm publish` alongside `dist/`.
