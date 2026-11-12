@@ -31,7 +31,9 @@ test('tarball ships no compiled test files', () => {
     assert.deepStrictEqual(leaked, [], `test files leaked into the tarball:\n${leaked.join('\n')}`);
 });
 test('tarball ships no test scratch output', () => {
-    const scratch = packed.filter((p) => p.startsWith('.test-scratch/'));
+    // Match anywhere in the path: the harness writes to <root>/.test-scratch
+    // today, but a slip into dist/.test-scratch would ride along with dist/.
+    const scratch = packed.filter((p) => p.split('/').includes('.test-scratch'));
     assert.deepStrictEqual(scratch, []);
 });
 test('tarball ships no test-only helper modules', () => {
