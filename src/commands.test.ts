@@ -1,6 +1,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import fs, { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, lstatSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import fs, { chmodSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, lstatSync, existsSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,7 +12,7 @@ const fakeHome = mkdtempSync(join(process.cwd(), '.pa-home-'));
 process.env.HOME = fakeHome;
 mkdirSync(join(fakeHome, '.prompts'));
 
-const { doShow, doList, doInit } = await import('./commands.js');
+const { doShow, doList, doInit, printEnv } = await import('./commands.js');
 const { UsageError } = await import('./flags.js');
 
 function captureShowNamed(name: string, content: string): { out: string; err: string } {
@@ -64,6 +65,35 @@ function captureList(templateContent: string, templateName: string = 'demo.md'):
 
 after(() => {
   rmSync(fakeHome, { recursive: true, force: true });
+});
+
+describe('printEnv', () => {
+  it('keeps a staged multi-line diff preview on one line before the next row', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'promptargs-env-'));
+    const prevCwd = process.cwd();
+    const prevPath = process.env.PATH;
+    const origLog = console.log;
+    const lines: string[] = [];
+    try {
+      execFileSync('git', ['init', '-q', dir]);
+      writeFileSync(join(dir, 'example.txt'), 'first line\nsecond line\n');
+      writeFileSync(join(dir, 'gh'), '#!/bin/sh\nexit 1\n');
+      chmodSync(join(dir, 'gh'), 0o755);
+      process.env.PATH = `${dir}:${prevPath ?? ''}`;
+      execFileSync('git', ['-C', dir, 'add', 'example.txt']);
+      process.chdir(dir);
+      console.log = (...args: unknown[]) => { lines.push(args.map(String).join(' ')); };
+      printEnv();
+      const output = lines.join('\n').replace(/\x1b\[[0-9;]*m/g, '');
+      assert.match(output, /{{diff}} = [^\r\n]*⏎[^\r\n]*\n  {{pr}} = /);
+    } finally {
+      console.log = origLog;
+      if (prevPath === undefined) delete process.env.PATH;
+      else process.env.PATH = prevPath;
+      process.chdir(prevCwd);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('doShow', () => {
