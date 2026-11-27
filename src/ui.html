@@ -954,7 +954,12 @@ import { cartesian as sharedCartesian, zip as sharedZip } from './iterate.js';
       const val = row.source === 'glob' ? (row.values.includes('!') ? shellQuote(row.values) : dquote(row.values)) : shellQuote(`${prefix}${row.values}`);
       cli += ` --${row.name}=${val}`;
     }
-    if (mode === 'cross' && arrayVars.length > 1) {
+    // A glob or @file value is one opaque value in the preview, but the CLI
+    // can expand it into many, so it counts as a possible array here;
+    // otherwise cross mode would emit a command that the CLI zips instead.
+    const fanOut = rows.filter(r => r.values && blanks.has(r.name) &&
+      (r.source !== 'manual' || splitValues(r.values, r.source).length > 1)).length;
+    if (mode === 'cross' && fanOut > 1) {
       cli += ' --cross';
     }
 
