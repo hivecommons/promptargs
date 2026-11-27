@@ -70,12 +70,12 @@ describe('printEnv', () => {
         const origLog = console.log;
         const lines = [];
         try {
-            execFileSync('git', ['init', '-q', dir]);
+            execFileSync('git', ['init', '-q', dir], { timeout: 10_000 });
             writeFileSync(join(dir, 'example.txt'), 'first line\nsecond line\n');
             writeFileSync(join(dir, 'gh'), '#!/bin/sh\nexit 1\n');
             chmodSync(join(dir, 'gh'), 0o755);
             process.env.PATH = `${dir}:${prevPath ?? ''}`;
-            execFileSync('git', ['-C', dir, 'add', 'example.txt']);
+            execFileSync('git', ['-C', dir, 'add', 'example.txt'], { timeout: 10_000 });
             process.chdir(dir);
             console.log = (...args) => { lines.push(args.map(String).join(' ')); };
             printEnv();
