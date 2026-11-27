@@ -365,7 +365,8 @@ test('editing a row to a glob or @file source re-renders with the matching comma
     mock.timers.tick(DEBOUNCE_MS);
     assert.equal(p.previewCount.textContent, '1 result');
     assert.ok(p.previewBody.innerHTML.includes('Review src/*.go against docs/spec.md'));
-    assert.equal(p.cli(), 'promptargs "Review {{files}} against {{spec}}" --files="src/*.go" --spec=@docs/spec.md');
+    // The page starts on the cross-mode review preset, and either source may fan out in the CLI.
+    assert.equal(p.cli(), 'promptargs "Review {{files}} against {{spec}}" --files="src/*.go" --spec=@docs/spec.md --cross');
 });
 // --- mode buttons ------------------------------------------------------------
 test('mode buttons switch mode, active class, description and re-render immediately', () => {
