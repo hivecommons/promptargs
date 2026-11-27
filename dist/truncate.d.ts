@@ -4,3 +4,4 @@
  */
 export declare const PREVIEW_MAX_CHARS = 60;
 export declare function truncateValue(val: string, max: number): string;
+export declare function previewValue(val: string): string;

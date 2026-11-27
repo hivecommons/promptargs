@@ -4,7 +4,7 @@ import { parseVars, VAR_PATTERN } from './parser.js';
 import { findTemplate, loadTemplates } from './loader.js';
 import { autodetect, AUTODETECT_VARS } from './autodetect.js';
 import { sanitizeForTerminal } from './sanitize.js';
-import { truncateValue, PREVIEW_MAX_CHARS } from './truncate.js';
+import { previewValue } from './truncate.js';
 import { diag } from './log.js';
 import { UsageError, assertNoReservedVars, subcommandCollision } from './flags.js';
 const EXAMPLE_REVIEW = `Review {{file}} for {{focus=correctness}} issues.
@@ -133,7 +133,7 @@ export function printEnv() {
     for (const name of AUTODETECT_VARS) {
         const value = autodetect(name);
         if (value !== undefined) {
-            const display = name === 'diff' ? truncateValue(value, PREVIEW_MAX_CHARS) : value;
+            const display = name === 'diff' ? previewValue(value) : value;
             console.log(`  \x1b[32m{{${name}}}\x1b[0m = ${sanitizeForTerminal(display)}`);
         }
         else {

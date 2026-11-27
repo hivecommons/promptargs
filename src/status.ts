@@ -5,14 +5,7 @@
 
 import type { TemplateVar } from './parser.js';
 import { sanitizeForTerminal } from './sanitize.js';
-import { truncateValue, PREVIEW_MAX_CHARS } from './truncate.js';
-
-// Newlines become a visible marker (not a space) so a multi-line value such as
-// {{diff}} stays on one line yet is still recognisably multi-line.
-function previewValue(val: string): string {
-  const flat = val.replace(/\r\n|\r|\n/g, '⏎');
-  return truncateValue(flat, PREVIEW_MAX_CHARS);
-}
+import { previewValue } from './truncate.js';
 
 export function renderStatus(
   templateName: string,

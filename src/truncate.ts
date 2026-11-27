@@ -16,3 +16,8 @@ export function truncateValue(val: string, max: number): string {
   }
   return val;
 }
+
+// Keep multi-line values on one line while preserving their line boundaries.
+export function previewValue(val: string): string {
+  return truncateValue(val.replace(/\r\n|\r|\n/g, '⏎'), PREVIEW_MAX_CHARS);
+}
