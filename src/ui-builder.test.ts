@@ -223,7 +223,25 @@ test('update does not split a comma-containing @file value into an array', () =>
   h.update();
   assert.equal(h.previewCount.textContent, '2 results');
   assert.deepEqual(expandedTexts(h), ['one,two/x', 'one,two/y']);
-  assert.ok(!h.cli().includes('--cross'), 'only one real array, so no --cross');
+  // The CLI reads one value per line from the file, so it may still be an array.
+  assert.equal(h.cli(), 'promptargs "{{file}}/{{focus}}" --file=@one,two --focus=x,y --cross');
+});
+
+test('update keeps --cross in cross mode when a glob row may fan out in the CLI', () => {
+  const h = makeHarness('cross');
+  h.tmpl.value = 'Review {{file}} for {{focus}}';
+  h.rows.push({ name: 'file', values: 'src/*.go', source: 'glob' }, { name: 'focus', values: 'security,perf' });
+  h.update();
+  // Without --cross the CLI would zip the expanded files with the focus list.
+  assert.equal(h.cli(), 'promptargs "Review {{file}} for {{focus}}" --file="src/*.go" --focus=security,perf --cross');
+});
+
+test('update omits --cross in cross mode when only one row can fan out', () => {
+  const h = makeHarness('cross');
+  h.tmpl.value = 'Review {{file}} for {{focus}}';
+  h.rows.push({ name: 'file', values: 'src/*.go', source: 'glob' }, { name: 'focus', values: 'security' });
+  h.update();
+  assert.ok(!h.cli().includes('--cross'), h.cli());
 });
 
 test('update skips rows with empty values in the command but still previews defaults', () => {

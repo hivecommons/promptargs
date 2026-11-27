@@ -1,0 +1,1 @@
+Fixed the builder UI dropping `--cross` from the generated command in cross mode when a glob or `@file` row was one of the arrays: the CLI expands those into many values, so without `--cross` it zipped them instead of running every combination.
